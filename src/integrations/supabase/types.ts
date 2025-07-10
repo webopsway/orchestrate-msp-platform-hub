@@ -166,6 +166,67 @@ export type Database = {
         }
         Relationships: []
       }
+      documentation: {
+        Row: {
+          content: string | null
+          created_at: string
+          created_by: string
+          id: string
+          metadata: Json | null
+          team_id: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+          version: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          metadata?: Json | null
+          team_id: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          metadata?: Json | null
+          team_id?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentation_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentation_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentation_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       infrastructure_docs: {
         Row: {
           approved_by: string | null
@@ -1194,6 +1255,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_document_version: {
+        Args: { doc_id: string; new_title?: string; new_content?: string }
+        Returns: string
+      }
       get_app_session_variables: {
         Args: Record<PropertyKey, never>
         Returns: {

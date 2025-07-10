@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import Index from "./pages/Index";
 import Organizations from "./pages/Organizations";
 import Security from "./pages/Security";
+import Documentation from "./pages/Documentation";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -71,6 +72,11 @@ function AppRoutes() {
       <Route path="/itsm/security" element={
         <ProtectedRoute>
           <Security />
+        </ProtectedRoute>
+      } />
+      <Route path="/documentation" element={
+        <ProtectedRoute>
+          <Documentation />
         </ProtectedRoute>
       } />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

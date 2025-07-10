@@ -15,6 +15,9 @@ verify_jwt = false
 [functions.notification-dispatcher]
 verify_jwt = false
 
+[functions.generate-document]
+verify_jwt = false
+
 [functions.security-patch-scheduler]
 verify_jwt = true
 
