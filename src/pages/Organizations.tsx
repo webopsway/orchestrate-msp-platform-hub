@@ -224,37 +224,31 @@ const Organizations = () => {
       setLoading(true);
       
       const orgData = {
-        msp_id: sessionContext.current_team_id,
         name: data.name,
-        description: data.description,
-        website: data.website,
-        email: data.email,
-        phone: data.phone,
-        address: {
-          street: data.street,
-          city: data.city,
-          state: data.state,
-          postal_code: data.postal_code,
-          country: data.country
-        },
-        status: 'active' as const,
-        subscription_plan: data.subscription_plan || 'basic',
+        type: 'client' as const,
         metadata: {
+          description: data.description,
+          website: data.website,
+          email: data.email,
+          phone: data.phone,
+          address: {
+            street: data.street,
+            city: data.city,
+            state: data.state,
+            postal_code: data.postal_code,
+            country: data.country
+          },
+          subscription_plan: data.subscription_plan || 'basic',
+          subscription_status: 'active',
           industry: data.industry,
           size: data.size,
           contact_person: data.contact_person
         }
       };
       
-      const dbData = {
-        name: data.name,
-        type: 'client' as const,
-        metadata: orgData
-      };
-      
       const { data: newOrg, error } = await supabase
         .from('organizations')
-        .insert([dbData])
+        .insert([orgData])
         .select()
         .single();
 
@@ -262,7 +256,6 @@ const Organizations = () => {
 
       toast.success('Organisation créée avec succès');
       setIsCreateModalOpen(false);
-      resetNewOrgForm();
       fetchData();
     } catch (error) {
       console.error('Error creating organization:', error);
@@ -280,21 +273,20 @@ const Organizations = () => {
       
       const updateData = {
         name: data.name,
-        description: data.description,
-        website: data.website,
-        email: data.email,
-        phone: data.phone,
-        address: {
-          street: data.street,
-          city: data.city,
-          state: data.state,
-          postal_code: data.postal_code,
-          country: data.country
-        },
-        status: data.status,
-        subscription_plan: data.subscription_plan,
         updated_at: new Date().toISOString(),
         metadata: {
+          description: data.description,
+          website: data.website,
+          email: data.email,
+          phone: data.phone,
+          address: {
+            street: data.street,
+            city: data.city,
+            state: data.state,
+            postal_code: data.postal_code,
+            country: data.country
+          },
+          subscription_plan: data.subscription_plan,
           industry: data.industry,
           size: data.size,
           contact_person: data.contact_person
@@ -310,7 +302,7 @@ const Organizations = () => {
 
       toast.success('Organisation mise à jour avec succès');
       setIsEditModalOpen(false);
-      resetEditOrgForm();
+      setSelectedOrganization(null);
       fetchData();
     } catch (error) {
       console.error('Error updating organization:', error);

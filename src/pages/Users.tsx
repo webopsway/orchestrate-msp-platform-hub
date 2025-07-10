@@ -187,7 +187,7 @@ const Users = () => {
       setLoading(true);
       
       const userData = {
-        id: crypto.randomUUID(), // Generate unique ID
+        id: crypto.randomUUID(),
         email: data.email,
         first_name: data.first_name,
         last_name: data.last_name,
@@ -210,7 +210,6 @@ const Users = () => {
 
       toast.success('Utilisateur créé avec succès');
       setIsCreateModalOpen(false);
-      resetNewUserForm();
       fetchData();
     } catch (error) {
       console.error('Error creating user:', error);
@@ -230,11 +229,11 @@ const Users = () => {
         email: data.email,
         first_name: data.first_name,
         last_name: data.last_name,
-        phone: data.phone,
-        role: data.role,
-        status: data.status,
         updated_at: new Date().toISOString(),
         metadata: {
+          phone: data.phone,
+          role: data.role,
+          status: data.status,
           department: data.department,
           position: data.position
         }
@@ -249,7 +248,7 @@ const Users = () => {
 
       toast.success('Utilisateur mis à jour avec succès');
       setIsEditModalOpen(false);
-      resetEditUserForm();
+      setSelectedUser(null);
       fetchData();
     } catch (error) {
       console.error('Error updating user:', error);

@@ -6,6 +6,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Toaster } from "@/components/ui/sonner";
 import Index from "./pages/Index";
 import Organizations from "./pages/Organizations";
+import Teams from "./pages/Teams";
 import Security from "./pages/Security";
 import Documentation from "./pages/Documentation";
 import CloudOrchestration from "./pages/CloudOrchestration";
@@ -78,6 +79,11 @@ function AppRoutes() {
       <Route path="/organizations" element={
         <ProtectedRoute>
           <Organizations />
+        </ProtectedRoute>
+      } />
+      <Route path="/teams" element={
+        <ProtectedRoute>
+          <Teams />
         </ProtectedRoute>
       } />
       
