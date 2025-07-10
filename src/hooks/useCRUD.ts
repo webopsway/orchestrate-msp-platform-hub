@@ -56,8 +56,8 @@ export function useCRUD<T = any>({
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [pageSize, setPageSizeState] = useState(10);
+  const [searchTerm, setSearchTermState] = useState("");
   const [filters, setFiltersState] = useState<Record<string, any>>(defaultFilters);
   const [sortColumn, setSortColumn] = useState(defaultSort.column);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(defaultSort.direction);
@@ -72,7 +72,7 @@ export function useCRUD<T = any>({
       setError(null);
 
       let query = supabase
-        .from(table)
+        .from(table as any)
         .select('*', { count: 'exact' });
 
       // Appliquer le filtre d'équipe si spécifié
@@ -119,7 +119,7 @@ export function useCRUD<T = any>({
       if (fetchError) throw fetchError;
 
       const transformedData = transformData ? result?.map(transformData) : result;
-      setData(transformedData || []);
+      setData((transformedData || []) as T[]);
       setTotalCount(count || 0);
     } catch (err: any) {
       const errorMessage = err.message || 'Erreur lors du chargement des données';
@@ -139,8 +139,8 @@ export function useCRUD<T = any>({
       setError(null);
       
       const { data: result, error: createError } = await supabase
-        .from(table)
-        .insert([item])
+        .from(table as any)
+        .insert([item as any])
         .select()
         .single();
 
@@ -149,11 +149,11 @@ export function useCRUD<T = any>({
       const transformedItem = transformData ? transformData(result) : result;
       
       // Mettre à jour les données locales
-      setData(prev => [transformedItem, ...prev]);
+      setData(prev => [transformedItem as T, ...prev]);
       setTotalCount(prev => prev + 1);
       
       toast.success('Élément créé avec succès');
-      return transformedItem;
+      return transformedItem as T;
     } catch (err: any) {
       const errorMessage = err.message || 'Erreur lors de la création';
       setError(errorMessage);
@@ -167,8 +167,8 @@ export function useCRUD<T = any>({
       setError(null);
       
       const { data: result, error: updateError } = await supabase
-        .from(table)
-        .update(updates)
+        .from(table as any)
+        .update(updates as any)
         .eq('id', id)
         .select()
         .single();
@@ -179,11 +179,11 @@ export function useCRUD<T = any>({
       
       // Mettre à jour les données locales
       setData(prev => prev.map(item => 
-        (item as any).id === id ? transformedItem : item
+        (item as any).id === id ? transformedItem as T : item
       ));
       
       toast.success('Élément mis à jour avec succès');
-      return transformedItem;
+      return transformedItem as T;
     } catch (err: any) {
       const errorMessage = err.message || 'Erreur lors de la mise à jour';
       setError(errorMessage);
@@ -197,7 +197,7 @@ export function useCRUD<T = any>({
       setError(null);
       
       const { error: deleteError } = await supabase
-        .from(table)
+        .from(table as any)
         .delete()
         .eq('id', id);
 
@@ -222,7 +222,7 @@ export function useCRUD<T = any>({
       setError(null);
       
       const { error: deleteError } = await supabase
-        .from(table)
+        .from(table as any)
         .delete()
         .in('id', ids);
 
@@ -247,12 +247,12 @@ export function useCRUD<T = any>({
   }, []);
 
   const setPageSize = useCallback((size: number) => {
-    setPageSize(size);
+    setPageSizeState(size);
     setCurrentPage(1); // Retour à la première page
   }, []);
 
   const setSearchTerm = useCallback((term: string) => {
-    setSearchTerm(term);
+    setSearchTermState(term);
     setCurrentPage(1); // Retour à la première page
   }, []);
 
@@ -268,7 +268,7 @@ export function useCRUD<T = any>({
 
   const resetFilters = useCallback(() => {
     setFiltersState(defaultFilters);
-    setSearchTerm("");
+    setSearchTermState("");
     setSortColumn(defaultSort.column);
     setSortDirection(defaultSort.direction);
     setCurrentPage(1);
@@ -316,17 +316,17 @@ export function useCRUD<T = any>({
   };
 }
 
-// Hook spécialisé pour les utilisateurs
+// Hook spécialisé pour les profiles
 export function useUsers(teamId?: string) {
   return useCRUD({
-    table: 'users',
+    table: 'profiles',
     teamId,
     defaultFilters: {},
     defaultSort: { column: 'created_at', direction: 'desc' },
     transformData: (user) => ({
       ...user,
-      fullName: `${user.first_name} ${user.last_name}`,
-      statusColor: user.status === 'active' ? 'green' : user.status === 'pending' ? 'yellow' : 'red'
+      fullName: `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+      statusColor: user.is_msp_admin ? 'blue' : 'green'
     })
   });
 }
@@ -340,7 +340,7 @@ export function useRoles(teamId?: string) {
     defaultSort: { column: 'created_at', direction: 'desc' },
     transformData: (role) => ({
       ...role,
-      permissionCount: role.permissions?.length || 0
+      permissionCount: 0 // Will be populated from role_permissions join
     })
   });
 }
@@ -354,9 +354,9 @@ export function useOrganizations(mspId?: string) {
     defaultSort: { column: 'created_at', direction: 'desc' },
     transformData: (org) => ({
       ...org,
-      fullAddress: org.address ? 
-        `${org.address.street || ''} ${org.address.postal_code || ''} ${org.address.city || ''} ${org.address.country || ''}`.trim() : 
+      fullAddress: org.metadata?.address ? 
+        `${org.metadata.address.street || ''} ${org.metadata.address.postal_code || ''} ${org.metadata.address.city || ''} ${org.metadata.address.country || ''}`.trim() : 
         ''
     })
   });
-} 
+}

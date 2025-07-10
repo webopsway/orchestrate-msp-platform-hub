@@ -473,7 +473,7 @@ export const CRUDForm = ({
                         e.preventDefault();
                         const input = e.target as HTMLInputElement;
                         const newTag = input.value.trim();
-                        if (newTag && !Array.isArray(value)?.includes(newTag)) {
+                        if (newTag && !(Array.isArray(value) && value.includes(newTag))) {
                           const newTags = Array.isArray(value) ? [...value, newTag] : [newTag];
                           handleFieldChange(field.key, newTags);
                           input.value = '';
@@ -488,7 +488,7 @@ export const CRUDForm = ({
                     onClick={(e) => {
                       const input = e.currentTarget.previousElementSibling as HTMLInputElement;
                       const newTag = input.value.trim();
-                      if (newTag && !Array.isArray(value)?.includes(newTag)) {
+                      if (newTag && !(Array.isArray(value) && value.includes(newTag))) {
                         const newTags = Array.isArray(value) ? [...value, newTag] : [newTag];
                         handleFieldChange(field.key, newTags);
                         input.value = '';

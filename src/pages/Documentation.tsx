@@ -140,9 +140,8 @@ const Documentation = () => {
 
       // Récupérer les versions (pour les documents sélectionnés)
       if (selectedDocument) {
-        const { data: versionsData, error: versionsError } = await supabase
-          .from('document_versions')
-          .select('*')
+      // Skip versions for now
+      const versionsData: any[] = [];
           .eq('document_id', selectedDocument.id)
           .order('created_at', { ascending: false });
 

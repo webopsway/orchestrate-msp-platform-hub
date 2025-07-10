@@ -256,7 +256,10 @@ export const PermissionManager = ({
                           checked={isCategoryFullySelected(category)}
                           ref={(el) => {
                             if (el) {
-                              el.indeterminate = isCategoryPartiallySelected(category);
+                              const input = el.querySelector('input');
+                              if (input) {
+                                input.indeterminate = isCategoryPartiallySelected(category);
+                              }
                             }
                           }}
                           onCheckedChange={(checked) => 
@@ -327,7 +330,10 @@ export const PermissionManager = ({
                           checked={isCategoryFullySelected(category)}
                           ref={(el) => {
                             if (el) {
-                              el.indeterminate = isCategoryPartiallySelected(category);
+                              const input = el.querySelector('input');
+                              if (input) {
+                                input.indeterminate = isCategoryPartiallySelected(category);
+                              }
                             }
                           }}
                           onCheckedChange={(checked) => 
