@@ -14,6 +14,388 @@ export type Database = {
   }
   public: {
     Tables: {
+      backup_jobs: {
+        Row: {
+          backup_type: string
+          created_at: string | null
+          destination: string
+          id: string
+          last_run: string | null
+          metadata: Json | null
+          name: string
+          next_run: string | null
+          retention_days: number | null
+          schedule_cron: string | null
+          source_path: string
+          status: string | null
+          team_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          backup_type: string
+          created_at?: string | null
+          destination: string
+          id?: string
+          last_run?: string | null
+          metadata?: Json | null
+          name: string
+          next_run?: string | null
+          retention_days?: number | null
+          schedule_cron?: string | null
+          source_path: string
+          status?: string | null
+          team_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          backup_type?: string
+          created_at?: string | null
+          destination?: string
+          id?: string
+          last_run?: string | null
+          metadata?: Json | null
+          name?: string
+          next_run?: string | null
+          retention_days?: number | null
+          schedule_cron?: string | null
+          source_path?: string
+          status?: string | null
+          team_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backup_jobs_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cloud_instances: {
+        Row: {
+          cloud_provider: string
+          discovered_at: string | null
+          id: string
+          instance_id: string
+          instance_name: string | null
+          instance_type: string | null
+          last_scan: string | null
+          metadata: Json | null
+          region: string | null
+          status: string | null
+          tags: Json | null
+          team_id: string
+        }
+        Insert: {
+          cloud_provider: string
+          discovered_at?: string | null
+          id?: string
+          instance_id: string
+          instance_name?: string | null
+          instance_type?: string | null
+          last_scan?: string | null
+          metadata?: Json | null
+          region?: string | null
+          status?: string | null
+          tags?: Json | null
+          team_id: string
+        }
+        Update: {
+          cloud_provider?: string
+          discovered_at?: string | null
+          id?: string
+          instance_id?: string
+          instance_name?: string | null
+          instance_type?: string | null
+          last_scan?: string | null
+          metadata?: Json | null
+          region?: string | null
+          status?: string | null
+          tags?: Json | null
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_instances_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      infrastructure_docs: {
+        Row: {
+          approved_by: string | null
+          content: string | null
+          created_at: string | null
+          created_by: string
+          doc_type: string | null
+          id: string
+          metadata: Json | null
+          status: string | null
+          team_id: string
+          title: string
+          updated_at: string | null
+          version: string | null
+        }
+        Insert: {
+          approved_by?: string | null
+          content?: string | null
+          created_at?: string | null
+          created_by: string
+          doc_type?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string | null
+          team_id: string
+          title: string
+          updated_at?: string | null
+          version?: string | null
+        }
+        Update: {
+          approved_by?: string | null
+          content?: string | null
+          created_at?: string | null
+          created_by?: string
+          doc_type?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string | null
+          team_id?: string
+          title?: string
+          updated_at?: string | null
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "infrastructure_docs_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "infrastructure_docs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "infrastructure_docs_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itsm_change_requests: {
+        Row: {
+          approved_by: string | null
+          change_type: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          metadata: Json | null
+          requested_by: string
+          scheduled_date: string | null
+          status: string | null
+          team_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          approved_by?: string | null
+          change_type?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          requested_by: string
+          scheduled_date?: string | null
+          status?: string | null
+          team_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          approved_by?: string | null
+          change_type?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          requested_by?: string
+          scheduled_date?: string | null
+          status?: string | null
+          team_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itsm_change_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itsm_change_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itsm_change_requests_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itsm_incidents: {
+        Row: {
+          assigned_to: string | null
+          created_at: string | null
+          created_by: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          priority: string | null
+          resolved_at: string | null
+          status: string | null
+          team_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          priority?: string | null
+          resolved_at?: string | null
+          status?: string | null
+          team_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          priority?: string | null
+          resolved_at?: string | null
+          status?: string | null
+          team_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itsm_incidents_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itsm_incidents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itsm_incidents_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monitoring_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_name: string
+          alert_type: string
+          created_at: string | null
+          id: string
+          message: string | null
+          metadata: Json | null
+          resolved_at: string | null
+          severity: string
+          source_system: string | null
+          status: string | null
+          team_id: string
+          triggered_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_name: string
+          alert_type: string
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          resolved_at?: string | null
+          severity: string
+          source_system?: string | null
+          status?: string | null
+          team_id: string
+          triggered_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_name?: string
+          alert_type?: string
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          resolved_at?: string | null
+          severity?: string
+          source_system?: string | null
+          status?: string | null
+          team_id?: string
+          triggered_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitoring_alerts_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitoring_alerts_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_memberships: {
         Row: {
           created_at: string | null
@@ -145,6 +527,72 @@ export type Database = {
           {
             foreignKeyName: "profiles_default_team_id_fkey"
             columns: ["default_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_vulnerabilities: {
+        Row: {
+          affected_instances: string[] | null
+          assigned_to: string | null
+          created_at: string | null
+          cve_id: string | null
+          description: string | null
+          discovered_at: string | null
+          id: string
+          metadata: Json | null
+          remediated_at: string | null
+          severity: string
+          status: string | null
+          team_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          affected_instances?: string[] | null
+          assigned_to?: string | null
+          created_at?: string | null
+          cve_id?: string | null
+          description?: string | null
+          discovered_at?: string | null
+          id?: string
+          metadata?: Json | null
+          remediated_at?: string | null
+          severity: string
+          status?: string | null
+          team_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          affected_instances?: string[] | null
+          assigned_to?: string | null
+          created_at?: string | null
+          cve_id?: string | null
+          description?: string | null
+          discovered_at?: string | null
+          id?: string
+          metadata?: Json | null
+          remediated_at?: string | null
+          severity?: string
+          status?: string | null
+          team_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_vulnerabilities_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_vulnerabilities_team_id_fkey"
+            columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
             referencedColumns: ["id"]
