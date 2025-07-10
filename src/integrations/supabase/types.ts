@@ -75,12 +75,12 @@ export type Database = {
       }
       cloud_assets: {
         Row: {
+          asset_id: string
+          asset_name: string | null
+          asset_type: string | null
           cloud_provider_id: string
           discovered_at: string | null
           id: string
-          instance_id: string
-          instance_name: string | null
-          instance_type: string | null
           last_scan: string | null
           metadata: Json | null
           region: string | null
@@ -89,12 +89,12 @@ export type Database = {
           team_id: string
         }
         Insert: {
+          asset_id: string
+          asset_name?: string | null
+          asset_type?: string | null
           cloud_provider_id: string
           discovered_at?: string | null
           id?: string
-          instance_id: string
-          instance_name?: string | null
-          instance_type?: string | null
           last_scan?: string | null
           metadata?: Json | null
           region?: string | null
@@ -103,12 +103,12 @@ export type Database = {
           team_id: string
         }
         Update: {
+          asset_id?: string
+          asset_name?: string | null
+          asset_type?: string | null
           cloud_provider_id?: string
           discovered_at?: string | null
           id?: string
-          instance_id?: string
-          instance_name?: string | null
-          instance_type?: string | null
           last_scan?: string | null
           metadata?: Json | null
           region?: string | null
