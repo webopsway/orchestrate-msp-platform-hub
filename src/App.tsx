@@ -16,6 +16,8 @@ import ITSM from "./pages/ITSM";
 import CloudInventory from "./pages/CloudInventory";
 import CloudAccounts from "./pages/CloudAccounts";
 import Monitoring from "./pages/Monitoring";
+import Users from "./pages/Users";
+import Roles from "./pages/Roles";
 
 const queryClient = new QueryClient();
 
@@ -73,6 +75,18 @@ function AppRoutes() {
       <Route path="/organizations" element={
         <ProtectedRoute>
           <Organizations />
+        </ProtectedRoute>
+      } />
+      
+      {/* User Management Routes */}
+      <Route path="/users" element={
+        <ProtectedRoute>
+          <Users />
+        </ProtectedRoute>
+      } />
+      <Route path="/roles" element={
+        <ProtectedRoute>
+          <Roles />
         </ProtectedRoute>
       } />
       
