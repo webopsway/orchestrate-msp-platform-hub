@@ -9,6 +9,9 @@ verify_jwt = true
 [functions.manage-roles]
 verify_jwt = true
 
+[functions.monitoring-integrations]
+verify_jwt = false
+
 [functions.security-patch-scheduler]
 verify_jwt = true
 

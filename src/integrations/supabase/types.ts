@@ -901,6 +901,63 @@ export type Database = {
           },
         ]
       }
+      uptime_checks: {
+        Row: {
+          check_interval: number
+          checked_at: string | null
+          created_at: string
+          expected_status_codes: number[] | null
+          id: string
+          metadata: Json | null
+          method: string
+          name: string
+          next_check: string | null
+          response_time: number | null
+          status: string
+          status_code: number | null
+          team_id: string
+          timeout_seconds: number
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          check_interval?: number
+          checked_at?: string | null
+          created_at?: string
+          expected_status_codes?: number[] | null
+          id?: string
+          metadata?: Json | null
+          method?: string
+          name: string
+          next_check?: string | null
+          response_time?: number | null
+          status?: string
+          status_code?: number | null
+          team_id: string
+          timeout_seconds?: number
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          check_interval?: number
+          checked_at?: string | null
+          created_at?: string
+          expected_status_codes?: number[] | null
+          id?: string
+          metadata?: Json | null
+          method?: string
+          name?: string
+          next_check?: string | null
+          response_time?: number | null
+          status?: string
+          status_code?: number | null
+          team_id?: string
+          timeout_seconds?: number
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           expires_at: string | null
