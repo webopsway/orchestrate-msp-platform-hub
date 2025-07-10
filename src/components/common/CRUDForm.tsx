@@ -233,7 +233,7 @@ export const CRUDForm = ({
 
     const commonProps = {
       id: field.key,
-      value: value || '',
+      value: value !== undefined ? value : '',
       onChange: (e: any) => handleFieldChange(field.key, e.target.value),
       placeholder: field.placeholder,
       disabled: isDisabled,
