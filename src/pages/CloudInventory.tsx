@@ -114,12 +114,29 @@ const CloudInventory = () => {
 
       // Récupérer les assets
       const { data: assetsData, error: assetsError } = await supabase
-        .from('cloud_assets')
+        .from('cloud_asset')
         .select('*')
-        .eq('team_id', sessionContext.current_team_id);
+        .order('discovered_at', { ascending: false });
 
       if (assetsError) throw assetsError;
-      setAssets(assetsData || []);
+      setAssets((assetsData || []).map(asset => ({
+        ...asset,
+        team_id: asset.team_id || sessionContext.current_team_id || '',
+        name: asset.asset_name || 'Unknown',
+        identifier: asset.asset_id,
+        location: asset.region || 'Unknown',
+        provider_name: 'Unknown',
+        status: (asset.status as any) || 'unknown',
+        asset_type: (asset.asset_type as any) || 'instance',
+        region: asset.region || 'Unknown',
+        size: '',
+        cost_per_hour: 0,
+        tags: (asset.tags as any) || {},
+        metadata: asset.metadata || {},
+        created_at: asset.discovered_at || new Date().toISOString(),
+        updated_at: asset.last_scan || new Date().toISOString(),
+        last_inventory_at: asset.last_scan || new Date().toISOString()
+      })));
     } catch (error) {
       console.error('Error fetching cloud data:', error);
       toast.error('Erreur lors du chargement des données');

@@ -126,7 +126,16 @@ const CloudAccounts = () => {
         .select('*');
 
       if (providersError) throw providersError;
-      setProviders(providersData || []);
+      setProviders((providersData || []).map(p => ({
+        ...p,
+        config_schema: {
+          required_fields: [],
+          optional_fields: [],
+          field_types: {},
+          field_labels: {},
+          field_placeholders: {}
+        }
+      })));
 
       // Récupérer les comptes
       const { data: accountsData, error: accountsError } = await supabase
@@ -135,7 +144,12 @@ const CloudAccounts = () => {
         .eq('team_id', sessionContext.current_team_id);
 
       if (accountsError) throw accountsError;
-      setAccounts(accountsData || []);
+      setAccounts((accountsData || []).map(a => ({
+        ...a,
+        name: `Compte ${a.id.slice(0, 8)}`,
+        status: 'active' as const,
+        config: (a.config as any) || {}
+      })));
     } catch (error) {
       console.error('Error fetching cloud data:', error);
       toast.error('Erreur lors du chargement des données');

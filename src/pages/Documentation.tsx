@@ -136,7 +136,10 @@ const Documentation = () => {
         .order('updated_at', { ascending: false });
 
       if (docsError) throw docsError;
-      setDocuments(docsData || []);
+      setDocuments((docsData || []).map(doc => ({
+        ...doc,
+        metadata: (doc.metadata as any) || { tags: [], category: 'general', status: 'draft', is_favorite: false }
+      })));
 
       // Récupérer les versions (pour les documents sélectionnés)
       if (selectedDocument) {
@@ -264,7 +267,7 @@ const Documentation = () => {
       // Créer un lien de téléchargement
       const blob = new Blob([data.content], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = window.document.createElement('a');
       link.href = url;
       link.download = `${document.title}.pdf`;
       link.click();
