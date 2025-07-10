@@ -17,6 +17,8 @@ import { DataGrid } from "@/components/common/DataGrid";
 import { EmptyState } from "@/components/common/EmptyState";
 import { useDocumentation, type Documentation } from "@/hooks/useDocumentation";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const documentSchema = z.object({
   title: z.string().min(1, "Titre requis"),
@@ -32,17 +34,53 @@ const DocumentForm = ({
   onClose 
 }: { 
   document?: Documentation;
-  onSave: (data: DocumentFormData) => void;
+  onSave: (data: DocumentFormData & { team_id?: string }) => void;
   onClose: () => void;
 }) => {
-  const form = useForm<DocumentFormData>({
-    resolver: zodResolver(documentSchema),
+  const { user } = useAuth();
+  const [teams, setTeams] = useState<any[]>([]);
+  const [isMSP, setIsMSP] = useState(false);
+
+  const form = useForm<DocumentFormData & { team_id?: string }>({
+    resolver: zodResolver(documentSchema.extend({
+      team_id: z.string().optional()
+    })),
     defaultValues: {
       title: document?.title || '',
       content: document?.content || '',
       version: document?.version || '1.0',
+      team_id: document?.team_id || '',
     },
   });
+
+  // Check if user is MSP and fetch teams
+  useEffect(() => {
+    const checkMSPAndFetchTeams = async () => {
+      if (!user) return;
+
+      // Check if user is MSP
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_msp_admin')
+        .eq('id', user.id)
+        .single();
+
+      const userIsMSP = profile?.is_msp_admin || false;
+      setIsMSP(userIsMSP);
+
+      if (userIsMSP) {
+        // Fetch all teams for MSP users
+        const { data: teamsData } = await supabase
+          .from('teams')
+          .select('id, name, organization:organizations(name)')
+          .order('name');
+        
+        setTeams(teamsData || []);
+      }
+    };
+
+    checkMSPAndFetchTeams();
+  }, [user]);
 
   const onSubmit = (data: DocumentFormData) => {
     onSave(data);
@@ -79,6 +117,33 @@ const DocumentForm = ({
             </FormItem>
           )}
         />
+
+        {isMSP && (
+          <FormField
+            control={form.control}
+            name="team_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Équipe cliente</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionnez une équipe" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {teams.map((team) => (
+                      <SelectItem key={team.id} value={team.id}>
+                        {team.name} ({team.organization?.name})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormField
           control={form.control}
@@ -166,7 +231,7 @@ export default function Documentation() {
     }
   }, [user]);
 
-  const handleSaveDocument = async (data: DocumentFormData) => {
+  const handleSaveDocument = async (data: DocumentFormData & { team_id?: string }) => {
     if (editingDocument) {
       await updateDocument(editingDocument.id, data);
     } else {
@@ -286,9 +351,17 @@ export default function Documentation() {
                       <CardTitle className="text-sm font-medium">
                         {title}
                       </CardTitle>
-                      <Badge variant="outline">
-                        v{latestVersion.version}
-                      </Badge>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="outline">
+                          v{latestVersion.version}
+                        </Badge>
+                        {latestVersion.team_id && (
+                          <Badge variant="secondary" className="text-xs">
+                            {/* Show team name - you might want to join with teams table for display */}
+                            Équipe: {latestVersion.team_id.slice(0, 8)}...
+                          </Badge>
+                        )}
+                      </div>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">

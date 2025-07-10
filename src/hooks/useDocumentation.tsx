@@ -37,23 +37,28 @@ export const useDocumentation = () => {
   };
 
   // Create a new document
-  const createDocument = async (document: Partial<Documentation>) => {
+  const createDocument = async (document: Partial<Documentation> & { team_id?: string }) => {
     if (!user) return;
 
     try {
       setLoading(true);
 
-      const { data: sessionData } = await supabase.rpc('get_current_user_session');
-      const currentTeamId = sessionData?.[0]?.current_team_id;
+      let targetTeamId = document.team_id;
+      
+      if (!targetTeamId) {
+        // If no team_id provided, get current team from session
+        const { data: sessionData } = await supabase.rpc('get_current_user_session');
+        targetTeamId = sessionData?.[0]?.current_team_id;
+      }
 
-      if (!currentTeamId) {
+      if (!targetTeamId) {
         throw new Error('No team context available');
       }
 
       const { data, error } = await supabase
         .from('documentation')
         .insert({
-          team_id: currentTeamId,
+          team_id: targetTeamId,
           title: document.title!,
           content: document.content || '',
           version: document.version || '1.0',
