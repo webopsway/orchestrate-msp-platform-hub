@@ -1,5 +1,7 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
+import { NotificationCenter } from "./NotificationCenter";
+import { UserMenu } from "./UserMenu";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 
@@ -20,6 +22,10 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <h1 className="text-xl font-semibold">Plateforme MSP</h1>
                 <p className="text-sm text-muted-foreground">Administration et supervision</p>
               </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <NotificationCenter />
+              <UserMenu />
             </div>
           </header>
           <div className="flex-1 p-6">
