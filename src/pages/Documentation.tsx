@@ -140,12 +140,8 @@ const Documentation = () => {
 
       // Récupérer les versions (pour les documents sélectionnés)
       if (selectedDocument) {
-      // Skip versions for now
-      const versionsData: any[] = [];
-          .eq('document_id', selectedDocument.id)
-          .order('created_at', { ascending: false });
-
-        if (versionsError) throw versionsError;
+        // Skip versions for now
+        const versionsData: any[] = [];
         setVersions(versionsData || []);
       }
     } catch (error) {
@@ -201,29 +197,13 @@ const Documentation = () => {
     try {
       setLoading(true);
       
-      // Créer une nouvelle version
-      const versionData = {
-        document_id: selectedDocument.id,
-        version: (parseFloat(selectedDocument.version) + 0.1).toFixed(1),
-        title: editDocument.title,
-        content: editDocument.content,
-        created_by: sessionContext?.current_team_id || "",
-        change_log: "Mise à jour du document"
-      };
-
-      const { error: versionError } = await supabase
-        .from('document_versions')
-        .insert([versionData]);
-
-      if (versionError) throw versionError;
-
-      // Mettre à jour le document principal
+      // Mettre à jour le document principal directement
       const { error: updateError } = await supabase
         .from('documentation')
         .update({
           title: editDocument.title,
           content: editDocument.content,
-          version: versionData.version,
+          version: (parseFloat(selectedDocument.version) + 0.1).toFixed(1),
           updated_by: sessionContext?.current_team_id,
           updated_at: new Date().toISOString(),
           metadata: {
