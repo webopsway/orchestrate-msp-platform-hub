@@ -1442,6 +1442,14 @@ export type Database = {
           success: boolean
         }[]
       }
+      is_msp_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_user_in_msp_organization: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       set_app_session_variables: {
         Args: { p_team_id?: string; p_is_msp?: boolean }
         Returns: undefined
