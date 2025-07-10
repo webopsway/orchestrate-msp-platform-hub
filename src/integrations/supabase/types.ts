@@ -75,7 +75,7 @@ export type Database = {
       }
       cloud_instances: {
         Row: {
-          cloud_provider: string
+          cloud_provider_id: string
           discovered_at: string | null
           id: string
           instance_id: string
@@ -89,7 +89,7 @@ export type Database = {
           team_id: string
         }
         Insert: {
-          cloud_provider: string
+          cloud_provider_id: string
           discovered_at?: string | null
           id?: string
           instance_id: string
@@ -103,7 +103,7 @@ export type Database = {
           team_id: string
         }
         Update: {
-          cloud_provider?: string
+          cloud_provider_id?: string
           discovered_at?: string | null
           id?: string
           instance_id?: string
@@ -118,6 +118,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "cloud_instances_cloud_provider_id_fkey"
+            columns: ["cloud_provider_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_providers"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cloud_instances_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
@@ -125,6 +132,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cloud_providers: {
+        Row: {
+          api_endpoint: string | null
+          created_at: string | null
+          display_name: string
+          id: string
+          is_active: boolean | null
+          metadata: Json | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          api_endpoint?: string | null
+          created_at?: string | null
+          display_name: string
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          api_endpoint?: string | null
+          created_at?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       infrastructure_docs: {
         Row: {
