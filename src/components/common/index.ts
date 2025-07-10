@@ -11,3 +11,6 @@ export { QuickActionButton } from "./QuickActionButton";
 export { CRUDTable } from "./CRUDTable";
 export { CRUDForm } from "./CRUDForm";
 export { ConfirmDialog, DeleteConfirmDialog, DeactivateConfirmDialog, ArchiveConfirmDialog } from "./ConfirmDialog";
+
+// Composants RBAC
+export * from "../rbac";

@@ -64,7 +64,8 @@ const defaultNavigationItems: NavigationItem[] = [
   { id: "dashboard", title: "Tableau de bord", url: "/", icon: "Home", order: 1, group: "main" },
   { id: "organizations", title: "Organisations", url: "/organizations", icon: "Building2", order: 2, group: "main" },
   { id: "users", title: "Utilisateurs & Équipes", url: "/users", icon: "Users", order: 3, group: "main" },
-  { id: "rbac", title: "Rôles & Permissions", url: "/rbac", icon: "Shield", order: 4, group: "main" },
+  { id: "roles", title: "Rôles", url: "/roles", icon: "Shield", order: 4, group: "main" },
+  { id: "rbac", title: "Gestion RBAC", url: "/rbac", icon: "ShieldCheck", order: 5, group: "main" },
   
   { id: "incidents", title: "Incidents", url: "/itsm/incidents", icon: "AlertTriangle", order: 1, group: "itsm", badge: "8" },
   { id: "changes", title: "Changements", url: "/itsm/changes", icon: "FileText", order: 2, group: "itsm" },

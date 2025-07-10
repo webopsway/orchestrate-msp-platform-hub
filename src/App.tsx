@@ -18,6 +18,7 @@ import CloudAccounts from "./pages/CloudAccounts";
 import Monitoring from "./pages/Monitoring";
 import Users from "./pages/Users";
 import Roles from "./pages/Roles";
+import RBACManagement from "./pages/RBACManagement";
 
 const queryClient = new QueryClient();
 
@@ -87,6 +88,11 @@ function AppRoutes() {
       <Route path="/roles" element={
         <ProtectedRoute>
           <Roles />
+        </ProtectedRoute>
+      } />
+      <Route path="/rbac" element={
+        <ProtectedRoute>
+          <RBACManagement />
         </ProtectedRoute>
       } />
       
