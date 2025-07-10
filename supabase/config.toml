@@ -2,3 +2,6 @@ project_id = "ywixtqxtftcwdvxduwwx"
 
 [functions.init-user-session]
 verify_jwt = true
+
+[functions.manage-roles]
+verify_jwt = true
