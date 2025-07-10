@@ -73,7 +73,7 @@ export type Database = {
           },
         ]
       }
-      cloud_instances: {
+      cloud_assets: {
         Row: {
           cloud_provider_id: string
           discovered_at: string | null
