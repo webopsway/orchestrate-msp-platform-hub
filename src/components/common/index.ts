@@ -9,7 +9,7 @@ export { QuickActionButton } from "./QuickActionButton";
 
 // Composants CRUD
 export { CRUDTable } from "./CRUDTable";
-export { CRUDForm } from "./CRUDForm";
+// export { CRUDForm } from "./CRUDForm"; // Removed - use form components instead
 export { ConfirmDialog, DeleteConfirmDialog, DeactivateConfirmDialog, ArchiveConfirmDialog } from "./ConfirmDialog";
 
 // Composants RBAC

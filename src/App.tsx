@@ -5,8 +5,8 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Toaster } from "@/components/ui/sonner";
 import Index from "./pages/Index";
-import Organizations from "./pages/Organizations";
-import Teams from "./pages/Teams";
+import NewOrganizations from "./pages/NewOrganizations";
+import NewTeams from "./pages/NewTeams";
 import Security from "./pages/Security";
 import Documentation from "./pages/Documentation";
 import CloudOrchestration from "./pages/CloudOrchestration";
@@ -17,7 +17,7 @@ import ITSM from "./pages/ITSM";
 import CloudInventory from "./pages/CloudInventory";
 import CloudAccounts from "./pages/CloudAccounts";
 import Monitoring from "./pages/Monitoring";
-import Users from "./pages/Users";
+import NewUsers from "./pages/NewUsers";
 import Roles from "./pages/Roles";
 import RBACManagement from "./pages/RBACManagement";
 import Profile from "./pages/Profile";
@@ -78,19 +78,19 @@ function AppRoutes() {
       } />
       <Route path="/organizations" element={
         <ProtectedRoute>
-          <Organizations />
+          <NewOrganizations />
         </ProtectedRoute>
       } />
       <Route path="/teams" element={
         <ProtectedRoute>
-          <Teams />
+          <NewTeams />
         </ProtectedRoute>
       } />
       
       {/* User Management Routes */}
       <Route path="/users" element={
         <ProtectedRoute>
-          <Users />
+          <NewUsers />
         </ProtectedRoute>
       } />
       <Route path="/roles" element={
