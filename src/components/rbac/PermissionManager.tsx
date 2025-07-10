@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRBAC } from "@/hooks/useRBAC";
 import { Permission, Role } from "@/types/rbac";
+import { SimplePermission } from "@/types/simple";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -70,12 +71,13 @@ export const PermissionManager = ({
 
   // Grouper les permissions par catégorie
   const permissionsByCategory = permissions.reduce((acc, permission) => {
-    if (!acc[permission.category]) {
-      acc[permission.category] = [];
+    const category = permission.resource || 'General';
+    if (!acc[category]) {
+      acc[category] = [];
     }
-    acc[permission.category].push(permission);
+    acc[category].push(permission);
     return acc;
-  }, {} as Record<string, Permission[]>);
+  }, {} as Record<string, SimplePermission[]>);
 
   // Filtrer les permissions selon la recherche et la catégorie
   const filteredPermissions = permissions.filter(permission => {

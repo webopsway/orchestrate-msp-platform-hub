@@ -308,7 +308,7 @@ const Documentation = () => {
       content: document.content,
       category: document.metadata?.category || "",
       tags: document.metadata?.tags || [],
-      status: document.metadata?.status || "draft"
+      status: "draft" as const
     });
     setIsEditModalOpen(true);
   };

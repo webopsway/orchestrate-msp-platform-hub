@@ -17,7 +17,7 @@ export const RBACGuard = ({
 }: RBACGuardProps) => {
   const { checkPermission } = useRBAC();
 
-  const hasPermission = checkPermission(resource, action, conditions);
+  const hasPermission = checkPermission(resource, action);
 
   if (!hasPermission) {
     if (fallback) {
@@ -175,7 +175,7 @@ export const ConditionalRender = ({
   children: ReactNode;
 }) => {
   const { checkPermission } = useRBAC();
-  const hasPermission = checkPermission(resource, action, conditions);
+  const hasPermission = checkPermission(resource, action);
 
   if (!hasPermission) {
     return null;
@@ -189,7 +189,7 @@ export const ConditionalRender = ({
  */
 export const usePermission = (resource: RBACResource, action: RBACAction, conditions?: any) => {
   const { checkPermission } = useRBAC();
-  return checkPermission(resource, action, conditions);
+  return checkPermission(resource, action);
 };
 
 /**

@@ -120,7 +120,7 @@ const ITSM = () => {
         type: 'change' as const
       }));
 
-      setItems([...formattedIncidents, ...formattedChanges]);
+      setItems([...formattedIncidents, ...formattedChanges] as ITSMItem[]);
     } catch (error) {
       console.error('Error fetching ITSM items:', error);
       toast.error('Erreur lors du chargement des données');
@@ -141,10 +141,10 @@ const ITSM = () => {
         description: newItem.description,
         priority: newItem.priority,
         created_by: sessionContext.current_team_id, // TODO: utiliser l'ID utilisateur réel
-        ...(newItem.type === 'change' && { scheduled_date: newItem.scheduled_date })
+        ...(newItem.type === 'change' ? { scheduled_date: newItem.scheduled_date } : {})
       };
 
-      const table = newItem.type === 'incident' ? 'itsm_incidents' : 'itsm_change_requests';
+      const table = (newItem.type as string) === 'incident' ? 'itsm_incidents' : 'itsm_change_requests';
       
       const { data, error } = await supabase
         .from(table)
@@ -154,7 +154,7 @@ const ITSM = () => {
 
       if (error) throw error;
 
-      toast.success(`${newItem.type === 'incident' ? 'Incident' : 'Changement'} créé avec succès`);
+      toast.success(`${(newItem.type as string) === 'incident' ? 'Incident' : 'Changement'} créé avec succès`);
       setIsCreateModalOpen(false);
       setNewItem({
         title: "",
@@ -174,7 +174,7 @@ const ITSM = () => {
 
   const updateItemStatus = async (itemId: string, newStatus: string, type: string) => {
     try {
-      const table = type === 'incident' ? 'itsm_incidents' : 'itsm_change_requests';
+      const table = (type as string) === 'incident' ? 'itsm_incidents' : 'itsm_change_requests';
       const updateData: any = { status: newStatus };
       
       if (newStatus === 'resolved') {
@@ -249,7 +249,7 @@ const ITSM = () => {
     const matchesStatus = statusFilter === "all" || item.status === statusFilter;
     const matchesPriority = priorityFilter === "all" || item.priority === priorityFilter;
     const matchesType = typeFilter === "all" || item.type === typeFilter;
-    const matchesTab = activeTab === "all" || item.type === activeTab;
+    const matchesTab = activeTab === "all" || (item.type as string) === activeTab;
 
     return matchesSearch && matchesStatus && matchesPriority && matchesType && matchesTab;
   });
@@ -257,13 +257,13 @@ const ITSM = () => {
   const stats = [
     {
       title: "Incidents ouverts",
-      value: items.filter(i => i.type === 'incident' && ['open', 'in_progress'].includes(i.status)).length.toString(),
+      value: items.filter(i => (i.type as string) === 'incident' && ['open', 'in_progress'].includes(i.status)).length.toString(),
       icon: AlertTriangle,
       color: "text-red-500"
     },
     {
       title: "Changements en cours",
-      value: items.filter(i => i.type === 'change' && ['pending_approval', 'approved'].includes(i.status)).length.toString(),
+      value: items.filter(i => (i.type as string) === 'change' && ['pending_approval', 'approved'].includes(i.status)).length.toString(),
       icon: FileText,
       color: "text-blue-500"
     },
@@ -400,7 +400,7 @@ const ITSM = () => {
                   {filteredItems.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-mono text-sm">
-                        {item.type === 'incident' ? 'INC' : 'CHG'}-{item.id.slice(0, 8)}
+                        {(item.type as string) === 'incident' ? 'INC' : 'CHG'}-{item.id.slice(0, 8)}
                       </TableCell>
                       <TableCell>
                         <div>
@@ -412,7 +412,7 @@ const ITSM = () => {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {item.type === 'incident' ? 'Incident' : 'Changement'}
+                          {(item.type as string) === 'incident' ? 'Incident' : 'Changement'}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -456,7 +456,7 @@ const ITSM = () => {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {item.type === 'incident' ? (
+                              {(item.type as string) === 'incident' ? (
                                 <>
                                   <SelectItem value="open">Ouvert</SelectItem>
                                   <SelectItem value="in_progress">En cours</SelectItem>
@@ -546,7 +546,7 @@ const ITSM = () => {
               />
             </div>
 
-            {newItem.type === 'change' && (
+            {newItem.type === 'change' ? (
               <div className="space-y-2">
                 <Label htmlFor="scheduled_date">Date prévue</Label>
                 <Input
@@ -556,7 +556,7 @@ const ITSM = () => {
                   onChange={(e) => setNewItem({...newItem, scheduled_date: e.target.value})}
                 />
               </div>
-            )}
+            ) : null}
             
             <div className="flex justify-end space-x-2">
               <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>

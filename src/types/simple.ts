@@ -8,6 +8,9 @@ export interface SimplePermission {
   resource: string;
   action: string;
   created_at: string;
+  category?: string;
+  is_system?: boolean;
+  updated_at?: string;
 }
 
 export interface SimpleRole {
@@ -17,6 +20,9 @@ export interface SimpleRole {
   description?: string;
   created_at: string;
   updated_at: string;
+  is_system?: boolean;
+  is_default?: boolean;
+  user_count?: number;
 }
 
 export interface SimpleRolePermission {
@@ -25,6 +31,9 @@ export interface SimpleRolePermission {
   permission_id: string;
   granted_at: string;
   granted_by?: string;
+  granted?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface SimpleUserRole {

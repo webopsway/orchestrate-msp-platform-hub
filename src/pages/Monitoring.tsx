@@ -50,7 +50,7 @@ import {
   RefreshCw,
   Zap,
   Cpu,
-  Memory,
+  MemoryStick,
   HardDrive,
   Network,
   TrendingUp,
@@ -156,16 +156,16 @@ const Monitoring = () => {
         .eq('team_id', sessionContext.current_team_id);
 
       if (uptimeError) throw uptimeError;
-      setUptimeChecks(uptimeData || []);
+      setUptimeChecks((uptimeData as any) || []);
 
       // Récupérer les notifications
       const { data: notificationData, error: notificationError } = await supabase
-        .from('notification_configs')
+        .from('notification_transports')
         .select('*')
         .eq('team_id', sessionContext.current_team_id);
 
       if (notificationError) throw notificationError;
-      setNotifications(notificationData || []);
+      setNotifications((notificationData as any) || []);
     } catch (error) {
       console.error('Error fetching monitoring data:', error);
       toast.error('Erreur lors du chargement des données');
@@ -243,9 +243,18 @@ const Monitoring = () => {
         enabled: newNotification.enabled
       };
       
+      const notificationInsert = {
+        team_id: sessionContext.current_team_id,
+        channel: newNotification.type,
+        config: newNotification.config,
+        configured_by: '00000000-0000-0000-0000-000000000000',
+        scope: 'alerts',
+        is_active: newNotification.enabled
+      };
+      
       const { data, error } = await supabase
-        .from('notification_configs')
-        .insert([notificationData])
+        .from('notification_transports')
+        .insert([notificationInsert])
         .select()
         .single();
 
@@ -761,7 +770,7 @@ const Monitoring = () => {
               </div>
             )}
 
-            {newNotification.type === 'slack' && (
+            {(newNotification.type as string) === 'slack' && (
               <div className="space-y-2">
                 <Label htmlFor="notification-webhook">Webhook Slack</Label>
                 <Input
@@ -776,7 +785,7 @@ const Monitoring = () => {
               </div>
             )}
 
-            {newNotification.type === 'webhook' && (
+            {(newNotification.type as string) === 'webhook' && (
               <div className="space-y-2">
                 <Label htmlFor="notification-webhook-url">URL Webhook</Label>
                 <Input
