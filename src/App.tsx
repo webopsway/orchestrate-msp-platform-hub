@@ -20,6 +20,7 @@ import Users from "./pages/Users";
 import Roles from "./pages/Roles";
 import RBACManagement from "./pages/RBACManagement";
 import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -99,6 +100,11 @@ function AppRoutes() {
       <Route path="/profile" element={
         <ProtectedRoute>
           <Profile />
+        </ProtectedRoute>
+      } />
+      <Route path="/settings" element={
+        <ProtectedRoute>
+          <Settings />
         </ProtectedRoute>
       } />
       
