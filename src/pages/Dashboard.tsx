@@ -1,15 +1,20 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
   Users, 
   Building2, 
   AlertTriangle, 
-  CheckCircle, 
   Cloud, 
   Shield,
   Activity,
   Bell
 } from "lucide-react";
+import { 
+  PageHeader, 
+  StatsCard, 
+  DataGrid, 
+  ActionCard, 
+  QuickActionButton 
+} from "@/components/common";
 
 const Dashboard = () => {
   const stats = [
@@ -87,49 +92,37 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Tableau de bord</h2>
-        <p className="text-muted-foreground">
-          Vue d'ensemble de votre plateforme MSP
-        </p>
-      </div>
+      <PageHeader
+        title="Tableau de bord"
+        description="Vue d'ensemble de votre plateforme MSP"
+      />
 
       {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <DataGrid columns={4}>
         {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {stat.title}
-              </CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">
-                {stat.description}
-              </p>
-              <p className="text-xs text-green-600 mt-1">
-                {stat.trend}
-              </p>
-            </CardContent>
-          </Card>
+          <StatsCard
+            key={stat.title}
+            title={stat.title}
+            value={stat.value}
+            description={stat.description}
+            icon={stat.icon}
+            trend={stat.trend}
+          />
         ))}
-      </div>
+      </DataGrid>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         {/* Recent Incidents */}
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              Incidents récents
-            </CardTitle>
-            <CardDescription>
-              Les derniers incidents ITSM à traiter
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="col-span-4">
+          <ActionCard
+            title="Incidents récents"
+            description="Les derniers incidents ITSM à traiter"
+            icon={AlertTriangle}
+            action={{
+              label: "Voir tous",
+              onClick: () => console.log("Voir tous les incidents")
+            }}
+          >
             <div className="space-y-4">
               {recentIncidents.map((incident) => (
                 <div key={incident.id} className="flex items-center justify-between p-3 border rounded-lg">
@@ -154,53 +147,48 @@ const Dashboard = () => {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </ActionCard>
+        </div>
 
         {/* Quick Actions */}
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              Actions rapides
-            </CardTitle>
-            <CardDescription>
-              Accès direct aux fonctions principales
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-2">
-              <button className="flex items-center justify-start gap-3 p-3 text-left border rounded-lg hover:bg-accent transition-colors">
-                <AlertTriangle className="h-4 w-4 text-red-500" />
-                <div>
-                  <p className="text-sm font-medium">Créer un incident</p>
-                  <p className="text-xs text-muted-foreground">Nouveau ticket ITSM</p>
-                </div>
-              </button>
-              <button className="flex items-center justify-start gap-3 p-3 text-left border rounded-lg hover:bg-accent transition-colors">
-                <Cloud className="h-4 w-4 text-blue-500" />
-                <div>
-                  <p className="text-sm font-medium">Inventaire cloud</p>
-                  <p className="text-xs text-muted-foreground">Scanner les ressources</p>
-                </div>
-              </button>
-              <button className="flex items-center justify-start gap-3 p-3 text-left border rounded-lg hover:bg-accent transition-colors">
-                <Shield className="h-4 w-4 text-green-500" />
-                <div>
-                  <p className="text-sm font-medium">Audit sécurité</p>
-                  <p className="text-xs text-muted-foreground">CVE et vulnérabilités</p>
-                </div>
-              </button>
-              <button className="flex items-center justify-start gap-3 p-3 text-left border rounded-lg hover:bg-accent transition-colors">
-                <Bell className="h-4 w-4 text-orange-500" />
-                <div>
-                  <p className="text-sm font-medium">Configurer alertes</p>
-                  <p className="text-xs text-muted-foreground">Notifications & webhooks</p>
-                </div>
-              </button>
+        <div className="col-span-3">
+          <ActionCard
+            title="Actions rapides"
+            description="Accès direct aux fonctions principales"
+            icon={Activity}
+          >
+            <div className="space-y-2">
+              <QuickActionButton
+                title="Créer un incident"
+                description="Nouveau ticket ITSM"
+                icon={AlertTriangle}
+                iconColor="text-red-500"
+                onClick={() => console.log("Créer incident")}
+              />
+              <QuickActionButton
+                title="Inventaire cloud"
+                description="Scanner les ressources"
+                icon={Cloud}
+                iconColor="text-blue-500"
+                onClick={() => console.log("Inventaire cloud")}
+              />
+              <QuickActionButton
+                title="Audit sécurité"
+                description="CVE et vulnérabilités"
+                icon={Shield}
+                iconColor="text-green-500"
+                onClick={() => console.log("Audit sécurité")}
+              />
+              <QuickActionButton
+                title="Configurer alertes"
+                description="Notifications & webhooks"
+                icon={Bell}
+                iconColor="text-orange-500"
+                onClick={() => console.log("Configurer alertes")}
+              />
             </div>
-          </CardContent>
-        </Card>
+          </ActionCard>
+        </div>
       </div>
     </div>
   );

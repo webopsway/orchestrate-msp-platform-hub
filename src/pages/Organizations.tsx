@@ -1,16 +1,20 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { 
   Building2, 
   Users, 
-  Search,
   Plus,
   Settings,
   MapPin
 } from "lucide-react";
+import { 
+  PageHeader, 
+  SearchAndFilters, 
+  DataGrid, 
+  EmptyState 
+} from "@/components/common";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Organizations = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -78,46 +82,26 @@ const Organizations = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-start">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Organisations</h2>
-          <p className="text-muted-foreground">
-            Gestion des clients, ESN et partenaires MSP
-          </p>
-        </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Nouvelle organisation
-        </Button>
-      </div>
+      <PageHeader
+        title="Organisations"
+        description="Gestion des clients, ESN et partenaires MSP"
+        action={{
+          label: "Nouvelle organisation",
+          icon: Plus,
+          onClick: () => console.log("Nouvelle organisation")
+        }}
+      />
 
-      {/* Search and Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recherche et filtres</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher une organisation..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Button variant="outline">
-              Filtres avancés
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <SearchAndFilters
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        placeholder="Rechercher une organisation..."
+        onAdvancedFiltersClick={() => console.log("Filtres avancés")}
+      />
 
-      {/* Organizations List */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <DataGrid columns={3}>
         {filteredOrgs.map((org) => (
-          <Card key={org.id} className="hover:shadow-md transition-shadow">
+          <Card key={org.id} className="hover:shadow-md transition-shadow animate-fade-in">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
@@ -168,18 +152,18 @@ const Organizations = () => {
             </CardContent>
           </Card>
         ))}
-      </div>
+      </DataGrid>
 
       {filteredOrgs.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-8">
-            <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-lg font-medium">Aucune organisation trouvée</p>
-            <p className="text-muted-foreground">
-              Essayez de modifier vos critères de recherche
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Building2}
+          title="Aucune organisation trouvée"
+          description="Essayez de modifier vos critères de recherche"
+          action={{
+            label: "Réinitialiser les filtres",
+            onClick: () => setSearchTerm("")
+          }}
+        />
       )}
     </div>
   );
