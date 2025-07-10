@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      backup_executions: {
+        Row: {
+          completed_at: string | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          provider_id: string
+          result_data: Json | null
+          started_at: string | null
+          status: string
+          task_type: string
+          team_id: string
+          triggered_by: string
+        }
+        Insert: {
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          provider_id: string
+          result_data?: Json | null
+          started_at?: string | null
+          status?: string
+          task_type: string
+          team_id: string
+          triggered_by: string
+        }
+        Update: {
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          provider_id?: string
+          result_data?: Json | null
+          started_at?: string | null
+          status?: string
+          task_type?: string
+          team_id?: string
+          triggered_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backup_executions_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       backup_jobs: {
         Row: {
           backup_type: string
@@ -129,6 +179,44 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cloud_credentials: {
+        Row: {
+          config: Json
+          configured_by: string
+          created_at: string
+          id: string
+          provider_id: string
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          configured_by: string
+          created_at?: string
+          id?: string
+          provider_id: string
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          configured_by?: string
+          created_at?: string
+          id?: string
+          provider_id?: string
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_credentials_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_providers"
             referencedColumns: ["id"]
           },
         ]
@@ -1307,6 +1395,23 @@ export type Database = {
           parsed_team: string
           parsed_is_msp: boolean
         }[]
+      }
+      trigger_team_backup: {
+        Args: { p_team_id: string; p_provider_id: string }
+        Returns: string
+      }
+      trigger_team_inventory: {
+        Args: { p_team_id: string; p_provider_id: string }
+        Returns: string
+      }
+      update_execution_status: {
+        Args: {
+          p_execution_id: string
+          p_status: string
+          p_error_message?: string
+          p_result_data?: Json
+        }
+        Returns: undefined
       }
       user_has_organization_access: {
         Args: { org_id: string }
