@@ -26,8 +26,7 @@ export function UserMenu() {
   };
 
   const handleProfile = () => {
-    // TODO: Naviguer vers le profil
-    console.log("Profil");
+    window.location.href = "/profile";
   };
 
   return (

@@ -19,6 +19,7 @@ import Monitoring from "./pages/Monitoring";
 import Users from "./pages/Users";
 import Roles from "./pages/Roles";
 import RBACManagement from "./pages/RBACManagement";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -93,6 +94,11 @@ function AppRoutes() {
       <Route path="/rbac" element={
         <ProtectedRoute>
           <RBACManagement />
+        </ProtectedRoute>
+      } />
+      <Route path="/profile" element={
+        <ProtectedRoute>
+          <Profile />
         </ProtectedRoute>
       } />
       
