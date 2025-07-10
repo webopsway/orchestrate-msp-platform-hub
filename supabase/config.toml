@@ -1,1 +1,4 @@
 project_id = "ywixtqxtftcwdvxduwwx"
+
+[functions.init-user-session]
+verify_jwt = true
