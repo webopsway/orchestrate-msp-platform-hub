@@ -73,7 +73,7 @@ export type Database = {
           },
         ]
       }
-      cloud_assets: {
+      cloud_asset: {
         Row: {
           asset_id: string
           asset_name: string | null
