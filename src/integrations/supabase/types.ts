@@ -436,6 +436,118 @@ export type Database = {
           },
         ]
       }
+      notification_transports: {
+        Row: {
+          channel: string
+          config: Json
+          configured_by: string
+          created_at: string
+          id: string
+          is_active: boolean
+          scope: string
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          channel: string
+          config?: Json
+          configured_by: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          scope: string
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          config?: Json
+          configured_by?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          scope?: string
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_notification_transports_configured_by"
+            columns: ["configured_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_notification_transports_team_id"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_type: string
+          id: string
+          itsm_change_request_id: string | null
+          payload: Json
+          sent_at: string | null
+          status: string
+          team_id: string
+          transport_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_type: string
+          id?: string
+          itsm_change_request_id?: string | null
+          payload?: Json
+          sent_at?: string | null
+          status?: string
+          team_id: string
+          transport_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          itsm_change_request_id?: string | null
+          payload?: Json
+          sent_at?: string | null
+          status?: string
+          team_id?: string
+          transport_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_notifications_itsm_change_request_id"
+            columns: ["itsm_change_request_id"]
+            isOneToOne: false
+            referencedRelation: "itsm_change_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_notifications_team_id"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_notifications_transport_id"
+            columns: ["transport_id"]
+            isOneToOne: false
+            referencedRelation: "notification_transports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_memberships: {
         Row: {
           created_at: string | null
