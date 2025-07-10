@@ -5,3 +5,9 @@ verify_jwt = true
 
 [functions.manage-roles]
 verify_jwt = true
+
+[functions.security-patch-scheduler]
+verify_jwt = true
+
+[functions.vulnerability-scanner]
+verify_jwt = true

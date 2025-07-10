@@ -516,6 +516,76 @@ export type Database = {
           },
         ]
       }
+      patch_schedules: {
+        Row: {
+          cloud_asset_id: string
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          patch_type: string | null
+          scheduled_at: string
+          status: string
+          team_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          cloud_asset_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          patch_type?: string | null
+          scheduled_at: string
+          status?: string
+          team_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          cloud_asset_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          patch_type?: string | null
+          scheduled_at?: string
+          status?: string
+          team_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patch_schedules_cloud_asset_id_fkey"
+            columns: ["cloud_asset_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patch_schedules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patch_schedules_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       permissions: {
         Row: {
           action: string
@@ -682,6 +752,7 @@ export type Database = {
         Row: {
           affected_instances: string[] | null
           assigned_to: string | null
+          cloud_asset_id: string | null
           created_at: string | null
           cve_id: string | null
           description: string | null
@@ -698,6 +769,7 @@ export type Database = {
         Insert: {
           affected_instances?: string[] | null
           assigned_to?: string | null
+          cloud_asset_id?: string | null
           created_at?: string | null
           cve_id?: string | null
           description?: string | null
@@ -714,6 +786,7 @@ export type Database = {
         Update: {
           affected_instances?: string[] | null
           assigned_to?: string | null
+          cloud_asset_id?: string | null
           created_at?: string | null
           cve_id?: string | null
           description?: string | null
@@ -733,6 +806,13 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_vulnerabilities_cloud_asset_id_fkey"
+            columns: ["cloud_asset_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_asset"
             referencedColumns: ["id"]
           },
           {
