@@ -1,473 +1,857 @@
-import { useEffect, useState } from "react";
-import { BookOpen, Plus, Edit, Trash2, Download, FileText, Copy, Eye } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { PageHeader } from "@/components/common/PageHeader";
-import { DataGrid } from "@/components/common/DataGrid";
-import { EmptyState } from "@/components/common/EmptyState";
-import { useDocumentation, type Documentation } from "@/hooks/useDocumentation";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { 
+  PageHeader, 
+  DataGrid, 
+  SearchAndFilters,
+  EmptyState 
+} from "@/components/common";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  FileText, 
+  Plus, 
+  Search, 
+  Calendar,
+  User,
+  Download,
+  Eye,
+  Edit,
+  Trash2,
+  History,
+  BookOpen,
+  File,
+  Tag,
+  Share2,
+  Star,
+  Clock,
+  CheckCircle,
+  AlertCircle
+} from "lucide-react";
+import { toast } from "sonner";
 
-const documentSchema = z.object({
-  title: z.string().min(1, "Titre requis"),
-  content: z.string().optional(),
-  version: z.string().optional(),
-});
+interface Document {
+  id: string;
+  team_id: string;
+  title: string;
+  content: string;
+  version: string;
+  created_by: string;
+  updated_by?: string;
+  created_at: string;
+  updated_at: string;
+  metadata: {
+    tags?: string[];
+    category?: string;
+    status?: 'draft' | 'published' | 'archived';
+    is_favorite?: boolean;
+    [key: string]: any;
+  };
+}
 
-type DocumentFormData = z.infer<typeof documentSchema>;
+interface DocumentVersion {
+  id: string;
+  document_id: string;
+  version: string;
+  title: string;
+  content: string;
+  created_by: string;
+  created_at: string;
+  change_log?: string;
+}
 
-const DocumentForm = ({ 
-  document, 
-  onSave, 
-  onClose 
-}: { 
-  document?: Documentation;
-  onSave: (data: DocumentFormData & { team_id?: string }) => void;
-  onClose: () => void;
-}) => {
-  const { user } = useAuth();
-  const [teams, setTeams] = useState<any[]>([]);
-  const [isMSP, setIsMSP] = useState(false);
+const Documentation = () => {
+  const { sessionContext } = useAuth();
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [versions, setVersions] = useState<DocumentVersion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [selectedVersion, setSelectedVersion] = useState<string>("");
 
-  const form = useForm<DocumentFormData & { team_id?: string }>({
-    resolver: zodResolver(documentSchema.extend({
-      team_id: z.string().optional()
-    })),
-    defaultValues: {
-      title: document?.title || '',
-      content: document?.content || '',
-      version: document?.version || '1.0',
-      team_id: document?.team_id || '',
-    },
+  // État pour les modals
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
+
+  // État pour les formulaires
+  const [newDocument, setNewDocument] = useState({
+    title: "",
+    content: "",
+    category: "",
+    tags: [] as string[],
+    status: "draft" as const
   });
 
-  // Check if user is MSP and fetch teams
-  useEffect(() => {
-    const checkMSPAndFetchTeams = async () => {
-      if (!user) return;
+  const [editDocument, setEditDocument] = useState({
+    title: "",
+    content: "",
+    category: "",
+    tags: [] as string[],
+    status: "draft" as const
+  });
 
-      // Check if user is MSP
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_msp_admin')
-        .eq('id', user.id)
+  useEffect(() => {
+    fetchDocuments();
+  }, [sessionContext]);
+
+  const fetchDocuments = async () => {
+    if (!sessionContext?.current_team_id) return;
+
+    try {
+      setLoading(true);
+      
+      // Récupérer les documents
+      const { data: docsData, error: docsError } = await supabase
+        .from('documentation')
+        .select('*')
+        .eq('team_id', sessionContext.current_team_id)
+        .order('updated_at', { ascending: false });
+
+      if (docsError) throw docsError;
+      setDocuments(docsData || []);
+
+      // Récupérer les versions (pour les documents sélectionnés)
+      if (selectedDocument) {
+        const { data: versionsData, error: versionsError } = await supabase
+          .from('document_versions')
+          .select('*')
+          .eq('document_id', selectedDocument.id)
+          .order('created_at', { ascending: false });
+
+        if (versionsError) throw versionsError;
+        setVersions(versionsData || []);
+      }
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      toast.error('Erreur lors du chargement des documents');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createDocument = async () => {
+    if (!sessionContext?.current_team_id) return;
+
+    try {
+      setLoading(true);
+      
+      const docData = {
+        team_id: sessionContext.current_team_id,
+        title: newDocument.title,
+        content: newDocument.content,
+        version: "1.0",
+        created_by: sessionContext.current_team_id, // TODO: utiliser l'ID utilisateur réel
+        metadata: {
+          category: newDocument.category,
+          tags: newDocument.tags,
+          status: newDocument.status
+        }
+      };
+      
+      const { data, error } = await supabase
+        .from('documentation')
+        .insert([docData])
+        .select()
         .single();
 
-      const userIsMSP = profile?.is_msp_admin || false;
-      setIsMSP(userIsMSP);
+      if (error) throw error;
 
-      if (userIsMSP) {
-        // Fetch all teams for MSP users
-        const { data: teamsData } = await supabase
-          .from('teams')
-          .select('id, name, organization:organizations(name)')
-          .order('name');
-        
-        setTeams(teamsData || []);
-      }
-    };
-
-    checkMSPAndFetchTeams();
-  }, [user]);
-
-  const onSubmit = (data: DocumentFormData) => {
-    onSave(data);
-    onClose();
-  };
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Titre du document</FormLabel>
-              <FormControl>
-                <Input placeholder="Guide d'utilisation..." {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="version"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Version</FormLabel>
-              <FormControl>
-                <Input placeholder="1.0" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {isMSP && (
-          <FormField
-            control={form.control}
-            name="team_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Équipe cliente</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionnez une équipe" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {teams.map((team) => (
-                      <SelectItem key={team.id} value={team.id}>
-                        {team.name} ({team.organization?.name})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-
-        <FormField
-          control={form.control}
-          name="content"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Contenu (Markdown)</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="# Titre\n\nVotre contenu en Markdown..."
-                  className="min-h-[300px]"
-                  {...field} 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="flex justify-end space-x-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Annuler
-          </Button>
-          <Button type="submit">
-            {document ? 'Mettre à jour' : 'Créer'}
-          </Button>
-        </div>
-      </form>
-    </Form>
-  );
-};
-
-const DocumentViewer = ({ document }: { document: Documentation }) => {
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">{document.title}</h2>
-          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-            <span>Version {document.version}</span>
-            <span>•</span>
-            <span>Créé le {new Date(document.created_at).toLocaleDateString('fr-FR')}</span>
-          </div>
-        </div>
-        <Badge variant="outline">
-          {document.version}
-        </Badge>
-      </div>
-      
-      <div className="prose max-w-none">
-        {document.content ? (
-          <div className="whitespace-pre-wrap bg-muted/30 p-4 rounded-lg">
-            {document.content}
-          </div>
-        ) : (
-          <div className="text-center text-muted-foreground py-8">
-            Aucun contenu disponible
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default function Documentation() {
-  const { user } = useAuth();
-  const {
-    documents,
-    loading,
-    fetchDocuments,
-    createDocument,
-    updateDocument,
-    deleteDocument,
-    createVersion,
-    generateDocument,
-  } = useDocumentation();
-
-  const [showDocumentDialog, setShowDocumentDialog] = useState(false);
-  const [editingDocument, setEditingDocument] = useState<Documentation | undefined>();
-  const [viewingDocument, setViewingDocument] = useState<Documentation | undefined>();
-
-  useEffect(() => {
-    if (user) {
+      toast.success('Document créé avec succès');
+      setIsCreateModalOpen(false);
+      resetNewDocumentForm();
       fetchDocuments();
+    } catch (error) {
+      console.error('Error creating document:', error);
+      toast.error('Erreur lors de la création');
+    } finally {
+      setLoading(false);
     }
-  }, [user]);
+  };
 
-  const handleSaveDocument = async (data: DocumentFormData & { team_id?: string }) => {
-    if (editingDocument) {
-      await updateDocument(editingDocument.id, data);
-    } else {
-      await createDocument(data);
+  const updateDocument = async () => {
+    if (!selectedDocument) return;
+
+    try {
+      setLoading(true);
+      
+      // Créer une nouvelle version
+      const versionData = {
+        document_id: selectedDocument.id,
+        version: (parseFloat(selectedDocument.version) + 0.1).toFixed(1),
+        title: editDocument.title,
+        content: editDocument.content,
+        created_by: sessionContext?.current_team_id || "",
+        change_log: "Mise à jour du document"
+      };
+
+      const { error: versionError } = await supabase
+        .from('document_versions')
+        .insert([versionData]);
+
+      if (versionError) throw versionError;
+
+      // Mettre à jour le document principal
+      const { error: updateError } = await supabase
+        .from('documentation')
+        .update({
+          title: editDocument.title,
+          content: editDocument.content,
+          version: versionData.version,
+          updated_by: sessionContext?.current_team_id,
+          updated_at: new Date().toISOString(),
+          metadata: {
+            category: editDocument.category,
+            tags: editDocument.tags,
+            status: editDocument.status
+          }
+        })
+        .eq('id', selectedDocument.id);
+
+      if (updateError) throw updateError;
+
+      toast.success('Document mis à jour avec succès');
+      setIsEditModalOpen(false);
+      resetEditDocumentForm();
+      fetchDocuments();
+    } catch (error) {
+      console.error('Error updating document:', error);
+      toast.error('Erreur lors de la mise à jour');
+    } finally {
+      setLoading(false);
     }
-    setEditingDocument(undefined);
   };
 
-  const handleCreateVersion = async (document: Documentation) => {
-    await createVersion(document.id, document.title, document.content);
-  };
+  const deleteDocument = async (documentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('documentation')
+        .delete()
+        .eq('id', documentId);
 
-  const handleGeneratePDF = async (document: Documentation) => {
-    await generateDocument(document.id, 'pdf');
-  };
+      if (error) throw error;
 
-  const handleGenerateMarkdown = async (document: Documentation) => {
-    await generateDocument(document.id, 'markdown');
-  };
-
-  // Group documents by title to show versions
-  const documentGroups = documents.reduce((groups, doc) => {
-    const baseTitle = doc.title;
-    if (!groups[baseTitle]) {
-      groups[baseTitle] = [];
+      toast.success('Document supprimé');
+      fetchDocuments();
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast.error('Erreur lors de la suppression');
     }
-    groups[baseTitle].push(doc);
-    return groups;
-  }, {} as Record<string, Documentation[]>);
+  };
 
-  // Sort versions within each group
-  Object.keys(documentGroups).forEach(title => {
-    documentGroups[title].sort((a, b) => {
-      // Sort by version (semantic versioning)
-      const aVer = a.version.split('.').map(Number);
-      const bVer = b.version.split('.').map(Number);
-      for (let i = 0; i < Math.max(aVer.length, bVer.length); i++) {
-        const aDiff = (aVer[i] || 0) - (bVer[i] || 0);
-        if (aDiff !== 0) return -aDiff; // Descending order (newest first)
-      }
-      return 0;
+  const downloadPDF = async (document: Document) => {
+    try {
+      // Simuler la génération de PDF
+      toast.info('Génération du PDF en cours...');
+      
+      // Ici, vous pourriez appeler une fonction Supabase Edge Function
+      // pour générer le PDF côté serveur
+      const { data, error } = await supabase.functions.invoke('generate-document', {
+        body: { 
+          document_id: document.id,
+          format: 'pdf'
+        }
+      });
+
+      if (error) throw error;
+
+      // Créer un lien de téléchargement
+      const blob = new Blob([data.content], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${document.title}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+
+      toast.success('PDF téléchargé avec succès');
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      toast.error('Erreur lors du téléchargement');
+    }
+  };
+
+  const resetNewDocumentForm = () => {
+    setNewDocument({
+      title: "",
+      content: "",
+      category: "",
+      tags: [],
+      status: "draft"
     });
+  };
+
+  const resetEditDocumentForm = () => {
+    setEditDocument({
+      title: "",
+      content: "",
+      category: "",
+      tags: [],
+      status: "draft"
+    });
+    setSelectedDocument(null);
+  };
+
+  const openEditModal = (document: Document) => {
+    setSelectedDocument(document);
+    setEditDocument({
+      title: document.title,
+      content: document.content,
+      category: document.metadata?.category || "",
+      tags: document.metadata?.tags || [],
+      status: document.metadata?.status || "draft"
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const openViewModal = (document: Document) => {
+    setSelectedDocument(document);
+    setSelectedVersion(document.version);
+    setIsViewModalOpen(true);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "published": return "default";
+      case "draft": return "secondary";
+      case "archived": return "outline";
+      default: return "outline";
+    }
+  };
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case "guide": return BookOpen;
+      case "api": return File;
+      case "tutorial": return FileText;
+      default: return FileText;
+    }
+  };
+
+  const filteredDocuments = documents.filter(doc => {
+    const matchesSearch = doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         doc.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         doc.metadata?.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesCategory = categoryFilter === "all" || doc.metadata?.category === categoryFilter;
+    const matchesStatus = statusFilter === "all" || doc.metadata?.status === statusFilter;
+
+    return matchesSearch && matchesCategory && matchesStatus;
   });
+
+  const stats = [
+    {
+      title: "Documents totaux",
+      value: documents.length.toString(),
+      icon: FileText,
+      color: "text-blue-500"
+    },
+    {
+      title: "Publiés",
+      value: documents.filter(d => d.metadata?.status === 'published').length.toString(),
+      icon: CheckCircle,
+      color: "text-green-500"
+    },
+    {
+      title: "Brouillons",
+      value: documents.filter(d => d.metadata?.status === 'draft').length.toString(),
+      icon: Edit,
+      color: "text-yellow-500"
+    },
+    {
+      title: "Favoris",
+      value: documents.filter(d => d.metadata?.is_favorite).length.toString(),
+      icon: Star,
+      color: "text-purple-500"
+    }
+  ];
+
+  const categories = [
+    { value: "all", label: "Toutes les catégories" },
+    { value: "guide", label: "Guides" },
+    { value: "api", label: "API" },
+    { value: "tutorial", label: "Tutoriels" },
+    { value: "reference", label: "Référence" }
+  ];
+
+  if (loading && documents.length === 0) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Documentation"
+          description="Gestion et consultation des documents"
+        />
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Documentation"
-        description="Gérez la documentation de votre équipe avec versioning et génération automatique"
+        description="Gestion et consultation des documents"
+        action={{
+          label: "Nouveau document",
+          icon: Plus,
+          onClick: () => setIsCreateModalOpen(true)
+        }}
       />
 
-      <Tabs defaultValue="documents" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          {viewingDocument && (
-            <TabsTrigger value="viewer">
-              Visualiseur - {viewingDocument.title}
-            </TabsTrigger>
-          )}
-        </TabsList>
+      {/* Statistiques */}
+      <DataGrid columns={4}>
+        {stats.map((stat) => (
+          <Card key={stat.title}>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className={`p-2 rounded-lg bg-muted ${stat.color}`}>
+                  <stat.icon className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
+                  <p className="text-2xl font-bold">{stat.value}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </DataGrid>
 
-        <TabsContent value="documents" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-medium">Documentation de l'équipe</h3>
-              <p className="text-sm text-muted-foreground">
-                Créez et gérez vos documents avec versioning automatique
-              </p>
-            </div>
-            <Dialog open={showDocumentDialog} onOpenChange={setShowDocumentDialog}>
-              <DialogTrigger asChild>
-                <Button 
-                  onClick={() => {
-                    setEditingDocument(undefined);
-                    setShowDocumentDialog(true);
-                  }}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Nouveau document
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl">
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingDocument ? 'Modifier' : 'Créer'} un document
-                  </DialogTitle>
-                  <DialogDescription>
-                    Créez ou modifiez un document de documentation
-                  </DialogDescription>
-                </DialogHeader>
-                <DocumentForm
-                  document={editingDocument}
-                  onSave={handleSaveDocument}
-                  onClose={() => setShowDocumentDialog(false)}
+      {/* Filtres et vue */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <Tabs value={viewMode} onValueChange={(value: any) => setViewMode(value)}>
+              <TabsList>
+                <TabsTrigger value="list">Liste</TabsTrigger>
+                <TabsTrigger value="grid">Grille</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher un document..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 w-64"
                 />
-              </DialogContent>
-            </Dialog>
+              </div>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map(category => (
+                    <SelectItem key={category.value} value={category.value}>
+                      {category.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous</SelectItem>
+                  <SelectItem value="published">Publié</SelectItem>
+                  <SelectItem value="draft">Brouillon</SelectItem>
+                  <SelectItem value="archived">Archivé</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-
-          {Object.keys(documentGroups).length === 0 ? (
+        </CardHeader>
+        <CardContent>
+          {filteredDocuments.length === 0 ? (
             <EmptyState
-              icon={BookOpen}
-              title="Aucun document"
-              description="Créez votre premier document de documentation"
-              action={{
-                label: "Créer un document",
-                onClick: () => setShowDocumentDialog(true),
-              }}
+              icon={FileText}
+              title="Aucun document trouvé"
+              description="Aucun document ne correspond à vos critères"
             />
-          ) : (
-            <DataGrid columns={2}>
-              {Object.entries(documentGroups).map(([title, versions]) => {
-                const latestVersion = versions[0];
-                return (
-                  <Card key={title}>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">
-                        {title}
-                      </CardTitle>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="outline">
-                          v{latestVersion.version}
-                        </Badge>
-                        {latestVersion.team_id && (
-                          <Badge variant="secondary" className="text-xs">
-                            {/* Show team name - you might want to join with teams table for display */}
-                            Équipe: {latestVersion.team_id.slice(0, 8)}...
+          ) : viewMode === "list" ? (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Titre</TableHead>
+                    <TableHead>Catégorie</TableHead>
+                    <TableHead>Version</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Dernière modification</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredDocuments.map((doc) => {
+                    const CategoryIcon = getCategoryIcon(doc.metadata?.category || "");
+                    
+                    return (
+                      <TableRow key={doc.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{doc.title}</p>
+                            <p className="text-sm text-muted-foreground truncate max-w-xs">
+                              {doc.content.substring(0, 100)}...
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <CategoryIcon className="h-4 w-4" />
+                            <span className="text-sm">{doc.metadata?.category || "Non catégorisé"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{doc.version}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusColor(doc.metadata?.status || "draft")}>
+                            {doc.metadata?.status || "draft"}
                           </Badge>
-                        )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Calendar className="h-4 w-4" />
+                            <span className="text-sm">
+                              {new Date(doc.updated_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openViewModal(doc)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => downloadPDF(doc)}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openEditModal(doc)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => deleteDocument(doc.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredDocuments.map((doc) => {
+                const CategoryIcon = getCategoryIcon(doc.metadata?.category || "");
+                
+                return (
+                  <Card key={doc.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center space-x-2">
+                          <CategoryIcon className="h-5 w-5 text-muted-foreground" />
+                          <div>
+                            <CardTitle className="text-lg">{doc.title}</CardTitle>
+                            <p className="text-sm text-muted-foreground">
+                              {doc.metadata?.category || "Non catégorisé"}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge variant={getStatusColor(doc.metadata?.status || "draft")}>
+                          {doc.metadata?.status || "draft"}
+                        </Badge>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div className="text-sm text-muted-foreground">
-                          {versions.length} version{versions.length > 1 ? 's' : ''}
+                    <CardContent className="space-y-3">
+                      <p className="text-sm text-muted-foreground line-clamp-3">
+                        {doc.content.substring(0, 150)}...
+                      </p>
+                      
+                      {doc.metadata?.tags && doc.metadata.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {doc.metadata.tags.slice(0, 3).map((tag, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                          {doc.metadata.tags.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{doc.metadata.tags.length - 3}
+                            </Badge>
+                          )}
                         </div>
-                        
-                        <div className="text-sm">
-                          <strong>Dernière modification:</strong> {new Date(latestVersion.updated_at).toLocaleDateString('fr-FR')}
+                      )}
+                      
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <div className="flex items-center space-x-2">
+                          <User className="h-3 w-3" />
+                          <span>v{doc.version}</span>
                         </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setViewingDocument(latestVersion)}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Voir
-                          </Button>
-                          
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setEditingDocument(latestVersion);
-                              setShowDocumentDialog(true);
-                            }}
-                          >
-                            <Edit className="h-4 w-4 mr-1" />
-                            Modifier
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleCreateVersion(latestVersion)}
-                            disabled={loading}
-                          >
-                            <Copy className="h-4 w-4 mr-1" />
-                            Nouvelle version
-                          </Button>
-
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="sm" variant="outline">
-                                <Download className="h-4 w-4 mr-1" />
-                                Télécharger
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                              <DropdownMenuItem onClick={() => handleGeneratePDF(latestVersion)}>
-                                <FileText className="h-4 w-4 mr-2" />
-                                PDF
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleGenerateMarkdown(latestVersion)}>
-                                <FileText className="h-4 w-4 mr-2" />
-                                Markdown
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => deleteDocument(latestVersion.id)}
-                            disabled={loading}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                        <div className="flex items-center space-x-2">
+                          <Clock className="h-3 w-3" />
+                          <span>{new Date(doc.updated_at).toLocaleDateString()}</span>
                         </div>
-
-                        {versions.length > 1 && (
-                          <div className="pt-2 border-t">
-                            <div className="text-xs text-muted-foreground mb-1">
-                              Autres versions:
-                            </div>
-                            <div className="flex flex-wrap gap-1">
-                              {versions.slice(1).map((version) => (
-                                <Badge 
-                                  key={version.id} 
-                                  variant="secondary"
-                                  className="cursor-pointer text-xs"
-                                  onClick={() => setViewingDocument(version)}
-                                >
-                                  v{version.version}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                      </div>
+                      
+                      <div className="flex justify-end space-x-2 pt-2 border-t">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openViewModal(doc)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          Voir
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => downloadPDF(doc)}
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          PDF
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
                 );
               })}
-            </DataGrid>
+            </div>
           )}
-        </TabsContent>
+        </CardContent>
+      </Card>
 
-        {viewingDocument && (
-          <TabsContent value="viewer" className="space-y-6">
-            <DocumentViewer document={viewingDocument} />
-          </TabsContent>
-        )}
-      </Tabs>
+      {/* Modal de création */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Nouveau document</DialogTitle>
+            <DialogDescription>
+              Créez un nouveau document de documentation
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="doc-title">Titre</Label>
+                <Input
+                  id="doc-title"
+                  value={newDocument.title}
+                  onChange={(e) => setNewDocument({...newDocument, title: e.target.value})}
+                  placeholder="Titre du document"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="doc-category">Catégorie</Label>
+                <Select value={newDocument.category} onValueChange={(value) => setNewDocument({...newDocument, category: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner une catégorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.slice(1).map(category => (
+                      <SelectItem key={category.value} value={category.value}>
+                        {category.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="doc-content">Contenu (Markdown)</Label>
+              <Textarea
+                id="doc-content"
+                value={newDocument.content}
+                onChange={(e) => setNewDocument({...newDocument, content: e.target.value})}
+                placeholder="# Titre du document
+
+## Introduction
+
+Contenu de votre document en Markdown..."
+                rows={15}
+                className="font-mono"
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
+                Annuler
+              </Button>
+              <Button onClick={createDocument} disabled={!newDocument.title || !newDocument.content}>
+                Créer
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal d'édition */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Modifier le document</DialogTitle>
+            <DialogDescription>
+              Modifiez le contenu du document
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-title">Titre</Label>
+                <Input
+                  id="edit-title"
+                  value={editDocument.title}
+                  onChange={(e) => setEditDocument({...editDocument, title: e.target.value})}
+                  placeholder="Titre du document"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-category">Catégorie</Label>
+                <Select value={editDocument.category} onValueChange={(value) => setEditDocument({...editDocument, category: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner une catégorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.slice(1).map(category => (
+                      <SelectItem key={category.value} value={category.value}>
+                        {category.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit-content">Contenu (Markdown)</Label>
+              <Textarea
+                id="edit-content"
+                value={editDocument.content}
+                onChange={(e) => setEditDocument({...editDocument, content: e.target.value})}
+                placeholder="# Titre du document
+
+## Introduction
+
+Contenu de votre document en Markdown..."
+                rows={15}
+                className="font-mono"
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
+                Annuler
+              </Button>
+              <Button onClick={updateDocument} disabled={!editDocument.title || !editDocument.content}>
+                Mettre à jour
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de visualisation */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="sm:max-w-[900px] max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>{selectedDocument?.title}</DialogTitle>
+            <DialogDescription>
+              Version {selectedDocument?.version} - {selectedDocument?.metadata?.category}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedDocument && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <Badge variant={getStatusColor(selectedDocument.metadata?.status || "draft")}>
+                    {selectedDocument.metadata?.status || "draft"}
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    Dernière modification: {new Date(selectedDocument.updated_at).toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => downloadPDF(selectedDocument)}
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Télécharger PDF
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsViewModalOpen(false);
+                      openEditModal(selectedDocument);
+                    }}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Modifier
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="border rounded-lg p-4 max-h-96 overflow-y-auto">
+                <div className="prose prose-sm max-w-none">
+                  {/* Ici vous pourriez utiliser un renderer Markdown */}
+                  <pre className="whitespace-pre-wrap text-sm">{selectedDocument.content}</pre>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
-}
+};
+
+export default Documentation;

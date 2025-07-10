@@ -12,6 +12,13 @@ import CloudOrchestration from "./pages/CloudOrchestration";
 import GlobalSettings from "./pages/GlobalSettings";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import ITSM from "./pages/ITSM";
+import CloudInventory from "./pages/CloudInventory";
+import CloudAccounts from "./pages/CloudAccounts";
+import Monitoring from "./pages/Monitoring";
+import Users from "./pages/Users";
+import Roles from "./pages/Roles";
+import RBACManagement from "./pages/RBACManagement";
 
 const queryClient = new QueryClient();
 
@@ -71,26 +78,99 @@ function AppRoutes() {
           <Organizations />
         </ProtectedRoute>
       } />
+      
+      {/* User Management Routes */}
+      <Route path="/users" element={
+        <ProtectedRoute>
+          <Users />
+        </ProtectedRoute>
+      } />
+      <Route path="/roles" element={
+        <ProtectedRoute>
+          <Roles />
+        </ProtectedRoute>
+      } />
+      <Route path="/rbac" element={
+        <ProtectedRoute>
+          <RBACManagement />
+        </ProtectedRoute>
+      } />
+      
+      {/* ITSM Routes */}
+      <Route path="/itsm" element={
+        <ProtectedRoute>
+          <ITSM />
+        </ProtectedRoute>
+      } />
+      <Route path="/itsm/incidents" element={
+        <ProtectedRoute>
+          <ITSM />
+        </ProtectedRoute>
+      } />
+      <Route path="/itsm/changes" element={
+        <ProtectedRoute>
+          <ITSM />
+        </ProtectedRoute>
+      } />
+      <Route path="/itsm/requests" element={
+        <ProtectedRoute>
+          <ITSM />
+        </ProtectedRoute>
+      } />
+      <Route path="/itsm/backups" element={
+        <ProtectedRoute>
+          <ITSM />
+        </ProtectedRoute>
+      } />
       <Route path="/itsm/security" element={
         <ProtectedRoute>
           <Security />
         </ProtectedRoute>
       } />
+      
+      {/* Cloud Routes */}
+      <Route path="/cloud/inventory" element={
+        <ProtectedRoute>
+          <CloudInventory />
+        </ProtectedRoute>
+      } />
+      <Route path="/cloud/patches" element={
+        <ProtectedRoute>
+          <CloudOrchestration />
+        </ProtectedRoute>
+      } />
+      <Route path="/cloud/accounts" element={
+        <ProtectedRoute>
+          <CloudAccounts />
+        </ProtectedRoute>
+      } />
+      
+      {/* Monitoring Routes */}
+      <Route path="/monitoring/metrics" element={
+        <ProtectedRoute>
+          <Monitoring />
+        </ProtectedRoute>
+      } />
+      <Route path="/monitoring/notifications" element={
+        <ProtectedRoute>
+          <Monitoring />
+        </ProtectedRoute>
+      } />
+      
+      {/* Documentation */}
       <Route path="/documentation" element={
         <ProtectedRoute>
           <Documentation />
         </ProtectedRoute>
       } />
-      <Route path="/cloud-orchestration" element={
-        <ProtectedRoute>
-          <CloudOrchestration />
-        </ProtectedRoute>
-      } />
+      
+      {/* Settings */}
       <Route path="/global-settings" element={
         <ProtectedRoute>
           <GlobalSettings />
         </ProtectedRoute>
       } />
+      
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
