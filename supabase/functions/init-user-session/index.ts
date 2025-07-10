@@ -89,8 +89,8 @@ serve(async (req) => {
       }
     }
 
-    // Initialize session context using the database function
-    const { error: sessionError } = await supabaseClient.rpc('set_user_session_context', {
+    // Initialize session with PostgreSQL session variables
+    const { data: sessionData, error: sessionError } = await supabaseClient.rpc('initialize_user_session', {
       p_organization_id: finalOrgId,
       p_team_id: finalTeamId
     });
@@ -98,25 +98,39 @@ serve(async (req) => {
     if (sessionError) {
       console.error('Session initialization error:', sessionError);
       return new Response(
-        JSON.stringify({ error: 'Failed to initialize session' }),
+        JSON.stringify({ error: 'Failed to initialize session', details: sessionError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Get the initialized session context
-    const { data: sessionContext, error: contextError } = await supabaseClient.rpc('get_current_user_session');
-
-    if (contextError) {
-      console.error('Context fetch error:', contextError);
+    const sessionResult = sessionData?.[0];
+    
+    if (!sessionResult?.success) {
+      return new Response(
+        JSON.stringify({ error: 'Session initialization failed' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+
+    // Test that session variables are properly set
+    const { data: testData } = await supabaseClient.rpc('test_session_variables');
+    const sessionVars = testData?.[0];
+
+    console.log('PostgreSQL session variables test:', sessionVars);
 
     const response = {
       success: true,
-      user_id: user.id,
-      session_context: sessionContext?.[0] || {
-        current_organization_id: finalOrgId,
-        current_team_id: finalTeamId,
-        is_msp: profile.is_msp_admin
+      user_id: sessionResult.user_id,
+      session_context: {
+        current_organization_id: sessionResult.organization_id,
+        current_team_id: sessionResult.team_id,
+        is_msp: sessionResult.is_msp
+      },
+      postgresql_session: {
+        app_current_team: sessionVars?.current_team_var,
+        app_is_msp: sessionVars?.is_msp_var,
+        parsed_team: sessionVars?.parsed_team,
+        parsed_is_msp: sessionVars?.parsed_is_msp
       }
     };
 

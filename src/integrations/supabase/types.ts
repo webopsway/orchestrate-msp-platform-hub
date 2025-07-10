@@ -779,6 +779,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_app_session_variables: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          current_team: string
+          is_msp: boolean
+        }[]
+      }
       get_current_user_session: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -787,9 +794,32 @@ export type Database = {
           is_msp: boolean
         }[]
       }
+      initialize_user_session: {
+        Args: { p_organization_id?: string; p_team_id?: string }
+        Returns: {
+          user_id: string
+          organization_id: string
+          team_id: string
+          is_msp: boolean
+          success: boolean
+        }[]
+      }
+      set_app_session_variables: {
+        Args: { p_team_id?: string; p_is_msp?: boolean }
+        Returns: undefined
+      }
       set_user_session_context: {
         Args: { p_organization_id?: string; p_team_id?: string }
         Returns: undefined
+      }
+      test_session_variables: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          current_team_var: string
+          is_msp_var: string
+          parsed_team: string
+          parsed_is_msp: boolean
+        }[]
       }
       user_has_organization_access: {
         Args: { org_id: string }
