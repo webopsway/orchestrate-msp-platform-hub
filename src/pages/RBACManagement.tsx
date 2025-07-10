@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { useRBAC } from "@/hooks/useRBAC";
 import { RBACGuard, RoleGuard } from "@/components/rbac/RBACGuard";
 import { PermissionManager } from "@/components/rbac/PermissionManager";
@@ -89,10 +90,17 @@ const RBACManagement = () => {
 
   // Permissions par catégorie
   const permissionsByCategory = permissions.reduce((acc, permission) => {
-    if (!acc[permission.category]) {
-      acc[permission.category] = [];
+    const category = permission.resource || 'General';
+    if (!acc[category]) {
+      acc[category] = [];
     }
-    acc[permission.category].push(permission);
+    acc[category].push({
+      ...permission,
+      category: permission.resource || 'General',
+      description: permission.description || '',
+      is_system: permission.is_system || false,
+      updated_at: permission.updated_at || permission.created_at
+    });
     return acc;
   }, {} as Record<string, Permission[]>);
 
@@ -397,7 +405,14 @@ const RBACManagement = () => {
                           {userRoles.filter(ur => ur.role_id === role.id && ur.is_active).length} utilisateurs
                         </Badge>
                         <RBACGuard resource="roles" action="update">
-                          <Button variant="ghost" size="sm" onClick={() => openPermissionModal(role)}>
+                          <Button variant="ghost" size="sm" onClick={() => openPermissionModal({
+                            ...role,
+                            team_id: sessionContext?.current_team_id || '',
+                            permissions: [],
+                            is_system: role.is_system || false,
+                            is_default: role.is_default || false,
+                            user_count: userRoles.filter(ur => ur.role_id === role.id && ur.is_active).length
+                          })}>
                             <Settings className="h-4 w-4" />
                           </Button>
                         </RBACGuard>

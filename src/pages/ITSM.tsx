@@ -141,7 +141,7 @@ const ITSM = () => {
         description: newItem.description,
         priority: newItem.priority,
         created_by: sessionContext.current_team_id, // TODO: utiliser l'ID utilisateur réel
-        ...(newItem.type === 'change' ? { scheduled_date: newItem.scheduled_date } : {})
+        ...((newItem.type as string) === 'change' ? { scheduled_date: newItem.scheduled_date } : {})
       };
 
       const table = (newItem.type as string) === 'incident' ? 'itsm_incidents' : 'itsm_change_requests';
@@ -546,7 +546,7 @@ const ITSM = () => {
               />
             </div>
 
-            {newItem.type === 'change' ? (
+            {(newItem.type as string) === 'change' ? (
               <div className="space-y-2">
                 <Label htmlFor="scheduled_date">Date prévue</Label>
                 <Input
