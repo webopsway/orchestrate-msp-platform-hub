@@ -9,6 +9,7 @@ import Organizations from "./pages/Organizations";
 import Security from "./pages/Security";
 import Documentation from "./pages/Documentation";
 import CloudOrchestration from "./pages/CloudOrchestration";
+import GlobalSettings from "./pages/GlobalSettings";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -83,6 +84,11 @@ function AppRoutes() {
       <Route path="/cloud-orchestration" element={
         <ProtectedRoute>
           <CloudOrchestration />
+        </ProtectedRoute>
+      } />
+      <Route path="/global-settings" element={
+        <ProtectedRoute>
+          <GlobalSettings />
         </ProtectedRoute>
       } />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

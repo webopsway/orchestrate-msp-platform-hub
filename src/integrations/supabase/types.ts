@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          namespace: string
+          team_id: string | null
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          namespace: string
+          team_id?: string | null
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          namespace?: string
+          team_id?: string | null
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_settings_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       backup_executions: {
         Row: {
           completed_at: string | null
@@ -1347,6 +1385,10 @@ export type Database = {
         Args: { doc_id: string; new_title?: string; new_content?: string }
         Returns: string
       }
+      delete_setting: {
+        Args: { p_team_id: string; p_namespace: string; p_key: string }
+        Returns: boolean
+      }
       get_app_session_variables: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1369,6 +1411,27 @@ export type Database = {
           is_msp: boolean
         }[]
       }
+      get_keys_by_namespace: {
+        Args: { p_namespace: string }
+        Returns: {
+          key: string
+          has_global: boolean
+          has_team: boolean
+          team_count: number
+        }[]
+      }
+      get_namespaces: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          namespace: string
+          is_global: boolean
+          setting_count: number
+        }[]
+      }
+      get_setting: {
+        Args: { p_team_id: string; p_namespace: string; p_key: string }
+        Returns: Json
+      }
       initialize_user_session: {
         Args: { p_organization_id?: string; p_team_id?: string }
         Returns: {
@@ -1382,6 +1445,15 @@ export type Database = {
       set_app_session_variables: {
         Args: { p_team_id?: string; p_is_msp?: boolean }
         Returns: undefined
+      }
+      set_setting: {
+        Args: {
+          p_team_id: string
+          p_namespace: string
+          p_key: string
+          p_value: Json
+        }
+        Returns: string
       }
       set_user_session_context: {
         Args: { p_organization_id?: string; p_team_id?: string }
