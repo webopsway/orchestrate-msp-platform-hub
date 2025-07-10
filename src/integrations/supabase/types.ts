@@ -1032,6 +1032,13 @@ export type Database = {
           is_msp: boolean
         }[]
       }
+      get_current_user_profile: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          is_msp_admin: boolean
+        }[]
+      }
       get_current_user_session: {
         Args: Record<PropertyKey, never>
         Returns: {

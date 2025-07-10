@@ -36,13 +36,13 @@ const itsmItems = [
   { title: "Incidents", url: "/itsm/incidents", icon: AlertTriangle },
   { title: "Changements", url: "/itsm/changes", icon: FileText },
   { title: "Demandes de service", url: "/itsm/requests", icon: FileText },
-  { title: "Tickets sécurité", url: "/itsm/security", icon: ShieldCheck },
+  { title: "Sauvegardes", url: "/itsm/backups", icon: Database },
+  { title: "Sécurité", url: "/itsm/security", icon: ShieldCheck },
 ];
 
 const cloudItems = [
   { title: "Inventaire Cloud", url: "/cloud/inventory", icon: Cloud },
   { title: "Gestion des patchs", url: "/cloud/patches", icon: ShieldCheck },
-  { title: "Sauvegardes", url: "/cloud/backups", icon: Database },
 ];
 
 const monitoringItems = [
