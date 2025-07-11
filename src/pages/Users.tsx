@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { CRUDTable } from "@/components/common/CRUDTable";
-import { CRUDForm } from "@/components/common/CRUDForm";
+// import { CRUDForm } from "@/components/common/CRUDForm";
 import { 
   Dialog, 
   DialogContent, 
@@ -595,44 +595,7 @@ const Users = () => {
         ]}
       />
 
-      {/* Modal de création */}
-      <CRUDForm
-        title="Nouvel utilisateur"
-        description="Créez un nouvel utilisateur dans votre équipe"
-        fields={userFields}
-        open={isCreateModalOpen}
-        onOpenChange={setIsCreateModalOpen}
-        onSubmit={createUser}
-        mode="create"
-        validation={(data) => {
-          const errors: Record<string, string> = {};
-          
-          if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
-            errors.email = 'Format d\'email invalide';
-          }
-          
-          if (data.phone && !/^[\+]?[0-9\s\-\(\)]{10,}$/.test(data.phone)) {
-            errors.phone = 'Format de téléphone invalide';
-          }
-          
-          return {
-            isValid: Object.keys(errors).length === 0,
-            errors
-          };
-        }}
-      />
-
-      {/* Modal d'édition */}
-      <CRUDForm
-        title="Modifier l'utilisateur"
-        description="Modifiez les informations de l'utilisateur"
-        fields={editUserFields}
-        data={editUser}
-        open={isEditModalOpen}
-        onOpenChange={setIsEditModalOpen}
-        onSubmit={updateUser}
-        mode="edit"
-      />
+      {/* Utiliser les nouveaux formulaires depuis les pages dédiées */}
 
       {/* Modal de visualisation */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>

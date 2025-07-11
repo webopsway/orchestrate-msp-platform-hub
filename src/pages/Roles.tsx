@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { CRUDTable } from "@/components/common/CRUDTable";
-import { CRUDForm } from "@/components/common/CRUDForm";
+// import { CRUDForm } from "@/components/common/CRUDForm";
 import { 
   Dialog, 
   DialogContent, 
@@ -542,44 +542,7 @@ const Roles = () => {
         ]}
       />
 
-      {/* Modal de création */}
-      <CRUDForm
-        title="Nouveau rôle"
-        description="Créez un nouveau rôle avec des permissions spécifiques"
-        fields={roleFields}
-        open={isCreateModalOpen}
-        onOpenChange={setIsCreateModalOpen}
-        onSubmit={createRole}
-        mode="create"
-        validation={(data) => {
-          const errors: Record<string, string> = {};
-          
-          if (data.name && !/^[a-z_]+$/.test(data.name)) {
-            errors.name = 'Le nom technique ne doit contenir que des lettres minuscules et des underscores';
-          }
-          
-          if (data.name && roles.some(r => r.name === data.name)) {
-            errors.name = 'Ce nom technique existe déjà';
-          }
-          
-          return {
-            isValid: Object.keys(errors).length === 0,
-            errors
-          };
-        }}
-      />
-
-      {/* Modal d'édition */}
-      <CRUDForm
-        title="Modifier le rôle"
-        description="Modifiez les informations du rôle"
-        fields={roleFields}
-        data={editRole}
-        open={isEditModalOpen}
-        onOpenChange={setIsEditModalOpen}
-        onSubmit={updateRole}
-        mode="edit"
-      />
+      {/* Utiliser les nouveaux formulaires depuis les pages dédiées */}
 
       {/* Modal de visualisation */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>

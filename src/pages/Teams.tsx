@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { CRUDTable } from "@/components/common/CRUDTable";
-import { CRUDForm } from "@/components/common/CRUDForm";
+// import { CRUDForm } from "@/components/common/CRUDForm";
 import { 
   Dialog, 
   DialogContent, 
@@ -439,34 +439,7 @@ const Teams = () => {
         ]}
       />
 
-      {/* Modal de création */}
-      <CRUDForm
-        title="Nouvelle équipe"
-        description="Créez une nouvelle équipe"
-        fields={teamFields}
-        open={isCreateModalOpen}
-        onOpenChange={setIsCreateModalOpen}
-        onSubmit={createTeam}
-        mode="create"
-      />
-
-      {/* Modal d'édition */}
-      <CRUDForm
-        title="Modifier l'équipe"
-        description="Modifiez les informations de l'équipe"
-        fields={teamFields}
-        data={selectedTeam ? {
-          name: selectedTeam.name,
-          organization_id: selectedTeam.organization_id,
-          description: selectedTeam.description,
-          department: selectedTeam.metadata?.department,
-          manager_id: selectedTeam.metadata?.manager_id
-        } : {}}
-        open={isEditModalOpen}
-        onOpenChange={setIsEditModalOpen}
-        onSubmit={updateTeam}
-        mode="edit"
-      />
+      {/* Utiliser les nouveaux formulaires depuis les pages dédiées */}
 
       {/* Modal de visualisation */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
