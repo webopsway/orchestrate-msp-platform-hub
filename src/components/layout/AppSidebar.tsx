@@ -60,6 +60,7 @@ interface SidebarConfig {
   }[];
 }
 
+// Configuration par défaut de la navigation - sera remplacée par les données de la base
 const defaultNavigationItems: NavigationItem[] = [
   { id: "dashboard", title: "Tableau de bord", url: "/", icon: "Home", order: 1, group: "main" },
   { id: "organizations", title: "Organisations", url: "/organizations", icon: "Building2", order: 2, group: "main" },
@@ -67,7 +68,7 @@ const defaultNavigationItems: NavigationItem[] = [
   { id: "roles", title: "Rôles", url: "/roles", icon: "Shield", order: 4, group: "main" },
   { id: "rbac", title: "Gestion RBAC", url: "/rbac", icon: "ShieldCheck", order: 5, group: "main" },
   
-  { id: "incidents", title: "Incidents", url: "/itsm/incidents", icon: "AlertTriangle", order: 1, group: "itsm", badge: "8" },
+  { id: "incidents", title: "Incidents", url: "/itsm/incidents", icon: "AlertTriangle", order: 1, group: "itsm" },
   { id: "changes", title: "Changements", url: "/itsm/changes", icon: "FileText", order: 2, group: "itsm" },
   { id: "requests", title: "Demandes de service", url: "/itsm/requests", icon: "FileText", order: 3, group: "itsm" },
   { id: "backups", title: "Sauvegardes", url: "/itsm/backups", icon: "Database", order: 4, group: "itsm" },

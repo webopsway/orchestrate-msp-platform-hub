@@ -140,7 +140,7 @@ const Monitoring = () => {
 
   useEffect(() => {
     fetchMonitoringData();
-    generateMockMetrics();
+    // Removed generateMockMetrics() - using real data only
   }, [sessionContext]);
 
   const fetchMonitoringData = async () => {
@@ -174,22 +174,19 @@ const Monitoring = () => {
     }
   };
 
-  const generateMockMetrics = () => {
-    const now = new Date();
-    const data: MetricData[] = [];
-    
-    for (let i = 24; i >= 0; i--) {
-      const timestamp = new Date(now.getTime() - i * 60 * 60 * 1000);
-      data.push({
-        timestamp: timestamp.toISOString(),
-        value: Math.random() * 100,
-        label: timestamp.toLocaleTimeString()
-      });
+  // Removed generateMockMetrics function - using real metrics from database
+  const loadRealMetrics = async () => {
+    if (!sessionContext?.current_team_id) return;
+
+    try {
+      // Charger les vraies métriques depuis la base de données
+      // TODO: Implémenter la récupération des métriques réelles
+      setCpuData([]);
+      setMemoryData([]);
+      setNetworkData([]);
+    } catch (error) {
+      console.error('Error loading real metrics:', error);
     }
-    
-    setCpuData(data.map(d => ({ ...d, value: 20 + Math.random() * 60 })));
-    setMemoryData(data.map(d => ({ ...d, value: 40 + Math.random() * 40 })));
-    setNetworkData(data.map(d => ({ ...d, value: Math.random() * 100 })));
   };
 
   const createUptimeCheck = async () => {
