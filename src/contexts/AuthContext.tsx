@@ -39,10 +39,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const initializeSession = async (organizationId?: string, teamId?: string) => {
-    if (!session) return;
+    if (!session) {
+      console.log('No session available for initialization');
+      return;
+    }
 
     try {
       console.log('Initializing session with org:', organizationId, 'team:', teamId);
+      console.log('Current session user:', session.user?.id);
+      
+      // Test auth state first
+      const { data: testData, error: testError } = await supabase
+        .from('profiles')
+        .select('id, email, is_msp_admin')
+        .eq('id', session.user.id)
+        .single();
+        
+      console.log('Auth test result:', { testData, testError });
       
       // First, try to auto-initialize session for MSP admins
       try {

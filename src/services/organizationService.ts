@@ -4,16 +4,18 @@ import type { Organization, OrganizationFormData } from "@/types/organization";
 
 export class OrganizationService {
   static async loadAll(sessionContext: any): Promise<{ organizations: Organization[]; count: number }> {
-    if (!sessionContext?.current_team_id) {
-      return { organizations: [], count: 0 };
-    }
-
+    console.log('Loading organizations with session context:', sessionContext);
+    
+    // Récupérer toutes les organisations pour un admin MSP
     const { data: orgsData, error: orgsError, count } = await supabase
       .from('organizations')
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false });
 
-    if (orgsError) throw orgsError;
+    if (orgsError) {
+      console.error('Error loading organizations:', orgsError);
+      throw orgsError;
+    }
     
     // Transform data to match interface
     const transformedOrgs: Organization[] = (orgsData || []).map(org => ({
