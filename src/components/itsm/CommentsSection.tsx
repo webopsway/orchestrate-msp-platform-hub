@@ -71,7 +71,12 @@ export function CommentsSection({ ticketId, ticketType, readonly = false }: Comm
   };
 
   const addComment = async () => {
-    if (!newComment.trim() || !user) return;
+    if (!newComment.trim() || !user || !sessionContext?.current_team_id) {
+      if (!sessionContext?.current_team_id) {
+        toast.error('Aucune équipe sélectionnée');
+      }
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -80,7 +85,7 @@ export function CommentsSection({ ticketId, ticketType, readonly = false }: Comm
       const insertData: any = {
         content: newComment.trim(),
         created_by: user.id,
-        team_id: sessionContext?.current_team_id,
+        team_id: sessionContext.current_team_id,
       };
       insertData[columnName] = ticketId;
       
