@@ -1,27 +1,20 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { 
-  PageHeader, 
-  DataGrid, 
-  EmptyState,
-  CreateDialog,
-  EditDialog,
-  DeleteDialog,
-  DetailDialog
-} from "@/components/common";
-import { useITSMCrud } from "@/hooks/useITSMCrud";
+import { ITSMLayout } from "@/components/itsm/ITSMLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   HelpCircle, 
   Plus, 
-  Search, 
   User,
-  Calendar
+  Calendar,
+  Eye,
+  Edit,
+  Trash2,
+  CheckCircle,
+  AlertCircle,
+  Info
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -49,31 +42,16 @@ const ITSMRequests = () => {
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      // TODO: Implémenter quand la table itsm_service_requests sera créée
+      // Pour l'instant, on simule des données vides car la table n'existe pas encore
       setRequests([]);
+      toast.error('Module en cours de développement');
     } catch (error) {
       console.error('Error fetching requests:', error);
-      toast.error('Erreur lors du chargement des demandes');
+      setRequests([]);
     } finally {
       setLoading(false);
     }
   };
-
-  const {
-    selectedItem: selectedRequest,
-    isCreateOpen,
-    isEditOpen,
-    isDeleteOpen,
-    isDetailOpen,
-    openCreate,
-    openEdit,
-    openDelete,
-    openDetail,
-    closeAll,
-    handleCreate,
-    handleUpdate,
-    handleDelete
-  } = useITSMCrud<ITSMRequest>({ onRefresh: fetchRequests });
 
   useEffect(() => {
     fetchRequests();
@@ -103,6 +81,18 @@ const ITSMRequests = () => {
     }
   };
 
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "resolved":
+      case "closed":
+        return <CheckCircle className="h-4 w-4" />;
+      case "in_progress":
+        return <AlertCircle className="h-4 w-4" />;
+      default:
+        return <Info className="h-4 w-4" />;
+    }
+  };
+
   const filteredRequests = requests.filter(request => {
     const matchesSearch = request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          request.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -122,118 +112,159 @@ const ITSMRequests = () => {
     {
       title: "En cours",
       value: requests.filter(r => r.status === 'in_progress').length.toString(),
-      icon: HelpCircle,
+      icon: AlertCircle,
       color: "text-yellow-500"
     },
     {
       title: "Résolues",
       value: requests.filter(r => ['resolved', 'closed'].includes(r.status)).length.toString(),
-      icon: HelpCircle,
+      icon: CheckCircle,
       color: "text-green-500"
     }
   ];
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <PageHeader
-          title="Demandes de service"
-          description="Gestion des demandes de service"
-        />
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  const filters = (
+    <>
+      <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <SelectTrigger className="w-32">
+          <SelectValue placeholder="Statut" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Tous</SelectItem>
+          <SelectItem value="open">Ouvert</SelectItem>
+          <SelectItem value="in_progress">En cours</SelectItem>
+          <SelectItem value="resolved">Résolu</SelectItem>
+          <SelectItem value="closed">Fermé</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+        <SelectTrigger className="w-32">
+          <SelectValue placeholder="Priorité" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Toutes</SelectItem>
+          <SelectItem value="critical">Critique</SelectItem>
+          <SelectItem value="high">Haute</SelectItem>
+          <SelectItem value="medium">Moyenne</SelectItem>
+          <SelectItem value="low">Basse</SelectItem>
+        </SelectContent>
+      </Select>
+    </>
+  );
+
+  const columns = [
+    {
+      key: "id",
+      label: "ID",
+      render: (request: ITSMRequest) => (
+        <span className="font-mono text-sm">REQ-{request.id.slice(0, 8)}</span>
+      )
+    },
+    {
+      key: "title",
+      label: "Titre",
+      render: (request: ITSMRequest) => (
+        <div>
+          <p className="font-medium">{request.title}</p>
+          <p className="text-sm text-muted-foreground truncate max-w-xs">
+            {request.description}
+          </p>
         </div>
-      </div>
-    );
-  }
+      )
+    },
+    {
+      key: "requester",
+      label: "Demandeur",
+      render: (request: ITSMRequest) => (
+        <div className="flex items-center space-x-2">
+          <User className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm">{request.requested_by}</span>
+        </div>
+      )
+    },
+    {
+      key: "priority",
+      label: "Priorité",
+      render: (request: ITSMRequest) => (
+        <Badge variant={getPriorityColor(request.priority)}>
+          {request.priority}
+        </Badge>
+      )
+    },
+    {
+      key: "status",
+      label: "Statut",
+      render: (request: ITSMRequest) => (
+        <div className="flex items-center space-x-2">
+          {getStatusIcon(request.status)}
+          <Badge variant={getStatusColor(request.status)}>
+            {request.status}
+          </Badge>
+        </div>
+      )
+    },
+    {
+      key: "created_at",
+      label: "Date création",
+      render: (request: ITSMRequest) => (
+        <div className="flex items-center space-x-2">
+          <Calendar className="h-4 w-4" />
+          <span className="text-sm">
+            {new Date(request.created_at).toLocaleDateString()}
+          </span>
+        </div>
+      )
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (request: ITSMRequest) => (
+        <div className="flex items-center gap-1 justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => console.log('View details')}
+            title="Voir les détails"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => console.log('Edit')}
+            title="Modifier"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => console.log('Delete')}
+            title="Supprimer"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      )
+    }
+  ];
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Demandes de service"
-        description="Gestion des demandes de service utilisateur"
-        action={{
-          label: "Créer une demande",
-          icon: Plus,
-          onClick: openCreate
-        }}
-      />
-
-      {/* Statistiques */}
-      <DataGrid columns={3}>
-        {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className={`p-2 rounded-lg bg-muted ${stat.color}`}>
-                  <stat.icon className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                  <p className="text-2xl font-bold">{stat.value}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </DataGrid>
-
-      {/* Filtres */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher des demandes..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Statut" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous</SelectItem>
-                  <SelectItem value="open">Ouvert</SelectItem>
-                  <SelectItem value="in_progress">En cours</SelectItem>
-                  <SelectItem value="resolved">Résolu</SelectItem>
-                  <SelectItem value="closed">Fermé</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Priorité" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toutes</SelectItem>
-                  <SelectItem value="critical">Critique</SelectItem>
-                  <SelectItem value="high">Haute</SelectItem>
-                  <SelectItem value="medium">Moyenne</SelectItem>
-                  <SelectItem value="low">Basse</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* État vide */}
-          <EmptyState
-            icon={HelpCircle}
-            title="Aucune demande de service"
-            description="Le module des demandes de service est en cours de développement. Cette fonctionnalité sera bientôt disponible."
-            action={{
-              label: "Créer une demande",
-              onClick: () => console.log("Create request")
-            }}
-          />
-        </CardContent>
-      </Card>
-    </div>
+    <ITSMLayout
+      title="Demandes de service"
+      description="Gestion des demandes de service utilisateur"
+      actionLabel="Créer une demande"
+      actionIcon={Plus}
+      onActionClick={() => console.log('Create request')}
+      stats={stats}
+      searchTerm={searchTerm}
+      onSearchChange={setSearchTerm}
+      searchPlaceholder="Rechercher des demandes..."
+      filters={filters}
+      columns={columns}
+      data={filteredRequests}
+      loading={loading}
+    />
   );
 };
 
