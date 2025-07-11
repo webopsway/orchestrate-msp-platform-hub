@@ -9,8 +9,20 @@ export { QuickActionButton } from "./QuickActionButton";
 
 // Composants CRUD
 export { CRUDTable } from "./CRUDTable";
-// export { CRUDForm } from "./CRUDForm"; // Removed - use form components instead
 export { ConfirmDialog, DeleteConfirmDialog, DeactivateConfirmDialog, ArchiveConfirmDialog } from "./ConfirmDialog";
+
+// Nouveaux composants CRUD réutilisables
+export { DetailDialog } from './DetailDialog';
+export { EditDialog } from './EditDialog';
+export { CreateDialog } from './CreateDialog';
+export { DeleteDialog } from './DeleteDialog';
+export { ActionButtons, useStandardActions } from './ActionButtons';
+
+export type { DetailField, DetailSection } from './DetailDialog';
+export type { EditField, EditSection } from './EditDialog';
+export type { CreateField, CreateSection } from './CreateDialog';
+export type { DeleteDialogField } from './DeleteDialog';
+export type { ActionButton } from './ActionButtons';
 
 // Composants RBAC
 export * from "../rbac";
