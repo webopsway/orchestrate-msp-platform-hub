@@ -20,7 +20,7 @@ export class OrganizationService {
     // Transform data to match interface
     const transformedOrgs: Organization[] = (orgsData || []).map(org => ({
       id: org.id,
-      msp_id: org.parent_organization_id || sessionContext.current_team_id,
+      msp_id: org.parent_organization_id || sessionContext?.current_team_id || null,
       name: org.name,
       type: org.type,
       is_msp: org.is_msp || false,
