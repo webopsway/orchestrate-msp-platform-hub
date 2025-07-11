@@ -42,13 +42,9 @@ export function useUsers(): UseUsersReturn {
   const [totalCount, setTotalCount] = useState(0);
 
   const loadUsers = useCallback(async () => {
-    if (!sessionContext?.current_team_id) {
-      setLoading(false);
-      return;
-    }
-
     try {
       setError(null);
+      setLoading(true);
       
       const { data: usersData, error: usersError, count } = await supabase
         .from('profiles')
