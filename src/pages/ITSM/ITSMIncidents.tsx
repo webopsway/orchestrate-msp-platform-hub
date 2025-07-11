@@ -7,10 +7,12 @@ import {
   CreateDialog,
   EditDialog,
   DeleteDialog,
-  DetailDialog,
   ActionButtons
 } from "@/components/common";
 import { CommentsSection } from "@/components/itsm/CommentsSection";
+import { IncidentDetailView } from "@/components/itsm/IncidentDetailView";
+import { IncidentAssignment } from "@/components/itsm/IncidentAssignment";
+import { QuickStatusUpdate } from "@/components/itsm/QuickStatusUpdate";
 import { useITSMCrud } from "@/hooks/useITSMCrud";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -84,22 +86,32 @@ const ITSMIncidents = () => {
 
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [commentsIncident, setCommentsIncident] = useState<ITSMIncident | null>(null);
+  const [isDetailViewOpen, setIsDetailViewOpen] = useState(false);
+  const [detailIncident, setDetailIncident] = useState<ITSMIncident | null>(null);
   
   const {
     selectedItem: selectedIncident,
     isCreateOpen,
     isEditOpen,
     isDeleteOpen,
-    isDetailOpen,
     openCreate,
     openEdit,
     openDelete,
-    openDetail,
     closeAll,
     handleCreate,
     handleUpdate,
     handleDelete
   } = useITSMCrud<ITSMIncident>({ onRefresh: fetchIncidents });
+
+  const openDetailView = (incident: ITSMIncident) => {
+    setDetailIncident(incident);
+    setIsDetailViewOpen(true);
+  };
+
+  const closeDetailView = () => {
+    setIsDetailViewOpen(false);
+    setDetailIncident(null);
+  };
 
   useEffect(() => {
     fetchIncidents();
@@ -293,7 +305,7 @@ const ITSMIncidents = () => {
                   <TableHead>Statut</TableHead>
                   <TableHead>Assigné</TableHead>
                   <TableHead>Date création</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -316,22 +328,18 @@ const ITSMIncidents = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center space-x-2">
-                        {getStatusIcon(incident.status)}
-                        <Badge variant={getStatusColor(incident.status)}>
-                          {incident.status}
-                        </Badge>
-                      </div>
+                      <QuickStatusUpdate
+                        incidentId={incident.id}
+                        currentStatus={incident.status}
+                        onStatusUpdated={() => fetchIncidents()}
+                      />
                     </TableCell>
                     <TableCell>
-                      {incident.assigned_to ? (
-                        <div className="flex items-center space-x-2">
-                          <User className="h-4 w-4" />
-                          <span className="text-sm">{incident.assigned_to}</span>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">Non assigné</span>
-                      )}
+                      <IncidentAssignment
+                        incidentId={incident.id}
+                        currentAssignee={incident.assigned_to}
+                        onAssigned={() => fetchIncidents()}
+                      />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
@@ -342,11 +350,12 @@ const ITSMIncidents = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 justify-end">
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openDetail(incident)}
+                          onClick={() => openDetailView(incident)}
+                          title="Voir les détails"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -357,6 +366,7 @@ const ITSMIncidents = () => {
                             setCommentsIncident(incident);
                             setIsCommentsOpen(true);
                           }}
+                          title="Voir les commentaires"
                         >
                           <MessageSquare className="h-4 w-4" />
                         </Button>
@@ -364,6 +374,7 @@ const ITSMIncidents = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => openEdit(incident)}
+                          title="Modifier"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -371,6 +382,7 @@ const ITSMIncidents = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => openDelete(incident)}
+                          title="Supprimer"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -551,48 +563,31 @@ const ITSMIncidents = () => {
         data={selectedIncident}
       />
 
-      <DetailDialog
-        isOpen={isDetailOpen}
-        onClose={closeAll}
-        title="Détails de l'incident"
-        data={selectedIncident}
-        sections={[
-          {
-            title: "Informations générales",
-            fields: [
-              { key: "title", label: "Titre", type: "text" },
-              { key: "description", label: "Description", type: "text" },
-              { key: "priority", label: "Priorité", type: "badge" },
-              { key: "status", label: "Statut", type: "badge" }
-            ]
-          },
-          {
-            title: "Suivi",
-            fields: [
-              { key: "created_by", label: "Créé par", type: "text" },
-              { key: "assigned_to", label: "Assigné à", type: "text" },
-              { key: "created_at", label: "Créé le", type: "date" },
-              { key: "updated_at", label: "Modifié le", type: "date" },
-              { key: "resolved_at", label: "Résolu le", type: "date" }
-            ]
-          }
-        ]}
-        className="max-w-4xl"
+      {/* Vue détaillée */}
+      <IncidentDetailView
+        incident={detailIncident}
+        isOpen={isDetailViewOpen}
+        onClose={closeDetailView}
+        onIncidentUpdated={fetchIncidents}
       />
 
-      {/* Modale commentaires */}
-      {commentsIncident && isCommentsOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">
-                  Commentaires - {commentsIncident.title}
-                </h2>
-                <Button variant="ghost" onClick={() => setIsCommentsOpen(false)}>
-                  ×
-                </Button>
-              </div>
+      {/* Dialog des commentaires (version standalone) */}
+      {isCommentsOpen && commentsIncident && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">
+                Commentaires - INC-{commentsIncident.id.slice(0, 8)}
+              </h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsCommentsOpen(false)}
+              >
+                <XCircle className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[calc(80vh-80px)]">
               <CommentsSection 
                 ticketId={commentsIncident.id} 
                 ticketType="incident" 
