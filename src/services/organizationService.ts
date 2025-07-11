@@ -45,7 +45,8 @@ export class OrganizationService {
   static async create(data: OrganizationFormData): Promise<void> {
     const orgData = {
       name: data.name,
-      type: 'client' as const,
+      type: data.type || 'client',
+      is_msp: data.is_msp || false,
       metadata: {
         description: data.description,
         website: data.website,
