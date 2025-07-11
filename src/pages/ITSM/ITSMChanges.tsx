@@ -301,8 +301,10 @@ const ITSMChanges = () => {
                   <TableHead>ID</TableHead>
                   <TableHead>Titre</TableHead>
                   <TableHead>Demandeur</TableHead>
+                  <TableHead>Priorité</TableHead>
                   <TableHead>Statut</TableHead>
                   <TableHead>Assigné</TableHead>
+                  <TableHead>Date création</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -329,6 +331,11 @@ const ITSMChanges = () => {
                       </div>
                     </TableCell>
                     <TableCell>
+                      <Badge variant="outline">
+                        Standard
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center space-x-2">
                         {getStatusIcon(change.status)}
                         <Badge variant={getStatusColor(change.status)}>
@@ -338,6 +345,14 @@ const ITSMChanges = () => {
                     </TableCell>
                     <TableCell>
                       <span className="text-sm text-muted-foreground">Non assigné</span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <Calendar className="h-4 w-4" />
+                        <span className="text-sm">
+                          {new Date(change.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 justify-end">

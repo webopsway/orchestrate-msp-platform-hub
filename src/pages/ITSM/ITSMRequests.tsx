@@ -201,6 +201,15 @@ const ITSMRequests = () => {
       )
     },
     {
+      key: "priority",
+      label: "Priorité",
+      render: (request: ITSMRequest) => (
+        <Badge variant={getPriorityColor(request.priority)}>
+          {request.priority}
+        </Badge>
+      )
+    },
+    {
       key: "status",
       label: "Statut",
       render: (request: ITSMRequest) => (
@@ -217,6 +226,18 @@ const ITSMRequests = () => {
       label: "Assigné",
       render: (request: ITSMRequest) => (
         <span className="text-sm text-muted-foreground">Non assigné</span>
+      )
+    },
+    {
+      key: "created_at",
+      label: "Date création",
+      render: (request: ITSMRequest) => (
+        <div className="flex items-center space-x-2">
+          <Calendar className="h-4 w-4" />
+          <span className="text-sm">
+            {new Date(request.created_at).toLocaleDateString()}
+          </span>
+        </div>
       )
     },
     {
