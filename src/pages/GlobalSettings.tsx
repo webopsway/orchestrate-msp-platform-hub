@@ -75,6 +75,20 @@ export default function GlobalSettings() {
     checkMspAdmin();
   }, [user]);
 
+  // Fetch data only if user is MSP admin
+  useEffect(() => {
+    if (isMspAdmin && !loadingProfile) {
+      fetchNamespaces();
+      fetchSettings();
+    }
+  }, [isMspAdmin, loadingProfile]);
+
+  useEffect(() => {
+    if (selectedNamespace && isMspAdmin) {
+      fetchKeys(selectedNamespace);
+    }
+  }, [selectedNamespace, isMspAdmin]);
+
   // Show loading while checking profile
   if (loadingProfile) {
     return (
@@ -88,17 +102,6 @@ export default function GlobalSettings() {
   if (!isMspAdmin) {
     return <Navigate to="/" replace />;
   }
-
-  useEffect(() => {
-    fetchNamespaces();
-    fetchSettings();
-  }, []);
-
-  useEffect(() => {
-    if (selectedNamespace) {
-      fetchKeys(selectedNamespace);
-    }
-  }, [selectedNamespace]);
 
   const handleAddSetting = async () => {
     try {
