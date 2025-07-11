@@ -21,6 +21,7 @@ import ITSMSecurity from "./pages/ITSM/ITSMSecurity";
 import CloudInventory from "./pages/CloudInventory";
 import CloudAccounts from "./pages/CloudAccounts";
 import Monitoring from "./pages/Monitoring";
+import Notifications from "./pages/Notifications";
 import NewUsers from "./pages/NewUsers";
 import Roles from "./pages/Roles";
 import RBACManagement from "./pages/RBACManagement";
@@ -177,7 +178,7 @@ function AppRoutes() {
       } />
       <Route path="/monitoring/notifications" element={
         <ProtectedRoute>
-          <Monitoring />
+          <Notifications />
         </ProtectedRoute>
       } />
       
