@@ -121,7 +121,7 @@ const CloudInventory = () => {
       if (assetsError) throw assetsError;
       setAssets((assetsData || []).map(asset => ({
         ...asset,
-        team_id: asset.team_id || sessionContext.current_team_id || '',
+        team_id: asset.team_id || sessionContext?.current_team_id || '',
         name: asset.asset_name || 'Unknown',
         identifier: asset.asset_id,
         location: asset.region || 'Unknown',

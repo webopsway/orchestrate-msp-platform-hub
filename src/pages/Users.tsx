@@ -143,7 +143,7 @@ const Users = () => {
       // Transform data to match interface
       const transformedUsers = (usersData || []).map(user => ({
         ...user,
-        team_id: sessionContext.current_team_id,
+        team_id: sessionContext?.current_team_id,
         first_name: user.first_name || '',
         last_name: user.last_name || '',
         role: 'user',

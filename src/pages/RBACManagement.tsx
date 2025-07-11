@@ -250,7 +250,7 @@ const RBACManagement = () => {
 
     try {
       const roleData = {
-        team_id: sessionContext.current_team_id,
+        team_id: sessionContext?.current_team_id,
         name: data.name.toLowerCase().replace(/\s+/g, '_'),
         display_name: data.display_name,
         description: data.description,

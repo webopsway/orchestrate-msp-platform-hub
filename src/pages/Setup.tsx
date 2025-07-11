@@ -41,7 +41,7 @@ export default function Setup() {
       const { error: teamError } = await supabase
         .from('teams')
         .update({ name: teamName })
-        .eq('id', sessionContext.current_team_id);
+        .eq('id', sessionContext?.current_team_id);
 
       if (teamError) throw teamError;
 
