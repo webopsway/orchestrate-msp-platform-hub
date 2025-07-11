@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { CRUDTable } from "@/components/common/CRUDTable";
+import { SessionTester } from "@/components/SessionTester";
 // import { CRUDForm } from "@/components/common/CRUDForm";
 import { 
   Dialog, 
@@ -533,6 +534,11 @@ const Users = () => {
 
   return (
     <div className="space-y-6">
+      {/* Session Debugging Component */}
+      <div className="mb-6">
+        <SessionTester />
+      </div>
+
       {/* Statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {stats.map((stat) => (
