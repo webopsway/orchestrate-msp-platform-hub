@@ -29,6 +29,12 @@ interface ITSMRequest {
   created_at: string;
   updated_at: string;
   metadata?: any;
+  requested_by_profile?: {
+    id: string;
+    email: string;
+    first_name?: string;
+    last_name?: string;
+  };
 }
 
 const ITSMRequests = () => {
@@ -51,6 +57,16 @@ const ITSMRequests = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getRequesterDisplayName = (request: ITSMRequest) => {
+    const profile = request.requested_by_profile;
+    if (!profile) return "N/A";
+    
+    if (profile.first_name || profile.last_name) {
+      return `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+    }
+    return profile.email;
   };
 
   useEffect(() => {
@@ -178,17 +194,10 @@ const ITSMRequests = () => {
       render: (request: ITSMRequest) => (
         <div className="flex items-center space-x-2">
           <User className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm">{request.requested_by}</span>
+          <span className="text-sm">
+            {getRequesterDisplayName(request)}
+          </span>
         </div>
-      )
-    },
-    {
-      key: "priority",
-      label: "Priorité",
-      render: (request: ITSMRequest) => (
-        <Badge variant={getPriorityColor(request.priority)}>
-          {request.priority}
-        </Badge>
       )
     },
     {
@@ -204,15 +213,10 @@ const ITSMRequests = () => {
       )
     },
     {
-      key: "created_at",
-      label: "Date création",
+      key: "assigned_to",
+      label: "Assigné",
       render: (request: ITSMRequest) => (
-        <div className="flex items-center space-x-2">
-          <Calendar className="h-4 w-4" />
-          <span className="text-sm">
-            {new Date(request.created_at).toLocaleDateString()}
-          </span>
-        </div>
+        <span className="text-sm text-muted-foreground">Non assigné</span>
       )
     },
     {

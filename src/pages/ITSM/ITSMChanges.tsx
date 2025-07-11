@@ -48,10 +48,17 @@ interface ITSMChange {
   status: 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'implemented' | 'failed';
   requested_by: string;
   approved_by?: string;
+  assigned_to?: string;
   created_at: string;
   updated_at: string;
   scheduled_date?: string;
   metadata?: any;
+  requested_by_profile?: {
+    id: string;
+    email: string;
+    first_name?: string;
+    last_name?: string;
+  };
 }
 
 const ITSMChanges = () => {
@@ -67,7 +74,15 @@ const ITSMChanges = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('itsm_change_requests')
-        .select('*')
+        .select(`
+          *,
+          requested_by_profile:profiles!requested_by (
+            id,
+            email,
+            first_name,
+            last_name
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -147,6 +162,16 @@ const ITSMChanges = () => {
       default:
         return <Info className="h-4 w-4" />;
     }
+  };
+
+  const getRequesterDisplayName = (change: ITSMChange) => {
+    const profile = change.requested_by_profile;
+    if (!profile) return "N/A";
+    
+    if (profile.first_name || profile.last_name) {
+      return `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+    }
+    return profile.email;
   };
 
   const filteredChanges = changes.filter(change => {
@@ -275,11 +300,10 @@ const ITSMChanges = () => {
                 <TableRow>
                   <TableHead>ID</TableHead>
                   <TableHead>Titre</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Statut</TableHead>
                   <TableHead>Demandeur</TableHead>
-                  <TableHead>Date prévue</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Assigné</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -297,9 +321,12 @@ const ITSMChanges = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">
-                        {change.change_type || 'Standard'}
-                      </Badge>
+                      <div className="flex items-center space-x-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">
+                          {getRequesterDisplayName(change)}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
@@ -310,28 +337,15 @@ const ITSMChanges = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <User className="h-4 w-4" />
-                        <span className="text-sm">{change.requested_by}</span>
-                      </div>
+                      <span className="text-sm text-muted-foreground">Non assigné</span>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="h-4 w-4" />
-                        <span className="text-sm">
-                          {change.scheduled_date 
-                            ? new Date(change.scheduled_date).toLocaleDateString()
-                            : 'Non programmé'
-                          }
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 justify-end">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => openDetail(change)}
+                          title="Voir les détails"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -339,6 +353,7 @@ const ITSMChanges = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => openEdit(change)}
+                          title="Modifier"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -346,6 +361,7 @@ const ITSMChanges = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => openDelete(change)}
+                          title="Supprimer"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
