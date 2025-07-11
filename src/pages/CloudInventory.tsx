@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useSession } from "@/hooks/useSession";
+import { cloudService, CloudAssetWithProvider } from "@/services/cloudService";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   PageHeader, 
@@ -80,8 +81,8 @@ interface CloudProvider {
 }
 
 const CloudInventory = () => {
-  const { sessionContext } = useAuth();
-  const [assets, setAssets] = useState<CloudAsset[]>([]);
+  const { sessionContext, hasValidContext } = useSession();
+  const [assets, setAssets] = useState<CloudAssetWithProvider[]>([]);
   const [providers, setProviders] = useState<CloudProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -89,54 +90,37 @@ const CloudInventory = () => {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [providerFilter, setProviderFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
-  const [selectedAsset, setSelectedAsset] = useState<CloudAsset | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState<CloudAssetWithProvider | null>(null);
 
   // État pour le modal de détails
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   useEffect(() => {
-    fetchCloudData();
-  }, [sessionContext]);
+    if (hasValidContext) {
+      fetchCloudData();
+    } else {
+      setAssets([]);
+      setProviders([]);
+      setLoading(false);
+    }
+  }, [hasValidContext]);
 
   const fetchCloudData = async () => {
-    if (!sessionContext?.current_team_id) return;
+    if (!hasValidContext) {
+      toast.error('Session non valide - veuillez vous reconnecter');
+      return;
+    }
 
     try {
       setLoading(true);
       
-      // Récupérer les providers
-      const { data: providersData, error: providersError } = await supabase
-        .from('cloud_providers')
-        .select('*');
+      const [assetsData, providersData] = await Promise.all([
+        cloudService.getAssets(),
+        cloudService.getProviders()
+      ]);
 
-      if (providersError) throw providersError;
-      setProviders(providersData || []);
-
-      // Récupérer les assets
-      const { data: assetsData, error: assetsError } = await supabase
-        .from('cloud_asset')
-        .select('*')
-        .order('discovered_at', { ascending: false });
-
-      if (assetsError) throw assetsError;
-      setAssets((assetsData || []).map(asset => ({
-        ...asset,
-        team_id: asset.team_id || sessionContext?.current_team_id || '',
-        name: asset.asset_name || 'Unknown',
-        identifier: asset.asset_id,
-        location: asset.region || 'Unknown',
-        provider_name: 'Unknown',
-        status: (asset.status as any) || 'unknown',
-        asset_type: (asset.asset_type as any) || 'instance',
-        region: asset.region || 'Unknown',
-        size: '',
-        cost_per_hour: 0,
-        tags: (asset.tags as any) || {},
-        metadata: asset.metadata || {},
-        created_at: asset.discovered_at || new Date().toISOString(),
-        updated_at: asset.last_scan || new Date().toISOString(),
-        last_inventory_at: asset.last_scan || new Date().toISOString()
-      })));
+      setAssets(assetsData);
+      setProviders(providersData);
     } catch (error) {
       console.error('Error fetching cloud data:', error);
       toast.error('Erreur lors du chargement des données');
@@ -146,18 +130,25 @@ const CloudInventory = () => {
   };
 
   const refreshInventory = async () => {
+    if (!hasValidContext) {
+      toast.error('Session non valide - impossible de rafraîchir l\'inventaire');
+      return;
+    }
+
     try {
       setLoading(true);
       
-      // Appeler la fonction de refresh d'inventaire
-      const { data, error } = await supabase.functions.invoke('cloud-orchestration', {
-        body: { action: 'refresh_inventory', team_id: sessionContext?.current_team_id }
-      });
-
-      if (error) throw error;
-
-      toast.success('Inventaire mis à jour');
-      fetchCloudData();
+      const executionIds = await cloudService.refreshInventory();
+      
+      if (executionIds.length > 0) {
+        toast.success(`Inventaire mis à jour - ${executionIds.length} tâche(s) démarrée(s)`);
+        // Attendre un peu puis recharger les données
+        setTimeout(() => {
+          fetchCloudData();
+        }, 2000);
+      } else {
+        toast.warning('Aucune tâche d\'inventaire n\'a pu être démarrée');
+      }
     } catch (error) {
       console.error('Error refreshing inventory:', error);
       toast.error('Erreur lors de la mise à jour de l\'inventaire');
@@ -195,8 +186,8 @@ const CloudInventory = () => {
   };
 
   const filteredAssets = assets.filter(asset => {
-    const matchesSearch = asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         asset.identifier.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (asset.asset_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (asset.asset_id || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || asset.status === statusFilter;
     const matchesType = typeFilter === "all" || asset.asset_type === typeFilter;
     const matchesProvider = providerFilter === "all" || asset.cloud_provider_id === providerFilter;
@@ -219,13 +210,13 @@ const CloudInventory = () => {
     },
     {
       title: "Coût estimé/mois",
-      value: `$${assets.reduce((sum, a) => sum + (a.cost_per_hour || 0) * 730, 0).toFixed(2)}`,
+      value: "N/A",
       icon: Zap,
       color: "text-orange-500"
     },
     {
       title: "Dernière mise à jour",
-      value: assets.length > 0 ? new Date(Math.max(...assets.map(a => new Date(a.last_inventory_at).getTime()))).toLocaleDateString() : "Jamais",
+      value: assets.length > 0 ? new Date(Math.max(...assets.map(a => new Date(a.last_scan || a.discovered_at || Date.now()).getTime()))).toLocaleDateString() : "Jamais",
       icon: Calendar,
       color: "text-purple-500"
     }
@@ -367,9 +358,9 @@ const CloudInventory = () => {
                           <div className="flex items-center space-x-3">
                             <AssetIcon className="h-5 w-5 text-muted-foreground" />
                             <div>
-                              <p className="font-medium">{asset.name}</p>
+                              <p className="font-medium">{asset.asset_name || 'Unknown'}</p>
                               <p className="text-sm text-muted-foreground font-mono">
-                                {asset.identifier}
+                                {asset.asset_id}
                               </p>
                             </div>
                           </div>
@@ -401,9 +392,7 @@ const CloudInventory = () => {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm">
-                            {asset.cost_per_hour ? `$${asset.cost_per_hour.toFixed(4)}` : "N/A"}
-                          </span>
+                          <span className="text-sm">N/A</span>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
@@ -455,9 +444,9 @@ const CloudInventory = () => {
                         <div className="flex items-center space-x-3">
                           <AssetIcon className="h-6 w-6 text-muted-foreground" />
                           <div>
-                            <CardTitle className="text-lg">{asset.name}</CardTitle>
+                            <CardTitle className="text-lg">{asset.asset_name || 'Unknown'}</CardTitle>
                             <p className="text-sm text-muted-foreground font-mono">
-                              {asset.identifier}
+                              {asset.asset_id}
                             </p>
                           </div>
                         </div>
@@ -484,9 +473,7 @@ const CloudInventory = () => {
                         </div>
                         <div>
                           <p className="text-muted-foreground">Coût/h</p>
-                          <p className="font-medium">
-                            {asset.cost_per_hour ? `$${asset.cost_per_hour.toFixed(4)}` : "N/A"}
-                          </p>
+                          <p className="font-medium">N/A</p>
                         </div>
                       </div>
                       
@@ -548,11 +535,11 @@ const CloudInventory = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Nom</Label>
-                  <p className="text-sm font-medium">{selectedAsset.name}</p>
+                  <p className="text-sm font-medium">{selectedAsset.asset_name || 'Unknown'}</p>
                 </div>
                 <div>
                   <Label>Identifiant</Label>
-                  <p className="text-sm font-mono">{selectedAsset.identifier}</p>
+                  <p className="text-sm font-mono">{selectedAsset.asset_id}</p>
                 </div>
                 <div>
                   <Label>Type</Label>
@@ -570,9 +557,7 @@ const CloudInventory = () => {
                 </div>
                 <div>
                   <Label>Coût par heure</Label>
-                  <p className="text-sm">
-                    {selectedAsset.cost_per_hour ? `$${selectedAsset.cost_per_hour.toFixed(4)}` : "N/A"}
-                  </p>
+                  <p className="text-sm">N/A</p>
                 </div>
               </div>
               

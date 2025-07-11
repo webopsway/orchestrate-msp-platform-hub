@@ -1,13 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { sessionService, SessionContext } from '@/services/sessionService';
 import { toast } from 'sonner';
-
-interface SessionContext {
-  current_organization_id?: string;
-  current_team_id?: string;
-  is_msp?: boolean;
-}
 
 interface AuthContextType {
   user: User | null;
@@ -42,111 +37,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!session?.user) {
       console.log('No valid session or user available for initialization');
       setSessionContext(null);
+      sessionService.clearSession();
       return;
     }
 
     try {
-      console.log('Initializing session with org:', organizationId, 'team:', teamId);
-      console.log('Current session user:', session.user?.id);
-      
-      // Test auth state first
-      const { data: testData, error: testError } = await supabase
-        .from('profiles')
-        .select('id, email, is_msp_admin')
-        .eq('id', session.user.id)
-        .single();
-        
-      console.log('Auth test result:', { testData, testError });
-      
-      // First, try to auto-initialize session for MSP admins
-      try {
-        await supabase.rpc('auto_init_msp_admin_session');
-      } catch (err) {
-        console.warn('Auto MSP admin session init failed:', err);
-      }
-      
-      const { data, error } = await supabase.functions.invoke('init-user-session', {
-        body: {
-          organization_id: organizationId,
-          team_id: teamId
-        }
-      });
-
-      if (error) {
-        console.error('Session initialization error:', error);
-        
-        // For MSP admins, try to get session context directly from database
-        try {
-          const { data: sessionData } = await supabase
-            .from('user_sessions')
-            .select('current_organization_id, current_team_id, is_msp')
-            .eq('user_id', session.user.id)
-            .single();
-            
-          if (sessionData) {
-            // If MSP admin session exists but is incomplete (no team_id), fix it
-            if (sessionData.is_msp && !sessionData.current_team_id && sessionData.current_organization_id) {
-              console.log('MSP admin session incomplete, fixing...');
-              
-              // Get first team from MSP organization
-              const { data: team } = await supabase
-                .from('teams')
-                .select('id')
-                .eq('organization_id', sessionData.current_organization_id)
-                .limit(1)
-                .single();
-                
-              if (team) {
-                // Update session with team_id
-                const { error: updateError } = await supabase
-                  .from('user_sessions')
-                  .update({ 
-                    current_team_id: team.id,
-                    updated_at: new Date().toISOString()
-                  })
-                  .eq('user_id', session.user.id);
-                  
-                if (!updateError) {
-                  setSessionContext({
-                    current_organization_id: sessionData.current_organization_id,
-                    current_team_id: team.id,
-                    is_msp: sessionData.is_msp
-                  });
-                  toast.success('Session MSP admin corrigée et initialisée');
-                  return;
-                }
-              }
-            }
-            
-            setSessionContext({
-              current_organization_id: sessionData.current_organization_id,
-              current_team_id: sessionData.current_team_id,
-              is_msp: sessionData.is_msp
-            });
-            toast.success('Session MSP admin initialisée');
-            return;
-          }
-        } catch (dbError) {
-          console.warn('Direct session fetch failed:', dbError);
-        }
-        
-        toast.error('Erreur lors de l\'initialisation de la session');
-        return;
-      }
-
-      if (data?.session_context) {
-        setSessionContext(data.session_context);
-        console.log('Session initialized:', data);
-        
-        // Log PostgreSQL session variables for debugging
-        if (data.postgresql_session) {
-          console.log('PostgreSQL session variables:', data.postgresql_session);
-        }
-        
+      const success = await sessionService.initializeSession(organizationId, teamId);
+      if (success) {
+        setSessionContext(sessionService.getSessionContext());
         toast.success('Session initialisée avec succès');
+      } else {
+        setSessionContext(null);
+        toast.error('Erreur lors de l\'initialisation de la session');
       }
     } catch (error) {
       console.error('Failed to initialize session:', error);
+      setSessionContext(null);
       toast.error('Échec de l\'initialisation de la session');
     }
   };
@@ -155,6 +61,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       // Clear session context
       setSessionContext(null);
+      sessionService.clearSession();
       
       // Clean up auth state
       Object.keys(localStorage).forEach((key) => {
