@@ -1,8 +1,6 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { useRoles } from "@/hooks/useRoles";
 import { CRUDTable } from "@/components/common/CRUDTable";
-// import { CRUDForm } from "@/components/common/CRUDForm";
 import { 
   Dialog, 
   DialogContent, 
@@ -30,35 +28,26 @@ import {
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 
-interface Role {
-  id: string;
-  team_id: string;
-  name: string;
-  display_name: string;
-  description?: string;
-  permissions: string[];
-  is_system: boolean;
-  is_default: boolean;
-  user_count: number;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Permission {
-  id: string;
-  name: string;
-  display_name: string;
-  description: string;
-  category: string;
-  is_system: boolean;
-}
-
 const Roles = () => {
-  const { sessionContext } = useAuth();
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [totalCount, setTotalCount] = useState(0);
+  const {
+    roles,
+    permissions,
+    loading,
+    createRole,
+    updateRole,
+    deleteRole,
+    duplicateRole,
+    updateRolePermissions,
+    getRolePermissions,
+    getPermissionsByCategory,
+    getPermissionCategories,
+    refresh,
+    totalRoles,
+    systemRoles,
+    customRoles,
+    totalPermissions
+  } = useRoles();
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
@@ -70,7 +59,7 @@ const Roles = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [selectedRole, setSelectedRole] = useState<any>(null);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
 
   // États pour les formulaires
@@ -88,205 +77,49 @@ const Roles = () => {
     permissions: [] as string[]
   });
 
-  useEffect(() => {
-    fetchData();
-  }, [sessionContext, currentPage, pageSize, searchTerm, filters]);
-
-  const fetchData = async () => {
-    if (!sessionContext?.current_team_id) return;
-
-    try {
-      setLoading(true);
-      
-      // Récupérer les rôles avec pagination
-      let query = supabase
-        .from('roles')
-        .select('*', { count: 'exact' });
-
-      // Appliquer les filtres
-      if (searchTerm) {
-        query = query.or(`name.ilike.%${searchTerm}%,display_name.ilike.%${searchTerm}%`);
-      }
-
-      // Skip complex filters to avoid type issues
-      // filters.forEach(filter => {
-      //   if (filter.value) {
-      //     query = query.eq(filter.key, filter.value);
-      //   }
-      // });
-
-      // Pagination
-      const from = (currentPage - 1) * pageSize;
-      const to = from + pageSize - 1;
-      query = query.range(from, to);
-
-      const { data: rolesData, error: rolesError, count } = await query;
-
-      if (rolesError) throw rolesError;
-      
-      // Transform data to match interface
-      const transformedRoles = (rolesData || []).map(role => ({
-        ...role,
-        team_id: sessionContext.current_team_id,
-        permissions: [],
-        is_system: role.is_system_role || false,
-        is_default: false,
-        user_count: 0
-      }));
-      
-      setRoles(transformedRoles);
-      setTotalCount(count || 0);
-
-      // Récupérer les permissions
-      const { data: permissionsData, error: permissionsError } = await supabase
-        .from('permissions')
-        .select('*')
-        .order('category', { ascending: true })
-        .order('display_name', { ascending: true });
-
-      if (permissionsError) throw permissionsError;
-      
-      // Transform data to match interface
-      const transformedPermissions = (permissionsData || []).map(permission => ({
-        ...permission,
-        category: permission.resource || 'General',
-        description: permission.description || '',
-        is_system: false
-      }));
-      
-      setPermissions(transformedPermissions);
-    } catch (error) {
-      console.error('Error fetching roles:', error);
-      toast.error('Erreur lors du chargement des rôles');
-    } finally {
-      setLoading(false);
+  // Filter and paginate roles locally
+  const filteredRoles = roles.filter(role => {
+    if (searchTerm) {
+      return role.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+             role.display_name.toLowerCase().includes(searchTerm.toLowerCase());
     }
-  };
+    return true;
+  });
 
-  const createRole = async (data: any) => {
-    if (!sessionContext?.current_team_id) return;
+  const totalCount = filteredRoles.length;
+  const paginatedRoles = filteredRoles.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
-    try {
-      setLoading(true);
-      
-      const roleData = {
-        team_id: sessionContext.current_team_id,
-        name: data.name.toLowerCase().replace(/\s+/g, '_'),
-        display_name: data.display_name,
-        description: data.description,
-        permissions: data.permissions || [],
-        is_system: false,
-        is_default: false
-      };
-      
-      const { data: newRole, error } = await supabase
-        .from('roles')
-        .insert([roleData])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      toast.success('Rôle créé avec succès');
+  const handleCreateRole = async (data: any) => {
+    const success = await createRole(data);
+    if (success) {
       setIsCreateModalOpen(false);
       resetNewRoleForm();
-      fetchData();
-    } catch (error) {
-      console.error('Error creating role:', error);
-      toast.error('Erreur lors de la création');
-    } finally {
-      setLoading(false);
     }
   };
 
-  const updateRole = async (data: any) => {
+  const handleUpdateRole = async (data: any) => {
     if (!selectedRole) return;
-
-    try {
-      setLoading(true);
-      
-      const updateData = {
-        display_name: data.display_name,
-        description: data.description,
-        permissions: data.permissions || [],
-        updated_at: new Date().toISOString()
-      };
-
-      const { error } = await supabase
-        .from('roles')
-        .update(updateData)
-        .eq('id', selectedRole.id);
-
-      if (error) throw error;
-
-      toast.success('Rôle mis à jour avec succès');
+    
+    const success = await updateRole(selectedRole.id, data);
+    if (success) {
       setIsEditModalOpen(false);
       resetEditRoleForm();
-      fetchData();
-    } catch (error) {
-      console.error('Error updating role:', error);
-      toast.error('Erreur lors de la mise à jour');
-    } finally {
-      setLoading(false);
     }
   };
 
-  const deleteRole = async (role: Role) => {
-    if (role.is_system) {
-      toast.error('Impossible de supprimer un rôle système');
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('roles')
-        .delete()
-        .eq('id', role.id);
-
-      if (error) throw error;
-
-      toast.success('Rôle supprimé');
+  const handleDeleteRole = async (role: any) => {
+    const success = await deleteRole(role.id);
+    if (success) {
       setIsDeleteModalOpen(false);
       setSelectedRole(null);
-      fetchData();
-    } catch (error) {
-      console.error('Error deleting role:', error);
-      toast.error('Erreur lors de la suppression');
     }
   };
 
-  const duplicateRole = async (role: Role) => {
-    if (!sessionContext?.current_team_id) return;
-
-    try {
-      setLoading(true);
-      
-      const newRoleData = {
-        team_id: sessionContext.current_team_id,
-        name: `${role.name}_copy`,
-        display_name: `${role.display_name} (Copie)`,
-        description: role.description,
-        permissions: role.permissions,
-        is_system: false,
-        is_default: false
-      };
-      
-      const { data: newRole, error } = await supabase
-        .from('roles')
-        .insert([newRoleData])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      toast.success('Rôle dupliqué avec succès');
-      fetchData();
-    } catch (error) {
-      console.error('Error duplicating role:', error);
-      toast.error('Erreur lors de la duplication');
-    } finally {
-      setLoading(false);
-    }
+  const handleDuplicateRole = async (role: any) => {
+    await duplicateRole(role);
   };
 
   const resetNewRoleForm = () => {
@@ -308,39 +141,30 @@ const Roles = () => {
     setSelectedRole(null);
   };
 
-  const openEditModal = (role: Role) => {
+  const openEditModal = (role: any) => {
     setSelectedRole(role);
     setEditRole({
       name: role.name,
       display_name: role.display_name,
       description: role.description || "",
-      permissions: role.permissions || []
+      permissions: getRolePermissions(role.id).map(p => p.id)
     });
     setIsEditModalOpen(true);
   };
 
-  const openViewModal = (role: Role) => {
+  const openViewModal = (role: any) => {
     setSelectedRole(role);
     setIsViewModalOpen(true);
   };
 
-  const openDeleteModal = (role: Role) => {
+  const openDeleteModal = (role: any) => {
     setSelectedRole(role);
     setIsDeleteModalOpen(true);
   };
 
-  const openPermissionsModal = (role: Role) => {
+  const openPermissionsModal = (role: any) => {
     setSelectedRole(role);
     setIsPermissionsModalOpen(true);
-  };
-
-  const getPermissionCategories = () => {
-    const categories = [...new Set(permissions.map(p => p.category))];
-    return categories.sort();
-  };
-
-  const getPermissionsByCategory = (category: string) => {
-    return permissions.filter(p => p.category === category);
   };
 
   const columns = [
@@ -350,19 +174,14 @@ const Roles = () => {
       type: 'custom' as const,
       sortable: true,
       filterable: true,
-      render: (value: any, row: Role) => (
+      render: (value: any, row: any) => (
         <div>
           <div className="flex items-center space-x-2">
             <p className="font-medium">{row.display_name}</p>
-            {row.is_system && (
+            {row.is_system_role && (
               <Badge variant="secondary" className="text-xs">
                 <Shield className="h-3 w-3 mr-1" />
                 Système
-              </Badge>
-            )}
-            {row.is_default && (
-              <Badge variant="outline" className="text-xs">
-                Par défaut
               </Badge>
             )}
           </div>
@@ -378,36 +197,36 @@ const Roles = () => {
       label: 'Permissions',
       type: 'custom' as const,
       sortable: false,
-      render: (value: any, row: Role) => (
-        <div className="space-y-1">
-          <p className="text-sm font-medium">{row.permissions?.length || 0} permissions</p>
-          <div className="flex flex-wrap gap-1">
-            {row.permissions?.slice(0, 3).map((perm: string) => {
-              const permission = permissions.find(p => p.name === perm);
-              return (
-                <Badge key={perm} variant="outline" className="text-xs">
-                  {permission?.display_name || perm}
+      render: (value: any, row: any) => {
+        const rolePermissions = getRolePermissions(row.id);
+        return (
+          <div className="space-y-1">
+            <p className="text-sm font-medium">{rolePermissions.length} permissions</p>
+            <div className="flex flex-wrap gap-1">
+              {rolePermissions.slice(0, 3).map((permission) => (
+                <Badge key={permission.id} variant="outline" className="text-xs">
+                  {permission.display_name}
                 </Badge>
-              );
-            })}
-            {row.permissions?.length > 3 && (
-              <Badge variant="outline" className="text-xs">
-                +{row.permissions.length - 3} autres
-              </Badge>
-            )}
+              ))}
+              {rolePermissions.length > 3 && (
+                <Badge variant="outline" className="text-xs">
+                  +{rolePermissions.length - 3} autres
+                </Badge>
+              )}
+            </div>
           </div>
-        </div>
-      )
+        );
+      }
     },
     {
       key: 'user_count',
       label: 'Utilisateurs',
       type: 'number' as const,
       sortable: true,
-      render: (value: any, row: Role) => (
+      render: (value: any, row: any) => (
         <div className="flex items-center space-x-2">
           <Users className="h-4 w-4 text-muted-foreground" />
-          <span>{row.user_count || 0}</span>
+          <span>0</span>
         </div>
       )
     },
@@ -416,7 +235,7 @@ const Roles = () => {
       label: 'Créé le',
       type: 'date' as const,
       sortable: true,
-      render: (value: any, row: Role) => new Date(row.created_at).toLocaleDateString()
+      render: (value: any, row: any) => new Date(row.created_at).toLocaleDateString()
     }
   ];
 
@@ -450,25 +269,25 @@ const Roles = () => {
   const stats = [
     {
       title: "Rôles totaux",
-      value: totalCount.toString(),
+      value: totalRoles.toString(),
       icon: Shield,
       color: "text-blue-500"
     },
     {
       title: "Rôles système",
-      value: roles.filter(r => r.is_system).length.toString(),
+      value: systemRoles.length.toString(),
       icon: ShieldCheck,
       color: "text-green-500"
     },
     {
       title: "Rôles personnalisés",
-      value: roles.filter(r => !r.is_system).length.toString(),
+      value: customRoles.length.toString(),
       icon: Settings,
       color: "text-purple-500"
     },
     {
       title: "Permissions disponibles",
-      value: permissions.length.toString(),
+      value: totalPermissions.toString(),
       icon: Lock,
       color: "text-orange-500"
     }
@@ -500,7 +319,7 @@ const Roles = () => {
         title="Gestion des rôles"
         description="Gérez les rôles et permissions de votre équipe"
         columns={columns}
-        data={roles}
+        data={paginatedRoles}
         loading={loading}
         totalCount={totalCount}
         pageSize={pageSize}
@@ -514,7 +333,7 @@ const Roles = () => {
         onEdit={openEditModal}
         onDelete={openDeleteModal}
         onView={openViewModal}
-        onRefresh={fetchData}
+        onRefresh={refresh}
         selectable={true}
         onSelectionChange={setSelectedRoles}
         emptyState={{
@@ -536,7 +355,7 @@ const Roles = () => {
           {
             label: "Dupliquer",
             icon: Copy,
-            onClick: duplicateRole,
+            onClick: handleDuplicateRole,
             variant: "outline"
           }
         ]}
@@ -571,50 +390,52 @@ const Roles = () => {
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Type</Label>
                   <div className="flex space-x-2">
-                    {selectedRole.is_system && (
+                    {selectedRole.is_system_role && (
                       <Badge variant="secondary">
                         <Shield className="h-3 w-3 mr-1" />
                         Système
-                      </Badge>
-                    )}
-                    {selectedRole.is_default && (
-                      <Badge variant="outline">
-                        Par défaut
                       </Badge>
                     )}
                   </div>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Utilisateurs</Label>
-                  <p className="font-medium">{selectedRole.user_count || 0}</p>
+                  <p className="font-medium">0</p>
                 </div>
               </div>
               
               <div>
-                <Label className="text-sm font-medium text-muted-foreground">Permissions ({selectedRole.permissions?.length || 0})</Label>
-                <div className="mt-2 space-y-2">
-                  {getPermissionCategories().map(category => {
-                    const categoryPermissions = getPermissionsByCategory(category);
-                    const rolePermissions = categoryPermissions.filter(p => 
-                      selectedRole.permissions?.includes(p.name)
-                    );
-                    
-                    if (rolePermissions.length === 0) return null;
-                    
-                    return (
-                      <div key={category} className="border rounded-lg p-3">
-                        <h4 className="font-medium text-sm mb-2">{category}</h4>
-                        <div className="flex flex-wrap gap-1">
-                          {rolePermissions.map(permission => (
-                            <Badge key={permission.name} variant="outline" className="text-xs">
-                              {permission.display_name}
-                            </Badge>
-                          ))}
-                        </div>
+                {(() => {
+                  const rolePermissions = getRolePermissions(selectedRole.id);
+                  return (
+                    <>
+                      <Label className="text-sm font-medium text-muted-foreground">Permissions ({rolePermissions.length})</Label>
+                      <div className="mt-2 space-y-2">
+                        {getPermissionCategories().map(category => {
+                          const categoryPermissions = getPermissionsByCategory(category);
+                          const roleCategoryPermissions = categoryPermissions.filter(p => 
+                            rolePermissions.some(rp => rp.id === p.id)
+                          );
+                          
+                          if (roleCategoryPermissions.length === 0) return null;
+                          
+                          return (
+                            <div key={category} className="border rounded-lg p-3">
+                              <h4 className="font-medium text-sm mb-2">{category}</h4>
+                              <div className="flex flex-wrap gap-1">
+                                {roleCategoryPermissions.map(permission => (
+                                  <Badge key={permission.id} variant="outline" className="text-xs">
+                                    {permission.display_name}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
+                    </>
+                  );
+                })()}
               </div>
               
               <div className="flex justify-end space-x-2">
@@ -650,11 +471,6 @@ const Roles = () => {
             <DialogTitle>Confirmer la suppression</DialogTitle>
             <DialogDescription>
               Êtes-vous sûr de vouloir supprimer le rôle "{selectedRole?.display_name}" ?
-              {selectedRole?.user_count > 0 && (
-                <span className="block mt-2 text-red-600">
-                  Attention : {selectedRole.user_count} utilisateur(s) utilisent ce rôle.
-                </span>
-              )}
               Cette action est irréversible.
             </DialogDescription>
           </DialogHeader>
@@ -664,8 +480,8 @@ const Roles = () => {
             </Button>
             <Button 
               variant="destructive" 
-              onClick={() => selectedRole && deleteRole(selectedRole)}
-              disabled={selectedRole?.is_system}
+              onClick={() => selectedRole && handleDeleteRole(selectedRole)}
+              disabled={selectedRole?.is_system_role}
             >
               Supprimer
             </Button>
@@ -692,23 +508,22 @@ const Roles = () => {
                     <h3 className="font-medium mb-3">{category}</h3>
                     <div className="space-y-2">
                       {categoryPermissions.map(permission => (
-                        <div key={permission.name} className="flex items-center space-x-2">
+                        <div key={permission.id} className="flex items-center space-x-2">
                           <Checkbox
-                            id={permission.name}
-                            checked={selectedRole.permissions?.includes(permission.name)}
+                            id={permission.id}
+                            checked={getRolePermissions(selectedRole.id).some(p => p.id === permission.id)}
                             onCheckedChange={(checked) => {
+                              const currentPermissions = getRolePermissions(selectedRole.id).map(p => p.id);
                               const newPermissions = checked
-                                ? [...(selectedRole.permissions || []), permission.name]
-                                : (selectedRole.permissions || []).filter(p => p !== permission.name);
+                                ? [...currentPermissions, permission.id]
+                                : currentPermissions.filter(p => p !== permission.id);
                               
-                              setSelectedRole({
-                                ...selectedRole,
-                                permissions: newPermissions
-                              });
+                              // Update the role's permissions immediately in local state
+                              updateRolePermissions(selectedRole.id, newPermissions);
                             }}
-                            disabled={selectedRole.is_system}
+                            disabled={selectedRole.is_system_role}
                           />
-                          <Label htmlFor={permission.name} className="flex-1">
+                          <Label htmlFor={permission.id} className="flex-1">
                             <div className="font-medium">{permission.display_name}</div>
                             <div className="text-sm text-muted-foreground">{permission.description}</div>
                           </Label>
@@ -724,28 +539,12 @@ const Roles = () => {
                   Annuler
                 </Button>
                 <Button
-                  onClick={async () => {
-                    try {
-                      const { error } = await supabase
-                        .from('roles')
-                        .update({
-                          permissions: selectedRole.permissions,
-                          updated_at: new Date().toISOString()
-                        })
-                        .eq('id', selectedRole.id);
-
-                      if (error) throw error;
-
-                      toast.success('Permissions mises à jour');
-                      setIsPermissionsModalOpen(false);
-                      fetchData();
-                    } catch (error) {
-                      console.error('Error updating permissions:', error);
-                      toast.error('Erreur lors de la mise à jour des permissions');
-                    }
+                  onClick={() => {
+                    setIsPermissionsModalOpen(false);
+                    toast.success('Permissions mises à jour');
                   }}
                 >
-                  Sauvegarder
+                  Fermer
                 </Button>
               </div>
             </div>
