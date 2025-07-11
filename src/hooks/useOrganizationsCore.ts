@@ -32,8 +32,6 @@ export function useOrganizations(): UseOrganizationsReturn {
   }, [sessionContext?.current_team_id]);
 
   const createOrganization = useCallback(async (data: OrganizationFormData): Promise<boolean> => {
-    if (!sessionContext?.current_team_id) return false;
-
     try {
       await OrganizationService.create(data);
       await loadOrganizations();
@@ -44,7 +42,7 @@ export function useOrganizations(): UseOrganizationsReturn {
       console.error('Error creating organization:', err);
       return false;
     }
-  }, [sessionContext?.current_team_id, loadOrganizations]);
+  }, [loadOrganizations]);
 
   const updateOrganization = useCallback(async (id: string, data: OrganizationFormData): Promise<boolean> => {
     try {
