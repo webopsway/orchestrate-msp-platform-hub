@@ -132,14 +132,15 @@ const Organizations = () => {
   });
 
   useEffect(() => {
-    fetchData();
-  }, [sessionContext, currentPage, pageSize, searchTerm, filters]);
+    if (sessionContext?.current_team_id) {
+      fetchData();
+    }
+  }, [sessionContext?.current_team_id, currentPage, pageSize, searchTerm]);
 
   const fetchData = async () => {
     if (!sessionContext?.current_team_id) return;
 
     try {
-      setLoading(true);
       
       // Récupérer les organisations avec pagination
       let query = supabase
@@ -189,8 +190,6 @@ const Organizations = () => {
     } catch (error) {
       console.error('Error fetching organizations:', error);
       toast.error('Erreur lors du chargement des organisations');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -221,7 +220,6 @@ const Organizations = () => {
     if (!sessionContext?.current_team_id) return;
 
     try {
-      setLoading(true);
       
       const orgData = {
         name: data.name,
@@ -260,8 +258,6 @@ const Organizations = () => {
     } catch (error) {
       console.error('Error creating organization:', error);
       toast.error('Erreur lors de la création');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -269,7 +265,6 @@ const Organizations = () => {
     if (!selectedOrganization) return;
 
     try {
-      setLoading(true);
       
       const updateData = {
         name: data.name,
@@ -307,8 +302,6 @@ const Organizations = () => {
     } catch (error) {
       console.error('Error updating organization:', error);
       toast.error('Erreur lors de la mise à jour');
-    } finally {
-      setLoading(false);
     }
   };
 
