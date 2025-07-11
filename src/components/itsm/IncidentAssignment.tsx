@@ -54,9 +54,9 @@ export function IncidentAssignment({
     try {
       setLoading(true);
       
-      // Récupérer les utilisateurs de l'équipe actuelle
-      const { data: teamMembers, error: teamError } = await supabase
-        .from('team_memberships')
+      // Récupérer les utilisateurs de l'organisation actuelle
+      const { data: orgMembers, error: orgError } = await supabase
+        .from('organization_memberships')
         .select(`
           user_id,
           profiles:user_id (
@@ -66,12 +66,12 @@ export function IncidentAssignment({
             last_name
           )
         `)
-        .eq('team_id', sessionContext?.current_team_id);
+        .eq('organization_id', sessionContext?.current_organization_id);
 
-      if (teamError) throw teamError;
+      if (orgError) throw orgError;
 
-      const teamUsers = teamMembers?.map(member => member.profiles).filter(Boolean) || [];
-      setUsers(teamUsers as User[]);
+      const orgUsers = orgMembers?.map(member => member.profiles).filter(Boolean) || [];
+      setUsers(orgUsers as User[]);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Erreur lors du chargement des utilisateurs');
