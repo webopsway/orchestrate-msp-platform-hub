@@ -27,6 +27,7 @@ import RBACManagement from "./pages/RBACManagement";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Setup from "./pages/Setup";
+import MspClientRelations from "./pages/MspClientRelations";
 
 const queryClient = new QueryClient();
 
@@ -106,6 +107,11 @@ function AppRoutes() {
       <Route path="/rbac" element={
         <ProtectedRoute>
           <RBACManagement />
+        </ProtectedRoute>
+      } />
+      <Route path="/msp-client-relations" element={
+        <ProtectedRoute>
+          <MspClientRelations />
         </ProtectedRoute>
       } />
       <Route path="/profile" element={

@@ -5,11 +5,12 @@ import { LucideIcon } from "lucide-react";
 
 interface StatsCardProps {
   title: string;
-  value: string;
+  value: string | number;
   description?: string;
   icon: LucideIcon;
   trend?: string;
   trendColor?: "green" | "red" | "blue" | "yellow";
+  variant?: "default" | "destructive";
   onClick?: () => void;
 }
 
@@ -20,6 +21,7 @@ export function StatsCard({
   icon: Icon,
   trend,
   trendColor = "green",
+  variant = "default",
   onClick
 }: StatsCardProps) {
   const getTrendColor = () => {

@@ -18,7 +18,8 @@ import {
   Monitor,
   Archive,
   Calendar,
-  Search
+  Search,
+  Network
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -67,6 +68,7 @@ const defaultNavigationItems: NavigationItem[] = [
   { id: "users", title: "Utilisateurs & Équipes", url: "/users", icon: "Users", order: 3, group: "main" },
   { id: "roles", title: "Rôles", url: "/roles", icon: "Shield", order: 4, group: "main" },
   { id: "rbac", title: "Gestion RBAC", url: "/rbac", icon: "ShieldCheck", order: 5, group: "main" },
+  { id: "msp-relations", title: "Relations MSP-Client", url: "/msp-client-relations", icon: "Network", order: 6, group: "main" },
   
   { id: "tickets", title: "Tickets", url: "/itsm", icon: "FileText", order: 1, group: "itsm" },
   { id: "incidents", title: "Incidents", url: "/itsm/incidents", icon: "AlertTriangle", order: 2, group: "itsm" },
@@ -114,7 +116,8 @@ const iconMap: Record<string, any> = {
   Monitor,
   Archive,
   Calendar,
-  Search
+  Search,
+  Network
 };
 
 export function AppSidebar() {
