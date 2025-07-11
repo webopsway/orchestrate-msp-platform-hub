@@ -39,8 +39,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const initializeSession = async (organizationId?: string, teamId?: string) => {
-    if (!session) {
-      console.log('No session available for initialization');
+    if (!session?.user) {
+      console.log('No valid session or user available for initialization');
+      setSessionContext(null);
       return;
     }
 

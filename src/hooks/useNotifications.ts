@@ -35,7 +35,10 @@ export const useNotifications = () => {
   const [loading, setLoading] = useState(false);
 
   const fetchTransports = useCallback(async () => {
-    if (!sessionContext?.current_team_id) return;
+    if (!sessionContext?.current_team_id) {
+      setTransports([]);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -56,7 +59,10 @@ export const useNotifications = () => {
   }, [sessionContext?.current_team_id]);
 
   const fetchNotifications = useCallback(async () => {
-    if (!sessionContext?.current_team_id) return;
+    if (!sessionContext?.current_team_id) {
+      setNotifications([]);
+      return;
+    }
 
     try {
       const { data, error } = await supabase
@@ -80,7 +86,10 @@ export const useNotifications = () => {
     config: any;
     is_active: boolean;
   }) => {
-    if (!sessionContext?.current_team_id) return;
+    if (!sessionContext?.current_team_id) {
+      toast.error('Aucune équipe sélectionnée');
+      throw new Error('No team ID available');
+    }
 
     try {
       setLoading(true);

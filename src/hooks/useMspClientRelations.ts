@@ -57,7 +57,10 @@ export const useMspClientRelations = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchRelations = async () => {
-    if (!sessionContext?.current_team_id) return;
+    if (!sessionContext?.current_team_id) {
+      setRelations([]);
+      return;
+    }
 
     setLoading(true);
     setError(null);
