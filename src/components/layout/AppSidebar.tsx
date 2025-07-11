@@ -68,11 +68,12 @@ const defaultNavigationItems: NavigationItem[] = [
   { id: "roles", title: "Rôles", url: "/roles", icon: "Shield", order: 4, group: "main" },
   { id: "rbac", title: "Gestion RBAC", url: "/rbac", icon: "ShieldCheck", order: 5, group: "main" },
   
-  { id: "incidents", title: "Incidents", url: "/itsm/incidents", icon: "AlertTriangle", order: 1, group: "itsm" },
-  { id: "changes", title: "Changements", url: "/itsm/changes", icon: "FileText", order: 2, group: "itsm" },
-  { id: "requests", title: "Demandes de service", url: "/itsm/requests", icon: "FileText", order: 3, group: "itsm" },
-  { id: "backups", title: "Sauvegardes", url: "/itsm/backups", icon: "Database", order: 4, group: "itsm" },
-  { id: "security", title: "Sécurité", url: "/itsm/security", icon: "ShieldCheck", order: 5, group: "itsm" },
+  { id: "tickets", title: "Tickets", url: "/itsm", icon: "FileText", order: 1, group: "itsm" },
+  { id: "incidents", title: "Incidents", url: "/itsm/incidents", icon: "AlertTriangle", order: 2, group: "itsm" },
+  { id: "changes", title: "Changements", url: "/itsm/changes", icon: "FileText", order: 3, group: "itsm" },
+  { id: "requests", title: "Demandes de service", url: "/itsm/requests", icon: "FileText", order: 4, group: "itsm" },
+  { id: "backups", title: "Sauvegardes", url: "/itsm/backups", icon: "Database", order: 5, group: "itsm" },
+  { id: "security", title: "Sécurité", url: "/itsm/security", icon: "ShieldCheck", order: 6, group: "itsm" },
   
   { id: "inventory", title: "Inventaire Cloud", url: "/cloud/inventory", icon: "Cloud", order: 1, group: "cloud" },
   { id: "patches", title: "Gestion des patchs", url: "/cloud/patches", icon: "ShieldCheck", order: 2, group: "cloud" },
