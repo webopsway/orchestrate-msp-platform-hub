@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganizations } from "@/hooks/useOrganizations";
 import { CRUDTable } from "@/components/common/CRUDTable";
-// import { CRUDForm } from "@/components/common/CRUDForm";
 import { 
   Dialog, 
   DialogContent, 
@@ -35,36 +35,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
-
-interface Organization {
-  id: string;
-  msp_id: string;
-  name: string;
-  description?: string;
-  website?: string;
-  email?: string;
-  phone?: string;
-  address?: {
-    street?: string;
-    city?: string;
-    state?: string;
-    postal_code?: string;
-    country?: string;
-  };
-  status: 'active' | 'inactive' | 'pending' | 'suspended';
-  subscription_plan?: string;
-  subscription_status?: 'active' | 'expired' | 'cancelled';
-  user_count: number;
-  team_count: number;
-  created_at: string;
-  updated_at: string;
-  metadata?: {
-    industry?: string;
-    size?: string;
-    contact_person?: string;
-    [key: string]: any;
-  };
-}
+import type { Organization } from "@/hooks/useOrganizations";
 
 interface Team {
   id: string;
@@ -78,10 +49,19 @@ interface Team {
 
 const Organizations = () => {
   const { sessionContext } = useAuth();
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const {
+    organizations,
+    loading,
+    error,
+    totalCount,
+    refresh,
+    createOrganization,
+    updateOrganization,
+    deleteOrganization,
+    clearError
+  } = useOrganizations();
+  
   const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
@@ -131,67 +111,17 @@ const Organizations = () => {
     contact_person: ""
   });
 
-  useEffect(() => {
-    if (sessionContext?.current_team_id) {
-      fetchData();
-    }
-  }, [sessionContext?.current_team_id, currentPage, pageSize, searchTerm]);
+  // Filtrer et paginer les organisations côté client pour éviter les re-rendus
+  const filteredOrganizations = organizations.filter(org => 
+    !searchTerm || org.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
+  const paginatedOrganizations = filteredOrganizations.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
-  const fetchData = async () => {
-    if (!sessionContext?.current_team_id) return;
-
-    try {
-      
-      // Récupérer les organisations avec pagination
-      let query = supabase
-        .from('organizations')
-        .select('*', { count: 'exact' });
-
-      // Appliquer les filtres
-      if (searchTerm) {
-        query = query.or(`name.ilike.%${searchTerm}%`);
-      }
-
-      // Skip complex filters to avoid type issues
-      // filters.forEach(filter => {
-      //   if (filter.value) {
-      //     query = query.eq(filter.key, filter.value);
-      //   }
-      // });
-
-      // Pagination
-      const from = (currentPage - 1) * pageSize;
-      const to = from + pageSize - 1;
-      query = query.range(from, to);
-
-      const { data: orgsData, error: orgsError, count } = await query;
-
-      if (orgsError) throw orgsError;
-      
-      // Transform data to match interface
-      const transformedOrgs = (orgsData || []).map(org => ({
-        ...org,
-        msp_id: org.parent_organization_id || sessionContext.current_team_id,
-        status: 'active' as const,
-        user_count: 0,
-        team_count: 0,
-        description: (org.metadata as any)?.description || '',
-        website: (org.metadata as any)?.website || '',
-        email: (org.metadata as any)?.email || '',
-        phone: (org.metadata as any)?.phone || '',
-        address: (org.metadata as any)?.address || {},
-        subscription_plan: (org.metadata as any)?.subscription_plan || 'basic',
-        subscription_status: (org.metadata as any)?.subscription_status || 'active',
-        metadata: (org.metadata as any) || {}
-      }));
-      
-      setOrganizations(transformedOrgs);
-      setTotalCount(count || 0);
-    } catch (error) {
-      console.error('Error fetching organizations:', error);
-      toast.error('Erreur lors du chargement des organisations');
-    }
-  };
+  const totalFilteredCount = filteredOrganizations.length;
 
   const fetchTeams = async (organizationId: string) => {
     try {
@@ -216,111 +146,29 @@ const Organizations = () => {
     }
   };
 
-  const createOrganization = async (data: any) => {
-    if (!sessionContext?.current_team_id) return;
-
-    try {
-      
-      const orgData = {
-        name: data.name,
-        type: 'client' as const,
-        metadata: {
-          description: data.description,
-          website: data.website,
-          email: data.email,
-          phone: data.phone,
-          address: {
-            street: data.street,
-            city: data.city,
-            state: data.state,
-            postal_code: data.postal_code,
-            country: data.country
-          },
-          subscription_plan: data.subscription_plan || 'basic',
-          subscription_status: 'active',
-          industry: data.industry,
-          size: data.size,
-          contact_person: data.contact_person
-        }
-      };
-      
-      const { data: newOrg, error } = await supabase
-        .from('organizations')
-        .insert([orgData])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      toast.success('Organisation créée avec succès');
+  const handleCreateOrganization = async (data: any) => {
+    const success = await createOrganization(data);
+    if (success) {
       setIsCreateModalOpen(false);
-      fetchData();
-    } catch (error) {
-      console.error('Error creating organization:', error);
-      toast.error('Erreur lors de la création');
+      resetNewOrgForm();
     }
   };
 
-  const updateOrganization = async (data: any) => {
+  const handleUpdateOrganization = async (data: any) => {
     if (!selectedOrganization) return;
-
-    try {
-      
-      const updateData = {
-        name: data.name,
-        updated_at: new Date().toISOString(),
-        metadata: {
-          description: data.description,
-          website: data.website,
-          email: data.email,
-          phone: data.phone,
-          address: {
-            street: data.street,
-            city: data.city,
-            state: data.state,
-            postal_code: data.postal_code,
-            country: data.country
-          },
-          subscription_plan: data.subscription_plan,
-          industry: data.industry,
-          size: data.size,
-          contact_person: data.contact_person
-        }
-      };
-
-      const { error } = await supabase
-        .from('organizations')
-        .update(updateData)
-        .eq('id', selectedOrganization.id);
-
-      if (error) throw error;
-
-      toast.success('Organisation mise à jour avec succès');
+    const success = await updateOrganization(selectedOrganization.id, data);
+    if (success) {
       setIsEditModalOpen(false);
       setSelectedOrganization(null);
-      fetchData();
-    } catch (error) {
-      console.error('Error updating organization:', error);
-      toast.error('Erreur lors de la mise à jour');
+      resetEditOrgForm();
     }
   };
 
-  const deleteOrganization = async (org: Organization) => {
-    try {
-      const { error } = await supabase
-        .from('organizations')
-        .delete()
-        .eq('id', org.id);
-
-      if (error) throw error;
-
-      toast.success('Organisation supprimée');
+  const handleDeleteOrganization = async (org: Organization) => {
+    const success = await deleteOrganization(org.id);
+    if (success) {
       setIsDeleteModalOpen(false);
       setSelectedOrganization(null);
-      fetchData();
-    } catch (error) {
-      console.error('Error deleting organization:', error);
-      toast.error('Erreur lors de la suppression');
     }
   };
 
@@ -730,7 +578,7 @@ const Organizations = () => {
         onEdit={openEditModal}
         onDelete={openDeleteModal}
         onView={openViewModal}
-        onRefresh={fetchData}
+        onRefresh={refresh}
         selectable={true}
         onSelectionChange={setSelectedOrganizations}
         emptyState={{
@@ -918,7 +766,7 @@ const Organizations = () => {
             </Button>
             <Button 
               variant="destructive" 
-              onClick={() => selectedOrganization && deleteOrganization(selectedOrganization)}
+              onClick={() => selectedOrganization && handleDeleteOrganization(selectedOrganization)}
             >
               Supprimer
             </Button>
