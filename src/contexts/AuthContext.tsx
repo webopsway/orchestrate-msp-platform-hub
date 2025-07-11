@@ -70,6 +70,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             .single();
             
           if (sessionData) {
+            // If MSP admin session exists but is incomplete (no team_id), fix it
+            if (sessionData.is_msp && !sessionData.current_team_id && sessionData.current_organization_id) {
+              console.log('MSP admin session incomplete, fixing...');
+              
+              // Get first team from MSP organization
+              const { data: team } = await supabase
+                .from('teams')
+                .select('id')
+                .eq('organization_id', sessionData.current_organization_id)
+                .limit(1)
+                .single();
+                
+              if (team) {
+                // Update session with team_id
+                const { error: updateError } = await supabase
+                  .from('user_sessions')
+                  .update({ 
+                    current_team_id: team.id,
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('user_id', session.user.id);
+                  
+                if (!updateError) {
+                  setSessionContext({
+                    current_organization_id: sessionData.current_organization_id,
+                    current_team_id: team.id,
+                    is_msp: sessionData.is_msp
+                  });
+                  toast.success('Session MSP admin corrigée et initialisée');
+                  return;
+                }
+              }
+            }
+            
             setSessionContext({
               current_organization_id: sessionData.current_organization_id,
               current_team_id: sessionData.current_team_id,
