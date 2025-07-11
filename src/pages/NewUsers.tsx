@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useUsers } from "@/hooks/useCRUD";
+import { useUsers } from "@/hooks/useUsers";
 import { CRUDTable } from "@/components/common/CRUDTable";
 import { UserForm } from "@/components/forms/UserForm";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
-type User = Tables<"profiles">;
+import type { User } from "@/hooks/useUsers";
 type Role = Tables<"roles">;
 
 const NewUsers = () => {
@@ -18,12 +18,12 @@ const NewUsers = () => {
   const [roles, setRoles] = useState<Role[]>([]);
 
   const {
-    data: users,
+    users,
     loading,
     error,
-    createItem,
-    updateItem,
-    deleteItem,
+    createUser,
+    updateUser,
+    deleteUser,
     refresh
   } = useUsers();
 
@@ -59,14 +59,12 @@ const NewUsers = () => {
     };
 
     if (editingUser) {
-      await updateItem(editingUser.id, userData);
-      toast.success("Utilisateur mis à jour");
+      await updateUser(editingUser.id, userData);
     } else {
-      await createItem({
+      await createUser({
         ...userData,
         id: crypto.randomUUID(),
       });
-      toast.success("Utilisateur créé");
     }
     handleCloseForm();
   };
@@ -77,8 +75,7 @@ const NewUsers = () => {
   };
 
   const handleDelete = async (user: User) => {
-    await deleteItem(user.id);
-    toast.success("Utilisateur supprimé");
+    await deleteUser(user.id);
   };
 
   const handleCloseForm = () => {

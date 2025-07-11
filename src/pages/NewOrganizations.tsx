@@ -1,26 +1,26 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useOrganizations } from "@/hooks/useCRUD";
+import { useOrganizations } from "@/hooks/useOrganizations";
 import { CRUDTable } from "@/components/common/CRUDTable";
 import { OrganizationForm } from "@/components/forms/OrganizationForm";
 import { PageHeader } from "@/components/common/PageHeader";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
-type Organization = Tables<"organizations">;
+import type { Organization } from "@/hooks/useOrganizations";
 
 const NewOrganizations = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingOrganization, setEditingOrganization] = useState<Organization | null>(null);
 
   const {
-    data: organizations,
+    organizations,
     loading,
     error,
-    createItem,
-    updateItem,
-    deleteItem,
+    createOrganization,
+    updateOrganization,
+    deleteOrganization,
     refresh
   } = useOrganizations();
 
@@ -38,11 +38,9 @@ const NewOrganizations = () => {
     };
 
     if (editingOrganization) {
-      await updateItem(editingOrganization.id, orgData);
-      toast.success("Organisation mise à jour");
+      await updateOrganization(editingOrganization.id, orgData);
     } else {
-      await createItem(orgData);
-      toast.success("Organisation créée");
+      await createOrganization(orgData);
     }
     handleCloseForm();
   };
@@ -53,8 +51,7 @@ const NewOrganizations = () => {
   };
 
   const handleDelete = async (org: Organization) => {
-    await deleteItem(org.id);
-    toast.success("Organisation supprimée");
+    await deleteOrganization(org.id);
   };
 
   const handleCloseForm = () => {

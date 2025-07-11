@@ -7,6 +7,8 @@ export interface Organization {
   id: string;
   msp_id: string;
   name: string;
+  type: 'client' | 'esn' | 'msp';
+  is_msp: boolean;
   description?: string;
   website?: string;
   email?: string;
@@ -74,6 +76,8 @@ export function useOrganizations(): UseOrganizationsReturn {
         id: org.id,
         msp_id: org.parent_organization_id || sessionContext.current_team_id,
         name: org.name,
+        type: org.type,
+        is_msp: org.is_msp || false,
         status: 'active' as const,
         user_count: 0,
         team_count: 0,
