@@ -1,7 +1,15 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { PageHeader, DataGrid } from "@/components/common";
+import { 
+  PageHeader, 
+  DataGrid,
+  CreateDialog,
+  EditDialog,
+  DeleteDialog,
+  DetailDialog
+} from "@/components/common";
+import { useITSMCrud } from "@/hooks/useITSMCrud";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,7 +33,10 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Info
+  Info,
+  Eye,
+  Edit,
+  Trash2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -52,10 +63,6 @@ const ITSMSecurity = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [severityFilter, setSeverityFilter] = useState<string>("all");
 
-  useEffect(() => {
-    fetchVulnerabilities();
-  }, [sessionContext]);
-
   const fetchVulnerabilities = async () => {
     try {
       setLoading(true);
@@ -73,6 +80,26 @@ const ITSMSecurity = () => {
       setLoading(false);
     }
   };
+
+  const {
+    selectedItem: selectedVulnerability,
+    isCreateOpen,
+    isEditOpen,
+    isDeleteOpen,
+    isDetailOpen,
+    openCreate,
+    openEdit,
+    openDelete,
+    openDetail,
+    closeAll,
+    handleCreate,
+    handleUpdate,
+    handleDelete
+  } = useITSMCrud<SecurityVulnerability>({ onRefresh: fetchVulnerabilities });
+
+  useEffect(() => {
+    fetchVulnerabilities();
+  }, [sessionContext]);
 
   const updateVulnerabilityStatus = async (vulnId: string, newStatus: string) => {
     try {
@@ -186,7 +213,7 @@ const ITSMSecurity = () => {
         action={{
           label: "Créer une vulnérabilité",
           icon: Plus,
-          onClick: () => console.log("Create vulnerability")
+          onClick: openCreate
         }}
       />
 
@@ -322,20 +349,29 @@ const ITSMSecurity = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Select
-                        value={vuln.status}
-                        onValueChange={(value) => updateVulnerabilityStatus(vuln.id, value)}
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="open">Ouvert</SelectItem>
-                          <SelectItem value="in_progress">En cours</SelectItem>
-                          <SelectItem value="resolved">Résolu</SelectItem>
-                          <SelectItem value="closed">Fermé</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openDetail(vuln)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEdit(vuln)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openDelete(vuln)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -344,6 +380,209 @@ const ITSMSecurity = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Formulaires CRUD */}
+      <CreateDialog
+        isOpen={isCreateOpen}
+        onClose={closeAll}
+        onCreate={async (data) => {
+          const success = await handleCreate(async (formData) => {
+            const { error } = await supabase
+              .from('security_vulnerabilities')
+              .insert([{
+                ...formData,
+                team_id: sessionContext?.current_team_id
+              }]);
+            
+            if (error) throw error;
+            return true;
+          }, data);
+          
+          return success;
+        }}
+        title="Créer une vulnérabilité"
+        sections={[
+          {
+            title: "Informations générales",
+            fields: [
+              {
+                key: "title",
+                label: "Titre",
+                type: "text",
+                required: true,
+                placeholder: "Titre de la vulnérabilité"
+              },
+              {
+                key: "description",
+                label: "Description",
+                type: "textarea",
+                placeholder: "Description détaillée de la vulnérabilité"
+              },
+              {
+                key: "cve_id",
+                label: "CVE ID",
+                type: "text",
+                placeholder: "CVE-YYYY-NNNN"
+              }
+            ]
+          },
+          {
+            title: "Classification",
+            fields: [
+              {
+                key: "severity",
+                label: "Sévérité",
+                type: "select",
+                required: true,
+                options: [
+                  { value: "low", label: "Basse" },
+                  { value: "medium", label: "Moyenne" },
+                  { value: "high", label: "Haute" },
+                  { value: "critical", label: "Critique" }
+                ]
+              },
+              {
+                key: "status",
+                label: "Statut",
+                type: "select",
+                required: true,
+                options: [
+                  { value: "open", label: "Ouvert" },
+                  { value: "in_progress", label: "En cours" },
+                  { value: "resolved", label: "Résolu" },
+                  { value: "closed", label: "Fermé" }
+                ]
+              }
+            ]
+          }
+        ]}
+      />
+
+      <EditDialog
+        isOpen={isEditOpen}
+        onClose={closeAll}
+        onSave={async (data) => {
+          const success = await handleUpdate(async (formData) => {
+            const { error } = await supabase
+              .from('security_vulnerabilities')
+              .update(formData)
+              .eq('id', selectedVulnerability?.id);
+            
+            if (error) throw error;
+            return true;
+          }, data);
+          
+          return success;
+        }}
+        title="Modifier la vulnérabilité"
+        data={selectedVulnerability}
+        sections={[
+          {
+            title: "Informations générales",
+            fields: [
+              {
+                key: "title",
+                label: "Titre",
+                type: "text",
+                required: true
+              },
+              {
+                key: "description",
+                label: "Description",
+                type: "textarea"
+              },
+              {
+                key: "cve_id",
+                label: "CVE ID",
+                type: "text"
+              }
+            ]
+          },
+          {
+            title: "Classification",
+            fields: [
+              {
+                key: "severity",
+                label: "Sévérité",
+                type: "select",
+                required: true,
+                options: [
+                  { value: "low", label: "Basse" },
+                  { value: "medium", label: "Moyenne" },
+                  { value: "high", label: "Haute" },
+                  { value: "critical", label: "Critique" }
+                ]
+              },
+              {
+                key: "status",
+                label: "Statut",
+                type: "select",
+                required: true,
+                options: [
+                  { value: "open", label: "Ouvert" },
+                  { value: "in_progress", label: "En cours" },
+                  { value: "resolved", label: "Résolu" },
+                  { value: "closed", label: "Fermé" }
+                ]
+              }
+            ]
+          }
+        ]}
+      />
+
+      <DeleteDialog
+        isOpen={isDeleteOpen}
+        onClose={closeAll}
+        onDelete={async () => {
+          return await handleDelete(async () => {
+            const { error } = await supabase
+              .from('security_vulnerabilities')
+              .delete()
+              .eq('id', selectedVulnerability?.id);
+            
+            if (error) throw error;
+            return true;
+          });
+        }}
+        title="Supprimer la vulnérabilité"
+        itemName={selectedVulnerability?.title || ""}
+        displayFields={[
+          { key: "title", label: "Titre" },
+          { key: "cve_id", label: "CVE ID" },
+          { key: "severity", label: "Sévérité" },
+          { key: "status", label: "Statut" },
+          { key: "discovered_at", label: "Découverte le", render: (value) => new Date(value).toLocaleDateString() }
+        ]}
+        data={selectedVulnerability}
+      />
+
+      <DetailDialog
+        isOpen={isDetailOpen}
+        onClose={closeAll}
+        title="Détails de la vulnérabilité"
+        data={selectedVulnerability}
+        sections={[
+          {
+            title: "Informations générales",
+            fields: [
+              { key: "title", label: "Titre", type: "text" },
+              { key: "description", label: "Description", type: "text" },
+              { key: "cve_id", label: "CVE ID", type: "text" },
+              { key: "severity", label: "Sévérité", type: "badge" },
+              { key: "status", label: "Statut", type: "badge" }
+            ]
+          },
+          {
+            title: "Suivi",
+            fields: [
+              { key: "assigned_to", label: "Assigné à", type: "text" },
+              { key: "discovered_at", label: "Découverte le", type: "date" },
+              { key: "remediated_at", label: "Corrigée le", type: "date" },
+              { key: "cloud_asset_id", label: "Asset Cloud", type: "text" }
+            ]
+          }
+        ]}
+      />
     </div>
   );
 };

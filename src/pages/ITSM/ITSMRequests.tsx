@@ -1,7 +1,16 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { PageHeader, DataGrid, EmptyState } from "@/components/common";
+import { 
+  PageHeader, 
+  DataGrid, 
+  EmptyState,
+  CreateDialog,
+  EditDialog,
+  DeleteDialog,
+  DetailDialog
+} from "@/components/common";
+import { useITSMCrud } from "@/hooks/useITSMCrud";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,10 +46,6 @@ const ITSMRequests = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
 
-  useEffect(() => {
-    fetchRequests();
-  }, [sessionContext]);
-
   const fetchRequests = async () => {
     try {
       setLoading(true);
@@ -53,6 +58,26 @@ const ITSMRequests = () => {
       setLoading(false);
     }
   };
+
+  const {
+    selectedItem: selectedRequest,
+    isCreateOpen,
+    isEditOpen,
+    isDeleteOpen,
+    isDetailOpen,
+    openCreate,
+    openEdit,
+    openDelete,
+    openDetail,
+    closeAll,
+    handleCreate,
+    handleUpdate,
+    handleDelete
+  } = useITSMCrud<ITSMRequest>({ onRefresh: fetchRequests });
+
+  useEffect(() => {
+    fetchRequests();
+  }, [sessionContext]);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -130,7 +155,7 @@ const ITSMRequests = () => {
         action={{
           label: "Créer une demande",
           icon: Plus,
-          onClick: () => console.log("Create request")
+          onClick: openCreate
         }}
       />
 

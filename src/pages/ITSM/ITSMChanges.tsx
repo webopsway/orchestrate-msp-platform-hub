@@ -1,7 +1,15 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { PageHeader, DataGrid } from "@/components/common";
+import { 
+  PageHeader, 
+  DataGrid,
+  CreateDialog,
+  EditDialog,
+  DeleteDialog,
+  DetailDialog
+} from "@/components/common";
+import { useITSMCrud } from "@/hooks/useITSMCrud";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,7 +32,10 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Info
+  Info,
+  Eye,
+  Edit,
+  Trash2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -50,10 +61,6 @@ const ITSMChanges = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
 
-  useEffect(() => {
-    fetchChanges();
-  }, [sessionContext]);
-
   const fetchChanges = async () => {
     try {
       setLoading(true);
@@ -71,6 +78,26 @@ const ITSMChanges = () => {
       setLoading(false);
     }
   };
+
+  const {
+    selectedItem: selectedChange,
+    isCreateOpen,
+    isEditOpen,
+    isDeleteOpen,
+    isDetailOpen,
+    openCreate,
+    openEdit,
+    openDelete,
+    openDetail,
+    closeAll,
+    handleCreate,
+    handleUpdate,
+    handleDelete
+  } = useITSMCrud<ITSMChange>({ onRefresh: fetchChanges });
+
+  useEffect(() => {
+    fetchChanges();
+  }, [sessionContext]);
 
   const updateChangeStatus = async (changeId: string, newStatus: string) => {
     try {
@@ -173,7 +200,7 @@ const ITSMChanges = () => {
         action={{
           label: "Créer un changement",
           icon: Plus,
-          onClick: () => console.log("Create change")
+          onClick: openCreate
         }}
       />
 
@@ -299,22 +326,29 @@ const ITSMChanges = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Select
-                        value={change.status}
-                        onValueChange={(value) => updateChangeStatus(change.id, value)}
-                      >
-                        <SelectTrigger className="w-40">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="draft">Brouillon</SelectItem>
-                          <SelectItem value="pending_approval">En attente</SelectItem>
-                          <SelectItem value="approved">Approuvé</SelectItem>
-                          <SelectItem value="implemented">Implémenté</SelectItem>
-                          <SelectItem value="rejected">Rejeté</SelectItem>
-                          <SelectItem value="failed">Échoué</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openDetail(change)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEdit(change)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openDelete(change)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -323,6 +357,211 @@ const ITSMChanges = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Formulaires CRUD */}
+      <CreateDialog
+        isOpen={isCreateOpen}
+        onClose={closeAll}
+        onCreate={async (data) => {
+          const success = await handleCreate(async (formData) => {
+            const { error } = await supabase
+              .from('itsm_change_requests')
+              .insert([{
+                ...formData,
+                requested_by: user?.id,
+                team_id: sessionContext?.current_team_id
+              }]);
+            
+            if (error) throw error;
+            return true;
+          }, data);
+          
+          return success;
+        }}
+        title="Créer une demande de changement"
+        sections={[
+          {
+            title: "Informations générales",
+            fields: [
+              {
+                key: "title",
+                label: "Titre",
+                type: "text",
+                required: true,
+                placeholder: "Titre du changement"
+              },
+              {
+                key: "description",
+                label: "Description",
+                type: "textarea",
+                placeholder: "Description détaillée du changement"
+              }
+            ]
+          },
+          {
+            title: "Classification",
+            fields: [
+              {
+                key: "change_type",
+                label: "Type de changement",
+                type: "select",
+                required: true,
+                options: [
+                  { value: "standard", label: "Standard" },
+                  { value: "normal", label: "Normal" },
+                  { value: "emergency", label: "Urgence" }
+                ]
+              },
+              {
+                key: "status",
+                label: "Statut",
+                type: "select",
+                required: true,
+                options: [
+                  { value: "draft", label: "Brouillon" },
+                  { value: "pending_approval", label: "En attente" },
+                  { value: "approved", label: "Approuvé" },
+                  { value: "implemented", label: "Implémenté" },
+                  { value: "rejected", label: "Rejeté" },
+                  { value: "failed", label: "Échoué" }
+                ]
+              },
+              {
+                key: "scheduled_date",
+                label: "Date prévue",
+                type: "date",
+                placeholder: "Date d'implémentation prévue"
+              }
+            ]
+          }
+        ]}
+      />
+
+      <EditDialog
+        isOpen={isEditOpen}
+        onClose={closeAll}
+        onSave={async (data) => {
+          const success = await handleUpdate(async (formData) => {
+            const { error } = await supabase
+              .from('itsm_change_requests')
+              .update(formData)
+              .eq('id', selectedChange?.id);
+            
+            if (error) throw error;
+            return true;
+          }, data);
+          
+          return success;
+        }}
+        title="Modifier la demande de changement"
+        data={selectedChange}
+        sections={[
+          {
+            title: "Informations générales",
+            fields: [
+              {
+                key: "title",
+                label: "Titre",
+                type: "text",
+                required: true
+              },
+              {
+                key: "description",
+                label: "Description",
+                type: "textarea"
+              }
+            ]
+          },
+          {
+            title: "Classification",
+            fields: [
+              {
+                key: "change_type",
+                label: "Type de changement",
+                type: "select",
+                required: true,
+                options: [
+                  { value: "standard", label: "Standard" },
+                  { value: "normal", label: "Normal" },
+                  { value: "emergency", label: "Urgence" }
+                ]
+              },
+              {
+                key: "status",
+                label: "Statut",
+                type: "select",
+                required: true,
+                options: [
+                  { value: "draft", label: "Brouillon" },
+                  { value: "pending_approval", label: "En attente" },
+                  { value: "approved", label: "Approuvé" },
+                  { value: "implemented", label: "Implémenté" },
+                  { value: "rejected", label: "Rejeté" },
+                  { value: "failed", label: "Échoué" }
+                ]
+              },
+              {
+                key: "scheduled_date",
+                label: "Date prévue",
+                type: "date"
+              }
+            ]
+          }
+        ]}
+      />
+
+      <DeleteDialog
+        isOpen={isDeleteOpen}
+        onClose={closeAll}
+        onDelete={async () => {
+          return await handleDelete(async () => {
+            const { error } = await supabase
+              .from('itsm_change_requests')
+              .delete()
+              .eq('id', selectedChange?.id);
+            
+            if (error) throw error;
+            return true;
+          });
+        }}
+        title="Supprimer la demande de changement"
+        itemName={selectedChange?.title || ""}
+        displayFields={[
+          { key: "title", label: "Titre" },
+          { key: "change_type", label: "Type" },
+          { key: "status", label: "Statut" },
+          { key: "created_at", label: "Créé le", render: (value) => new Date(value).toLocaleDateString() }
+        ]}
+        data={selectedChange}
+      />
+
+      <DetailDialog
+        isOpen={isDetailOpen}
+        onClose={closeAll}
+        title="Détails de la demande de changement"
+        data={selectedChange}
+        sections={[
+          {
+            title: "Informations générales",
+            fields: [
+              { key: "title", label: "Titre", type: "text" },
+              { key: "description", label: "Description", type: "text" },
+              { key: "change_type", label: "Type", type: "badge" },
+              { key: "status", label: "Statut", type: "badge" }
+            ]
+          },
+          {
+            title: "Suivi",
+            fields: [
+              { key: "requested_by", label: "Demandé par", type: "text" },
+              { key: "approved_by", label: "Approuvé par", type: "text" },
+              { key: "created_at", label: "Créé le", type: "date" },
+              { key: "updated_at", label: "Modifié le", type: "date" },
+              { key: "scheduled_date", label: "Date prévue", type: "date" }
+            ]
+          }
+        ]}
+      />
     </div>
   );
 };

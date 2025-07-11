@@ -1,7 +1,16 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { PageHeader, DataGrid } from "@/components/common";
+import { 
+  PageHeader, 
+  DataGrid,
+  CreateDialog,
+  EditDialog,
+  DeleteDialog,
+  DetailDialog,
+  ActionButtons
+} from "@/components/common";
+import { useITSMCrud } from "@/hooks/useITSMCrud";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,7 +33,10 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Info
+  Info,
+  Eye,
+  Edit,
+  Trash2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -50,10 +62,6 @@ const ITSMIncidents = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
 
-  useEffect(() => {
-    fetchIncidents();
-  }, [sessionContext]);
-
   const fetchIncidents = async () => {
     try {
       setLoading(true);
@@ -71,6 +79,26 @@ const ITSMIncidents = () => {
       setLoading(false);
     }
   };
+
+  const {
+    selectedItem: selectedIncident,
+    isCreateOpen,
+    isEditOpen,
+    isDeleteOpen,
+    isDetailOpen,
+    openCreate,
+    openEdit,
+    openDelete,
+    openDetail,
+    closeAll,
+    handleCreate,
+    handleUpdate,
+    handleDelete
+  } = useITSMCrud<ITSMIncident>({ onRefresh: fetchIncidents });
+
+  useEffect(() => {
+    fetchIncidents();
+  }, [sessionContext]);
 
   const updateIncidentStatus = async (incidentId: string, newStatus: string) => {
     try {
@@ -183,7 +211,7 @@ const ITSMIncidents = () => {
         action={{
           label: "Créer un incident",
           icon: Plus,
-          onClick: () => console.log("Create incident")
+          onClick: openCreate
         }}
       />
 
@@ -309,20 +337,29 @@ const ITSMIncidents = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Select
-                        value={incident.status}
-                        onValueChange={(value) => updateIncidentStatus(incident.id, value)}
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="open">Ouvert</SelectItem>
-                          <SelectItem value="in_progress">En cours</SelectItem>
-                          <SelectItem value="resolved">Résolu</SelectItem>
-                          <SelectItem value="closed">Fermé</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openDetail(incident)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEdit(incident)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openDelete(incident)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -331,6 +368,201 @@ const ITSMIncidents = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Formulaires CRUD */}
+      <CreateDialog
+        isOpen={isCreateOpen}
+        onClose={closeAll}
+        onCreate={async (data) => {
+          const success = await handleCreate(async (formData) => {
+            const { error } = await supabase
+              .from('itsm_incidents')
+              .insert([{
+                ...formData,
+                created_by: user?.id,
+                team_id: sessionContext?.current_team_id
+              }]);
+            
+            if (error) throw error;
+            fetchIncidents();
+            return true;
+          }, data);
+          
+          return success;
+        }}
+        title="Créer un incident"
+        sections={[
+          {
+            title: "Informations générales",
+            fields: [
+              {
+                key: "title",
+                label: "Titre",
+                type: "text",
+                required: true,
+                placeholder: "Titre de l'incident"
+              },
+              {
+                key: "description",
+                label: "Description",
+                type: "textarea",
+                placeholder: "Description détaillée de l'incident"
+              }
+            ]
+          },
+          {
+            title: "Classification",
+            fields: [
+              {
+                key: "priority",
+                label: "Priorité",
+                type: "select",
+                required: true,
+                options: [
+                  { value: "low", label: "Basse" },
+                  { value: "medium", label: "Moyenne" },
+                  { value: "high", label: "Haute" },
+                  { value: "critical", label: "Critique" }
+                ]
+              },
+              {
+                key: "status",
+                label: "Statut",
+                type: "select",
+                required: true,
+                options: [
+                  { value: "open", label: "Ouvert" },
+                  { value: "in_progress", label: "En cours" },
+                  { value: "resolved", label: "Résolu" },
+                  { value: "closed", label: "Fermé" }
+                ]
+              }
+            ]
+          }
+        ]}
+      />
+
+      <EditDialog
+        isOpen={isEditOpen}
+        onClose={closeAll}
+        onSave={async (data) => {
+          const success = await handleUpdate(async (formData) => {
+            const { error } = await supabase
+              .from('itsm_incidents')
+              .update(formData)
+              .eq('id', selectedIncident?.id);
+            
+            if (error) throw error;
+            fetchIncidents();
+            return true;
+          }, data);
+          
+          return success;
+        }}
+        title="Modifier l'incident"
+        data={selectedIncident}
+        sections={[
+          {
+            title: "Informations générales",
+            fields: [
+              {
+                key: "title",
+                label: "Titre",
+                type: "text",
+                required: true
+              },
+              {
+                key: "description",
+                label: "Description",
+                type: "textarea"
+              }
+            ]
+          },
+          {
+            title: "Classification",
+            fields: [
+              {
+                key: "priority",
+                label: "Priorité",
+                type: "select",
+                required: true,
+                options: [
+                  { value: "low", label: "Basse" },
+                  { value: "medium", label: "Moyenne" },
+                  { value: "high", label: "Haute" },
+                  { value: "critical", label: "Critique" }
+                ]
+              },
+              {
+                key: "status",
+                label: "Statut",
+                type: "select",
+                required: true,
+                options: [
+                  { value: "open", label: "Ouvert" },
+                  { value: "in_progress", label: "En cours" },
+                  { value: "resolved", label: "Résolu" },
+                  { value: "closed", label: "Fermé" }
+                ]
+              }
+            ]
+          }
+        ]}
+      />
+
+      <DeleteDialog
+        isOpen={isDeleteOpen}
+        onClose={closeAll}
+        onDelete={async () => {
+          return await handleDelete(async () => {
+            const { error } = await supabase
+              .from('itsm_incidents')
+              .delete()
+              .eq('id', selectedIncident?.id);
+            
+            if (error) throw error;
+            fetchIncidents();
+            return true;
+          });
+        }}
+        title="Supprimer l'incident"
+        itemName={selectedIncident?.title || ""}
+        displayFields={[
+          { key: "title", label: "Titre" },
+          { key: "priority", label: "Priorité" },
+          { key: "status", label: "Statut" },
+          { key: "created_at", label: "Créé le", render: (value) => new Date(value).toLocaleDateString() }
+        ]}
+        data={selectedIncident}
+      />
+
+      <DetailDialog
+        isOpen={isDetailOpen}
+        onClose={closeAll}
+        title="Détails de l'incident"
+        data={selectedIncident}
+        sections={[
+          {
+            title: "Informations générales",
+            fields: [
+              { key: "title", label: "Titre", type: "text" },
+              { key: "description", label: "Description", type: "text" },
+              { key: "priority", label: "Priorité", type: "badge" },
+              { key: "status", label: "Statut", type: "badge" }
+            ]
+          },
+          {
+            title: "Suivi",
+            fields: [
+              { key: "created_by", label: "Créé par", type: "text" },
+              { key: "assigned_to", label: "Assigné à", type: "text" },
+              { key: "created_at", label: "Créé le", type: "date" },
+              { key: "updated_at", label: "Modifié le", type: "date" },
+              { key: "resolved_at", label: "Résolu le", type: "date" }
+            ]
+          }
+        ]}
+      />
     </div>
   );
 };
