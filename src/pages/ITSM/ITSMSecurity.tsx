@@ -9,6 +9,7 @@ import {
   DeleteDialog,
   DetailDialog
 } from "@/components/common";
+import { CommentsSection } from "@/components/itsm/CommentsSection";
 import { useITSMCrud } from "@/hooks/useITSMCrud";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -582,6 +583,7 @@ const ITSMSecurity = () => {
             ]
           }
         ]}
+        className="max-w-4xl"
       />
     </div>
   );

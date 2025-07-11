@@ -10,6 +10,7 @@ import {
   DetailDialog,
   ActionButtons
 } from "@/components/common";
+import { CommentsSection } from "@/components/itsm/CommentsSection";
 import { useITSMCrud } from "@/hooks/useITSMCrud";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +37,8 @@ import {
   Info,
   Eye,
   Edit,
-  Trash2
+  Trash2,
+  MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -80,6 +82,9 @@ const ITSMIncidents = () => {
     }
   };
 
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [commentsIncident, setCommentsIncident] = useState<ITSMIncident | null>(null);
+  
   const {
     selectedItem: selectedIncident,
     isCreateOpen,
@@ -348,6 +353,16 @@ const ITSMIncidents = () => {
                         <Button
                           variant="ghost"
                           size="sm"
+                          onClick={() => {
+                            setCommentsIncident(incident);
+                            setIsCommentsOpen(true);
+                          }}
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => openEdit(incident)}
                         >
                           <Edit className="h-4 w-4" />
@@ -562,7 +577,30 @@ const ITSMIncidents = () => {
             ]
           }
         ]}
+        className="max-w-4xl"
       />
+
+      {/* Modale commentaires */}
+      {commentsIncident && isCommentsOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">
+                  Commentaires - {commentsIncident.title}
+                </h2>
+                <Button variant="ghost" onClick={() => setIsCommentsOpen(false)}>
+                  ×
+                </Button>
+              </div>
+              <CommentsSection 
+                ticketId={commentsIncident.id} 
+                ticketType="incident" 
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

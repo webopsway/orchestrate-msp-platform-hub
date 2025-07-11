@@ -487,6 +487,81 @@ export type Database = {
           },
         ]
       }
+      itsm_comments: {
+        Row: {
+          change_request_id: string | null
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          incident_id: string | null
+          metadata: Json | null
+          team_id: string
+          updated_at: string
+          vulnerability_id: string | null
+        }
+        Insert: {
+          change_request_id?: string | null
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+          incident_id?: string | null
+          metadata?: Json | null
+          team_id: string
+          updated_at?: string
+          vulnerability_id?: string | null
+        }
+        Update: {
+          change_request_id?: string | null
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          incident_id?: string | null
+          metadata?: Json | null
+          team_id?: string
+          updated_at?: string
+          vulnerability_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itsm_comments_change_request_id_fkey"
+            columns: ["change_request_id"]
+            isOneToOne: false
+            referencedRelation: "itsm_change_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itsm_comments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itsm_comments_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "itsm_incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itsm_comments_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itsm_comments_vulnerability_id_fkey"
+            columns: ["vulnerability_id"]
+            isOneToOne: false
+            referencedRelation: "security_vulnerabilities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       itsm_incidents: {
         Row: {
           assigned_to: string | null
