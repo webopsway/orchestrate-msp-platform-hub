@@ -64,14 +64,14 @@ interface ITSMItem {
 }
 
 const ITSM = () => {
-  const { sessionContext } = useAuth();
+  const { sessionContext, user } = useAuth();
   const [items, setItems] = useState<ITSMItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState("incidents");
+  const [activeTab, setActiveTab] = useState("incident");
 
   // État pour le modal de création
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -88,26 +88,32 @@ const ITSM = () => {
   }, [sessionContext]);
 
   const fetchITSMItems = async () => {
-    if (!sessionContext?.current_team_id) return;
-
     try {
       setLoading(true);
+      console.log('Fetching ITSM items for team:', sessionContext?.current_team_id);
       
       // Récupérer les incidents
       const { data: incidents, error: incidentsError } = await supabase
         .from('itsm_incidents')
-        .select('*')
-        .eq('team_id', sessionContext.current_team_id);
+        .select('*');
 
-      if (incidentsError) throw incidentsError;
+      if (incidentsError) {
+        console.error('Error fetching incidents:', incidentsError);
+        throw incidentsError;
+      }
 
       // Récupérer les changements
       const { data: changes, error: changesError } = await supabase
         .from('itsm_change_requests')
-        .select('*')
-        .eq('team_id', sessionContext.current_team_id);
+        .select('*');
 
-      if (changesError) throw changesError;
+      if (changesError) {
+        console.error('Error fetching changes:', changesError);
+        throw changesError;
+      }
+
+      console.log('Fetched incidents:', incidents);
+      console.log('Fetched changes:', changes);
 
       // Combiner et formater les données
       const formattedIncidents = (incidents || []).map(item => ({
@@ -120,7 +126,9 @@ const ITSM = () => {
         type: 'change' as const
       }));
 
-      setItems([...formattedIncidents, ...formattedChanges] as ITSMItem[]);
+      const allItems = [...formattedIncidents, ...formattedChanges] as ITSMItem[];
+      console.log('All ITSM items:', allItems);
+      setItems(allItems);
     } catch (error) {
       console.error('Error fetching ITSM items:', error);
       toast.error('Erreur lors du chargement des données');
@@ -130,7 +138,7 @@ const ITSM = () => {
   };
 
   const createITSMItem = async () => {
-    if (!sessionContext?.current_team_id) return;
+    if (!sessionContext?.current_team_id || !user?.id) return;
 
     try {
       setLoading(true);
@@ -140,7 +148,8 @@ const ITSM = () => {
         title: newItem.title,
         description: newItem.description,
         priority: newItem.priority,
-        created_by: sessionContext.current_team_id, // TODO: utiliser l'ID utilisateur réel
+        created_by: user.id,
+        requested_by: user.id, // Pour les changements
         ...((newItem.type as string) === 'change' ? { scheduled_date: newItem.scheduled_date } : {})
       };
 
@@ -326,7 +335,7 @@ const ITSM = () => {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="all">Tous</TabsTrigger>
-              <TabsTrigger value="incidents">Incidents</TabsTrigger>
+              <TabsTrigger value="incident">Incidents</TabsTrigger>
               <TabsTrigger value="change">Changements</TabsTrigger>
               <TabsTrigger value="request">Demandes</TabsTrigger>
             </TabsList>
