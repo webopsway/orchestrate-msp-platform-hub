@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form";
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -69,9 +70,25 @@ export const OrganizationForm = ({
       email: "",
       phone: "",
       is_msp: false,
-      ...defaultValues,
     },
   });
+
+  // Reset form when defaultValues change or dialog opens
+  useEffect(() => {
+    if (open) {
+      const formData = {
+        name: "",
+        type: "client" as const,
+        description: "",
+        website: "",
+        email: "",
+        phone: "",
+        is_msp: false,
+        ...defaultValues,
+      };
+      form.reset(formData);
+    }
+  }, [open, defaultValues, form]);
 
   const handleSubmit = async (data: OrganizationFormData) => {
     try {
