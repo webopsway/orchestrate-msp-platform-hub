@@ -10,7 +10,8 @@ import {
   DetailDialog
 } from "@/components/common";
 import { CommentsSection } from "@/components/itsm/CommentsSection";
-import { useITSMCrud } from "@/hooks/useITSMCrud";
+import { ChangeAssignment } from "@/components/itsm/ChangeAssignment";
+import { ChangeStatusUpdate } from "@/components/itsm/ChangeStatusUpdate";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,6 +38,10 @@ import {
   Eye,
   Edit,
   Trash2
+} from "lucide-react";
+import { useITSMCrud } from "@/hooks/useITSMCrud";
+import { 
+  MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -95,16 +100,17 @@ const ITSMChanges = () => {
     }
   };
 
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [commentsChange, setCommentsChange] = useState<ITSMChange | null>(null);
+
   const {
     selectedItem: selectedChange,
     isCreateOpen,
     isEditOpen,
     isDeleteOpen,
-    isDetailOpen,
     openCreate,
     openEdit,
     openDelete,
-    openDetail,
     closeAll,
     handleCreate,
     handleUpdate,
@@ -332,19 +338,22 @@ const ITSMChanges = () => {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        Standard
+                        {change.change_type || 'Standard'}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center space-x-2">
-                        {getStatusIcon(change.status)}
-                        <Badge variant={getStatusColor(change.status)}>
-                          {change.status}
-                        </Badge>
-                      </div>
+                      <ChangeStatusUpdate
+                        changeId={change.id}
+                        currentStatus={change.status}
+                        onStatusUpdated={() => fetchChanges()}
+                      />
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm text-muted-foreground">Non assigné</span>
+                      <ChangeAssignment
+                        changeId={change.id}
+                        currentAssignee={change.assigned_to}
+                        onAssigned={() => fetchChanges()}
+                      />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
@@ -359,10 +368,13 @@ const ITSMChanges = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openDetail(change)}
-                          title="Voir les détails"
+                          onClick={() => {
+                            setCommentsChange(change);
+                            setIsCommentsOpen(true);
+                          }}
+                          title="Voir les commentaires"
                         >
-                          <Eye className="h-4 w-4" />
+                          <MessageSquare className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -567,34 +579,14 @@ const ITSMChanges = () => {
         data={selectedChange}
       />
 
-      <DetailDialog
-        isOpen={isDetailOpen}
-        onClose={closeAll}
-        title="Détails de la demande de changement"
-        data={selectedChange}
-        sections={[
-          {
-            title: "Informations générales",
-            fields: [
-              { key: "title", label: "Titre", type: "text" },
-              { key: "description", label: "Description", type: "text" },
-              { key: "change_type", label: "Type", type: "badge" },
-              { key: "status", label: "Statut", type: "badge" }
-            ]
-          },
-          {
-            title: "Suivi",
-            fields: [
-              { key: "requested_by", label: "Demandé par", type: "text" },
-              { key: "approved_by", label: "Approuvé par", type: "text" },
-              { key: "created_at", label: "Créé le", type: "date" },
-              { key: "updated_at", label: "Modifié le", type: "date" },
-              { key: "scheduled_date", label: "Date prévue", type: "date" }
-            ]
-          }
-        ]}
-        className="max-w-4xl"
-      />
+      
+      {/* Commentaires */}
+      {isCommentsOpen && commentsChange && (
+        <CommentsSection
+          ticketId={commentsChange.id}
+          ticketType="change_request"
+        />
+      )}
     </div>
   );
 };
