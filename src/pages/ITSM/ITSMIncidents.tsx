@@ -56,6 +56,12 @@ interface ITSMIncident {
   updated_at: string;
   resolved_at?: string;
   metadata?: any;
+  created_by_profile?: {
+    id: string;
+    email: string;
+    first_name?: string;
+    last_name?: string;
+  };
 }
 
 const ITSMIncidents = () => {
@@ -71,7 +77,15 @@ const ITSMIncidents = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('itsm_incidents')
-        .select('*')
+        .select(`
+          *,
+          created_by_profile:profiles!created_by (
+            id,
+            email,
+            first_name,
+            last_name
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -174,6 +188,16 @@ const ITSMIncidents = () => {
       default:
         return <Info className="h-4 w-4" />;
     }
+  };
+
+  const getRequesterDisplayName = (incident: ITSMIncident) => {
+    const profile = incident.created_by_profile;
+    if (!profile) return "N/A";
+    
+    if (profile.first_name || profile.last_name) {
+      return `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+    }
+    return profile.email;
   };
 
   const filteredIncidents = incidents.filter(incident => {
@@ -297,36 +321,45 @@ const ITSMIncidents = () => {
           {/* Tableau */}
           <div className="rounded-md border">
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Titre</TableHead>
-                  <TableHead>Priorité</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Assigné</TableHead>
-                  <TableHead>Date création</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+               <TableHeader>
+                 <TableRow>
+                   <TableHead>ID</TableHead>
+                   <TableHead>Titre</TableHead>
+                   <TableHead>Demandeur</TableHead>
+                   <TableHead>Priorité</TableHead>
+                   <TableHead>Statut</TableHead>
+                   <TableHead>Assigné</TableHead>
+                   <TableHead>Date création</TableHead>
+                   <TableHead className="text-right">Actions</TableHead>
+                 </TableRow>
+               </TableHeader>
               <TableBody>
                 {filteredIncidents.map((incident) => (
                   <TableRow key={incident.id}>
                     <TableCell className="font-mono text-sm">
                       INC-{incident.id.slice(0, 8)}
                     </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{incident.title}</p>
-                        <p className="text-sm text-muted-foreground truncate max-w-xs">
-                          {incident.description}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getPriorityColor(incident.priority)}>
-                        {incident.priority}
-                      </Badge>
-                    </TableCell>
+                     <TableCell>
+                       <div>
+                         <p className="font-medium">{incident.title}</p>
+                         <p className="text-sm text-muted-foreground truncate max-w-xs">
+                           {incident.description}
+                         </p>
+                       </div>
+                     </TableCell>
+                     <TableCell>
+                       <div className="flex items-center space-x-2">
+                         <User className="h-4 w-4 text-muted-foreground" />
+                         <span className="text-sm">
+                           {getRequesterDisplayName(incident)}
+                         </span>
+                       </div>
+                     </TableCell>
+                     <TableCell>
+                       <Badge variant={getPriorityColor(incident.priority)}>
+                         {incident.priority}
+                       </Badge>
+                     </TableCell>
                     <TableCell>
                       <QuickStatusUpdate
                         incidentId={incident.id}
