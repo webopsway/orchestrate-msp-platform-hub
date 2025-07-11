@@ -246,17 +246,13 @@ const RBACManagement = () => {
 
   // Créer un nouveau rôle
   const createRole = async (data: any) => {
-    if (!sessionContext?.current_team_id) return;
-
     try {
       const roleData = {
-        team_id: sessionContext?.current_team_id,
         name: data.name.toLowerCase().replace(/\s+/g, '_'),
         display_name: data.display_name,
         description: data.description,
         is_system: false,
-        is_default: false,
-        permissions: []
+        metadata: {}
       };
 
       const { data: newRole, error } = await supabase
