@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
-import type { Organization } from "@/hooks/useOrganizations";
+import type { Organization } from "@/types/organization";
 
 const NewOrganizations = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);

@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
-import type { Organization } from "@/hooks/useOrganizations";
+import type { Organization } from "@/types/organization";
 
 interface Team {
   id: string;
