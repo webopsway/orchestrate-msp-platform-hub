@@ -44,10 +44,8 @@ const ITSMRequests = () => {
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      // Pour l'instant, nous simulons des données car il n'y a pas de table pour les demandes
-      // Dans un vrai système, vous auriez une table itsm_service_requests
+      // TODO: Implémenter quand la table itsm_service_requests sera créée
       setRequests([]);
-      toast.info('Module des demandes de service en cours de développement');
     } catch (error) {
       console.error('Error fetching requests:', error);
       toast.error('Erreur lors du chargement des demandes');
