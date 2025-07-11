@@ -177,8 +177,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         if (event === 'SIGNED_IN' && session?.user) {
           // Defer session initialization to prevent deadlocks
-          setTimeout(() => {
-            initializeSession();
+          setTimeout(async () => {
+            await initializeSession();
+            
+            // Check if this is a first-time MSP admin setup
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('is_msp_admin, default_organization_id, default_team_id')
+              .eq('id', session.user.id)
+              .single();
+              
+            if (profile?.is_msp_admin && profile.default_organization_id && profile.default_team_id) {
+              // Check if organization still has default name
+              const { data: org } = await supabase
+                .from('organizations')
+                .select('name')
+                .eq('id', profile.default_organization_id)
+                .single();
+                
+              if (org?.name === 'Mon Organisation MSP') {
+                // Redirect to setup page for customization
+                window.location.href = '/setup';
+                return;
+              }
+            }
           }, 100);
         } else if (event === 'SIGNED_OUT') {
           setSessionContext(null);

@@ -22,6 +22,7 @@ import Roles from "./pages/Roles";
 import RBACManagement from "./pages/RBACManagement";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
+import Setup from "./pages/Setup";
 
 const queryClient = new QueryClient();
 
@@ -186,6 +187,13 @@ function AppRoutes() {
       <Route path="/global-settings" element={
         <ProtectedRoute>
           <GlobalSettings />
+        </ProtectedRoute>
+      } />
+      
+      {/* Setup Route */}
+      <Route path="/setup" element={
+        <ProtectedRoute>
+          <Setup />
         </ProtectedRoute>
       } />
       
