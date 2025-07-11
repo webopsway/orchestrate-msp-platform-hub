@@ -135,8 +135,8 @@ export const useAppSettings = () => {
     try {
       setLoading(true);
       
-      // Convert value to JSONB format
-      const jsonValue = typeof value === 'string' ? JSON.stringify(value) : JSON.stringify(value);
+      // Convert value to JSONB format - avoid double stringifying
+      const jsonValue = value;
       
       const { data, error } = await supabase.rpc('set_setting', {
         p_team_id: teamId,
