@@ -189,6 +189,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(session?.user ?? null);
         
         if (event === 'SIGNED_IN' && session?.user) {
+          console.log('User signed in, initializing session...');
           // Defer session initialization to prevent deadlocks
           setTimeout(async () => {
             await initializeSession();
@@ -216,7 +217,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
           }, 100);
         } else if (event === 'SIGNED_OUT') {
+          console.log('User signed out, clearing session context');
           setSessionContext(null);
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('Token refreshed, session should be maintained');
+        } else if (event === 'INITIAL_SESSION' && session?.user) {
+          console.log('Initial session detected, initializing...');
+          setTimeout(async () => {
+            await initializeSession();
+          }, 100);
         }
         
         setLoading(false);
@@ -224,15 +233,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      console.log('Getting existing session:', session?.user?.id, error);
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        console.log('Existing session found, initializing context...');
         // Initialize session context for existing session
         setTimeout(() => {
           initializeSession();
         }, 100);
+      } else {
+        console.log('No existing session found');
       }
       
       setLoading(false);
