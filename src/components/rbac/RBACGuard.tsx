@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useRBAC } from "@/hooks/useRBAC";
 import { RBACResource, RBACAction, RBACGuardProps } from "@/types/rbac";
 import { AlertTriangle, Lock } from "lucide-react";
@@ -16,8 +17,15 @@ export const RBACGuard = ({
   children
 }: RBACGuardProps) => {
   const { checkPermission } = useRBAC();
-
-  const hasPermission = checkPermission(resource, action);
+  
+  // Import useAuth to check MSP admin status
+  const { sessionContext } = useAuth();
+  
+  // Check if user is MSP admin first - MSP admins bypass all permission checks
+  const isMSPAdmin = sessionContext?.is_msp || false;
+  
+  // MSP admins have access to everything
+  const hasPermission = isMSPAdmin || checkPermission(resource, action);
 
   if (!hasPermission) {
     if (fallback) {
