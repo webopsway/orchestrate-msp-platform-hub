@@ -698,6 +698,80 @@ export type Database = {
           },
         ]
       }
+      msp_client_relations: {
+        Row: {
+          client_organization_id: string
+          created_at: string
+          created_by: string
+          end_date: string | null
+          esn_organization_id: string | null
+          id: string
+          is_active: boolean
+          metadata: Json | null
+          msp_organization_id: string
+          relation_type: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          client_organization_id: string
+          created_at?: string
+          created_by: string
+          end_date?: string | null
+          esn_organization_id?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          msp_organization_id: string
+          relation_type: string
+          start_date?: string
+          updated_at?: string
+        }
+        Update: {
+          client_organization_id?: string
+          created_at?: string
+          created_by?: string
+          end_date?: string | null
+          esn_organization_id?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          msp_organization_id?: string
+          relation_type?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "msp_client_relations_client_fkey"
+            columns: ["client_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "msp_client_relations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "msp_client_relations_esn_fkey"
+            columns: ["esn_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "msp_client_relations_msp_fkey"
+            columns: ["msp_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_transports: {
         Row: {
           channel: string
@@ -1486,6 +1560,14 @@ export type Database = {
           is_msp: boolean
         }[]
       }
+      get_client_esn: {
+        Args: { p_client_org_id: string }
+        Returns: string
+      }
+      get_client_msp: {
+        Args: { p_client_org_id: string }
+        Returns: string
+      }
       get_current_user_profile: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1508,6 +1590,15 @@ export type Database = {
           has_global: boolean
           has_team: boolean
           team_count: number
+        }[]
+      }
+      get_msp_clients: {
+        Args: { p_msp_org_id: string }
+        Returns: {
+          client_org_id: string
+          esn_org_id: string
+          relation_type: string
+          start_date: string
         }[]
       }
       get_namespaces: {
