@@ -629,6 +629,88 @@ export type Database = {
           },
         ]
       }
+      itsm_service_requests: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          impact: string | null
+          metadata: Json | null
+          priority: string | null
+          requested_by: string
+          resolution: string | null
+          resolved_at: string | null
+          service_category: string | null
+          status: string | null
+          team_id: string
+          title: string
+          updated_at: string
+          urgency: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          impact?: string | null
+          metadata?: Json | null
+          priority?: string | null
+          requested_by: string
+          resolution?: string | null
+          resolved_at?: string | null
+          service_category?: string | null
+          status?: string | null
+          team_id: string
+          title: string
+          updated_at?: string
+          urgency?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          impact?: string | null
+          metadata?: Json | null
+          priority?: string | null
+          requested_by?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          service_category?: string | null
+          status?: string | null
+          team_id?: string
+          title?: string
+          updated_at?: string
+          urgency?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itsm_service_requests_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itsm_service_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itsm_service_requests_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       monitoring_alerts: {
         Row: {
           acknowledged_at: string | null

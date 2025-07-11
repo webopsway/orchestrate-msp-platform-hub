@@ -1,18 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { useServiceRequests, ServiceRequest } from "@/hooks/useServiceRequests";
 import { 
   PageHeader, 
-  DataGrid,
-  CreateDialog,
-  EditDialog,
-  DeleteDialog,
-  ActionButtons
+  DataGrid
 } from "@/components/common";
-import { CommentsSection } from "@/components/itsm/CommentsSection";
 import { RequestAssignment } from "@/components/itsm/RequestAssignment";
 import { RequestStatusUpdate } from "@/components/itsm/RequestStatusUpdate";
-import { useITSMCrud } from "@/hooks/useITSMCrud";
+import { ServiceRequestDetailView } from "@/components/itsm/ServiceRequestDetailView";
+import { ServiceRequestForm } from "@/components/forms/ServiceRequestForm";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,6 +22,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   HelpCircle, 
   Plus, 
@@ -35,72 +32,32 @@ import {
   Eye,
   Edit,
   Trash2,
-  MessageSquare,
   CheckCircle,
   AlertCircle,
   Info
 } from "lucide-react";
 import { toast } from "sonner";
 
-interface ITSMRequest {
-  id: string;
-  title: string;
-  description: string;
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
-  requested_by: string;
-  assigned_to?: string;
-  created_at: string;
-  updated_at: string;
-  metadata?: any;
-  requested_by_profile?: {
-    id: string;
-    email: string;
-    first_name?: string;
-    last_name?: string;
-  };
-}
-
 const ITSMRequests = () => {
   const { sessionContext, user } = useAuth();
-  const [requests, setRequests] = useState<ITSMRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { 
+    requests, 
+    loading, 
+    createRequest, 
+    updateRequest, 
+    deleteRequest 
+  } = useServiceRequests();
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
-  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
-  const [commentsRequest, setCommentsRequest] = useState<ITSMRequest | null>(null);
-
-  const fetchRequests = async () => {
-    try {
-      setLoading(true);
-      // Pour l'instant, on simule des données vides car la table n'existe pas encore
-      setRequests([]);
-      toast.error('Module en cours de développement');
-    } catch (error) {
-      console.error('Error fetching requests:', error);
-      setRequests([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const {
-    selectedItem: selectedRequest,
-    isCreateOpen,
-    isEditOpen,
-    isDeleteOpen,
-    openCreate,
-    openEdit,
-    openDelete,
-    closeAll,
-    handleCreate,
-    handleUpdate,
-    handleDelete
-  } = useITSMCrud<ITSMRequest>({ onRefresh: fetchRequests });
-
-  const getRequesterDisplayName = (request: ITSMRequest) => {
+  const getRequesterDisplayName = (request: ServiceRequest) => {
     const profile = request.requested_by_profile;
     if (!profile) return "N/A";
     
@@ -110,9 +67,59 @@ const ITSMRequests = () => {
     return profile.email;
   };
 
-  useEffect(() => {
-    fetchRequests();
-  }, [sessionContext]);
+  const openDetail = (request: ServiceRequest) => {
+    setSelectedRequest(request);
+    setIsDetailOpen(true);
+  };
+
+  const closeDetail = () => {
+    setSelectedRequest(null);
+    setIsDetailOpen(false);
+  };
+
+  const openCreate = () => {
+    setIsCreateOpen(true);
+  };
+
+  const openEdit = (request: ServiceRequest) => {
+    setSelectedRequest(request);
+    setIsEditOpen(true);
+  };
+
+  const openDelete = (request: ServiceRequest) => {
+    setSelectedRequest(request);
+    setIsDeleteOpen(true);
+  };
+
+  const closeAll = () => {
+    setIsCreateOpen(false);
+    setIsEditOpen(false);
+    setIsDeleteOpen(false);
+    setSelectedRequest(null);
+  };
+
+  const handleCreate = async (data: any) => {
+    const success = await createRequest(data);
+    if (success) {
+      closeAll();
+    }
+  };
+
+  const handleUpdate = async (data: any) => {
+    if (!selectedRequest) return;
+    const success = await updateRequest(selectedRequest.id, data);
+    if (success) {
+      closeAll();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedRequest) return;
+    const success = await deleteRequest(selectedRequest.id);
+    if (success) {
+      closeAll();
+    }
+  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -152,7 +159,7 @@ const ITSMRequests = () => {
 
   const filteredRequests = requests.filter(request => {
     const matchesSearch = request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         request.description.toLowerCase().includes(searchTerm.toLowerCase());
+                         (request.description && request.description.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === "all" || request.status === statusFilter;
     const matchesPriority = priorityFilter === "all" || request.priority === priorityFilter;
 
@@ -177,141 +184,6 @@ const ITSMRequests = () => {
       value: requests.filter(r => ['resolved', 'closed'].includes(r.status)).length.toString(),
       icon: CheckCircle,
       color: "text-green-500"
-    }
-  ];
-
-  const filters = (
-    <>
-      <Select value={statusFilter} onValueChange={setStatusFilter}>
-        <SelectTrigger className="w-32">
-          <SelectValue placeholder="Statut" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Tous</SelectItem>
-          <SelectItem value="open">Ouvert</SelectItem>
-          <SelectItem value="in_progress">En cours</SelectItem>
-          <SelectItem value="resolved">Résolu</SelectItem>
-          <SelectItem value="closed">Fermé</SelectItem>
-        </SelectContent>
-      </Select>
-      <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-        <SelectTrigger className="w-32">
-          <SelectValue placeholder="Priorité" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Toutes</SelectItem>
-          <SelectItem value="critical">Critique</SelectItem>
-          <SelectItem value="high">Haute</SelectItem>
-          <SelectItem value="medium">Moyenne</SelectItem>
-          <SelectItem value="low">Basse</SelectItem>
-        </SelectContent>
-      </Select>
-    </>
-  );
-
-  const columns = [
-    {
-      key: "id",
-      label: "ID",
-      render: (request: ITSMRequest) => (
-        <span className="font-mono text-sm">REQ-{request.id.slice(0, 8)}</span>
-      )
-    },
-    {
-      key: "title",
-      label: "Titre",
-      render: (request: ITSMRequest) => (
-        <div>
-          <p className="font-medium">{request.title}</p>
-          <p className="text-sm text-muted-foreground truncate max-w-xs">
-            {request.description}
-          </p>
-        </div>
-      )
-    },
-    {
-      key: "requester",
-      label: "Demandeur",
-      render: (request: ITSMRequest) => (
-        <div className="flex items-center space-x-2">
-          <User className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm">
-            {getRequesterDisplayName(request)}
-          </span>
-        </div>
-      )
-    },
-    {
-      key: "priority",
-      label: "Priorité",
-      render: (request: ITSMRequest) => (
-        <Badge variant={getPriorityColor(request.priority)}>
-          {request.priority}
-        </Badge>
-      )
-    },
-    {
-      key: "status",
-      label: "Statut",
-      render: (request: ITSMRequest) => (
-        <div className="flex items-center space-x-2">
-          {getStatusIcon(request.status)}
-          <Badge variant={getStatusColor(request.status)}>
-            {request.status}
-          </Badge>
-        </div>
-      )
-    },
-    {
-      key: "assigned_to",
-      label: "Assigné",
-      render: (request: ITSMRequest) => (
-        <span className="text-sm text-muted-foreground">Non assigné</span>
-      )
-    },
-    {
-      key: "created_at",
-      label: "Date création",
-      render: (request: ITSMRequest) => (
-        <div className="flex items-center space-x-2">
-          <Calendar className="h-4 w-4" />
-          <span className="text-sm">
-            {new Date(request.created_at).toLocaleDateString()}
-          </span>
-        </div>
-      )
-    },
-    {
-      key: "actions",
-      label: "Actions",
-      render: (request: ITSMRequest) => (
-        <div className="flex items-center gap-1 justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => console.log('View details')}
-            title="Voir les détails"
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => console.log('Edit')}
-            title="Modifier"
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => console.log('Delete')}
-            title="Supprimer"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      )
     }
   ];
 
@@ -360,7 +232,7 @@ const ITSMRequests = () => {
         ))}
       </DataGrid>
 
-      {/* Filtres */}
+      {/* Filtres et Tableau */}
       <Card>
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -386,6 +258,7 @@ const ITSMRequests = () => {
                   <SelectItem value="in_progress">En cours</SelectItem>
                   <SelectItem value="resolved">Résolu</SelectItem>
                   <SelectItem value="closed">Fermé</SelectItem>
+                  <SelectItem value="cancelled">Annulé</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={priorityFilter} onValueChange={setPriorityFilter}>
@@ -419,227 +292,160 @@ const ITSMRequests = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredRequests.map((request) => (
-                  <TableRow key={request.id}>
-                    <TableCell className="font-mono text-sm">
-                      REQ-{request.id.slice(0, 8)}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{request.title}</p>
-                        <p className="text-sm text-muted-foreground truncate max-w-xs">
-                          {request.description}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">
-                          {getRequesterDisplayName(request)}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getPriorityColor(request.priority)}>
-                        {request.priority}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <RequestStatusUpdate
-                        requestId={request.id}
-                        currentStatus={request.status}
-                        onStatusUpdated={() => fetchRequests()}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <RequestAssignment
-                        requestId={request.id}
-                        currentAssignee={request.assigned_to}
-                        onAssigned={() => fetchRequests()}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="h-4 w-4" />
-                        <span className="text-sm">
-                          {new Date(request.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 justify-end">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setCommentsRequest(request);
-                            setIsCommentsOpen(true);
-                          }}
-                          title="Voir les commentaires"
-                        >
-                          <MessageSquare className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEdit(request)}
-                          title="Modifier"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openDelete(request)}
-                          title="Supprimer"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                {filteredRequests.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                      Aucune demande de service trouvée
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredRequests.map((request) => (
+                    <TableRow key={request.id}>
+                      <TableCell className="font-mono text-sm">
+                        REQ-{request.id.slice(0, 8)}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{request.title}</p>
+                          <p className="text-sm text-muted-foreground truncate max-w-xs">
+                            {request.description}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            {getRequesterDisplayName(request)}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getPriorityColor(request.priority)}>
+                          {request.priority}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <RequestStatusUpdate
+                          requestId={request.id}
+                          currentStatus={request.status}
+                          onStatusUpdated={() => {}}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <RequestAssignment
+                          requestId={request.id}
+                          currentAssignee={request.assigned_to}
+                          onAssigned={() => {}}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Calendar className="h-4 w-4" />
+                          <span className="text-sm">
+                            {new Date(request.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1 justify-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openDetail(request)}
+                            title="Voir les détails"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEdit(request)}
+                            title="Modifier"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openDelete(request)}
+                            title="Supprimer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
 
-      {/* Formulaires CRUD */}
-      <CreateDialog
-        isOpen={isCreateOpen}
-        onClose={closeAll}
-        onCreate={async (data) => {
-          toast.info('Module en cours de développement');
-          return true;
-        }}
-        title="Créer une demande de service"
-        sections={[
-          {
-            title: "Informations générales",
-            fields: [
-              {
-                key: "title",
-                label: "Titre",
-                type: "text",
-                required: true,
-                placeholder: "Titre de la demande"
-              },
-              {
-                key: "description",
-                label: "Description",
-                type: "textarea",
-                placeholder: "Description détaillée de la demande"
-              }
-            ]
-          },
-          {
-            title: "Classification",
-            fields: [
-              {
-                key: "priority",
-                label: "Priorité",
-                type: "select",
-                required: true,
-                options: [
-                  { value: "low", label: "Basse" },
-                  { value: "medium", label: "Moyenne" },
-                  { value: "high", label: "Haute" },
-                  { value: "critical", label: "Critique" }
-                ]
-              },
-              {
-                key: "status",
-                label: "Statut",
-                type: "select",
-                required: true,
-                options: [
-                  { value: "open", label: "Ouvert" },
-                  { value: "in_progress", label: "En cours" },
-                  { value: "resolved", label: "Résolu" },
-                  { value: "closed", label: "Fermé" }
-                ]
-              }
-            ]
-          }
-        ]}
-      />
+      {/* Dialog de création */}
+      <Dialog open={isCreateOpen} onOpenChange={closeAll}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Créer une demande de service</DialogTitle>
+          </DialogHeader>
+          <ServiceRequestForm
+            onSubmit={handleCreate}
+            onCancel={closeAll}
+          />
+        </DialogContent>
+      </Dialog>
 
-      <EditDialog
-        isOpen={isEditOpen}
-        onClose={closeAll}
-        onSave={async (data) => {
-          toast.info('Module en cours de développement');
-          return true;
-        }}
-        title="Modifier la demande de service"
-        data={selectedRequest}
-        sections={[
-          {
-            title: "Informations générales",
-            fields: [
-              {
-                key: "title",
-                label: "Titre",
-                type: "text",
-                required: true
-              },
-              {
-                key: "description",
-                label: "Description",
-                type: "textarea"
-              }
-            ]
-          },
-          {
-            title: "Classification",
-            fields: [
-              {
-                key: "priority",
-                label: "Priorité",
-                type: "select",
-                required: true,
-                options: [
-                  { value: "low", label: "Basse" },
-                  { value: "medium", label: "Moyenne" },
-                  { value: "high", label: "Haute" },
-                  { value: "critical", label: "Critique" }
-                ]
-              },
-              {
-                key: "status",
-                label: "Statut",
-                type: "select",
-                required: true,
-                options: [
-                  { value: "open", label: "Ouvert" },
-                  { value: "in_progress", label: "En cours" },
-                  { value: "resolved", label: "Résolu" },
-                  { value: "closed", label: "Fermé" }
-                ]
-              }
-            ]
-          }
-        ]}
-      />
+      {/* Dialog d'édition */}
+      <Dialog open={isEditOpen} onOpenChange={closeAll}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Modifier la demande de service</DialogTitle>
+          </DialogHeader>
+          {selectedRequest && (
+            <ServiceRequestForm
+              initialData={{
+                ...selectedRequest,
+                due_date: selectedRequest.due_date ? new Date(selectedRequest.due_date) : undefined
+              }}
+              onSubmit={handleUpdate}
+              onCancel={closeAll}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
-      <DeleteDialog
-        isOpen={isDeleteOpen}
-        onClose={closeAll}
-        onDelete={async () => {
-          toast.info('Module en cours de développement');
-          return true;
-        }}
-        title="Supprimer la demande de service"
-        itemName={selectedRequest?.title || ""}
-      />
-      
-      {/* Commentaires */}
-      {isCommentsOpen && commentsRequest && (
-        <CommentsSection
-          ticketId={commentsRequest.id}
-          ticketType="incident"
+      {/* Dialog de suppression */}
+      <Dialog open={isDeleteOpen} onOpenChange={closeAll}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer la demande de service</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p>
+              Êtes-vous sûr de vouloir supprimer la demande "{selectedRequest?.title}" ?
+              Cette action est irréversible.
+            </p>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={closeAll}>
+                Annuler
+              </Button>
+              <Button variant="destructive" onClick={handleDelete}>
+                Supprimer
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Vue détaillée */}
+      {selectedRequest && (
+        <ServiceRequestDetailView
+          requestId={selectedRequest.id}
+          isOpen={isDetailOpen}
+          onClose={closeDetail}
+          onRequestUpdated={() => {}}
         />
       )}
     </div>

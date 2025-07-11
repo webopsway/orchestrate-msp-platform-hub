@@ -18,7 +18,7 @@ import { toast } from "sonner";
 
 interface RequestStatusUpdateProps {
   requestId: string;
-  currentStatus: 'open' | 'in_progress' | 'resolved' | 'closed';
+  currentStatus: 'open' | 'in_progress' | 'resolved' | 'closed' | 'cancelled';
   onStatusUpdated?: (newStatus: string) => void;
   disabled?: boolean;
 }
@@ -59,6 +59,13 @@ export function RequestStatusUpdate({
       icon: CheckCircle, 
       color: 'default',
       description: 'Demande fermée définitivement'
+    },
+    { 
+      value: 'cancelled', 
+      label: 'Annulé', 
+      icon: AlertCircle, 
+      color: 'destructive',
+      description: 'Demande annulée'
     }
   ];
 
