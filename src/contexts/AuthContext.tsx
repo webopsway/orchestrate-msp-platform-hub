@@ -44,6 +44,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       console.log('Initializing session with org:', organizationId, 'team:', teamId);
       
+      // First, try to auto-initialize session for MSP admins
+      try {
+        await supabase.rpc('auto_init_msp_admin_session');
+      } catch (err) {
+        console.warn('Auto MSP admin session init failed:', err);
+      }
+      
       const { data, error } = await supabase.functions.invoke('init-user-session', {
         body: {
           organization_id: organizationId,
@@ -53,6 +60,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (error) {
         console.error('Session initialization error:', error);
+        
+        // For MSP admins, try to get session context directly from database
+        try {
+          const { data: sessionData } = await supabase
+            .from('user_sessions')
+            .select('current_organization_id, current_team_id, is_msp')
+            .eq('user_id', session.user.id)
+            .single();
+            
+          if (sessionData) {
+            setSessionContext({
+              current_organization_id: sessionData.current_organization_id,
+              current_team_id: sessionData.current_team_id,
+              is_msp: sessionData.is_msp
+            });
+            toast.success('Session MSP admin initialisée');
+            return;
+          }
+        } catch (dbError) {
+          console.warn('Direct session fetch failed:', dbError);
+        }
+        
         toast.error('Erreur lors de l\'initialisation de la session');
         return;
       }

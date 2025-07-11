@@ -1381,6 +1381,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_init_msp_admin_session: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       create_document_version: {
         Args: { doc_id: string; new_title?: string; new_content?: string }
         Returns: string
@@ -1388,6 +1392,17 @@ export type Database = {
       delete_setting: {
         Args: { p_team_id: string; p_namespace: string; p_key: string }
         Returns: boolean
+      }
+      diagnose_user_permissions: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          is_msp_admin: boolean
+          has_session: boolean
+          session_team_id: string
+          session_org_id: string
+          org_memberships_count: number
+        }[]
       }
       get_app_session_variables: {
         Args: Record<PropertyKey, never>
