@@ -14,6 +14,10 @@ import GlobalSettings from "./pages/GlobalSettings";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import ITSM from "./pages/ITSM";
+import ITSMIncidents from "./pages/ITSM/ITSMIncidents";
+import ITSMChanges from "./pages/ITSM/ITSMChanges";
+import ITSMRequests from "./pages/ITSM/ITSMRequests";
+import ITSMSecurity from "./pages/ITSM/ITSMSecurity";
 import CloudInventory from "./pages/CloudInventory";
 import CloudAccounts from "./pages/CloudAccounts";
 import Monitoring from "./pages/Monitoring";
@@ -123,27 +127,22 @@ function AppRoutes() {
       } />
       <Route path="/itsm/incidents" element={
         <ProtectedRoute>
-          <ITSM />
+          <ITSMIncidents />
         </ProtectedRoute>
       } />
       <Route path="/itsm/changes" element={
         <ProtectedRoute>
-          <ITSM />
+          <ITSMChanges />
         </ProtectedRoute>
       } />
       <Route path="/itsm/requests" element={
         <ProtectedRoute>
-          <ITSM />
-        </ProtectedRoute>
-      } />
-      <Route path="/itsm/backups" element={
-        <ProtectedRoute>
-          <ITSM />
+          <ITSMRequests />
         </ProtectedRoute>
       } />
       <Route path="/itsm/security" element={
         <ProtectedRoute>
-          <Security />
+          <ITSMSecurity />
         </ProtectedRoute>
       } />
       
