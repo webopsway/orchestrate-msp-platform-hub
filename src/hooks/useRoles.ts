@@ -104,8 +104,6 @@ export const useRoles = (options: UseRolesOptions = {}): UseRolesReturn => {
 
   // Load all data
   const loadData = useCallback(async () => {
-    if (!sessionContext?.current_team_id) return;
-
     try {
       setLoading(true);
       setError(null);
@@ -133,7 +131,7 @@ export const useRoles = (options: UseRolesOptions = {}): UseRolesReturn => {
     } finally {
       setLoading(false);
     }
-  }, [sessionContext?.current_team_id]);
+  }, []); // Remove dependency on sessionContext
 
   // Role management
   const createRole = useCallback(async (data: Partial<Role>): Promise<Role | null> => {
@@ -397,10 +395,10 @@ export const useRoles = (options: UseRolesOptions = {}): UseRolesReturn => {
 
   // Load data on mount
   useEffect(() => {
-    if (autoLoad && sessionContext?.current_team_id) {
+    if (autoLoad) {
       loadData();
     }
-  }, [autoLoad, loadData, sessionContext?.current_team_id]);
+  }, [autoLoad, loadData]); // Remove dependency on sessionContext
 
   // Computed values
   const totalRoles = roles.length;
