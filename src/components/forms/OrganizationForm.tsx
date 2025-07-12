@@ -170,7 +170,7 @@ export const OrganizationForm = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="client">Client</SelectItem>
+                      <SelectItem value="client">CLIENT</SelectItem>
                       <SelectItem value="esn">ESN</SelectItem>
                       <SelectItem value="msp">MSP</SelectItem>
                     </SelectContent>
