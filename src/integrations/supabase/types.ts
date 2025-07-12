@@ -1549,73 +1549,11 @@ export type Database = {
           },
         ]
       }
-      user_sessions: {
-        Row: {
-          created_at: string | null
-          current_organization_id: string | null
-          current_team_id: string | null
-          expires_at: string | null
-          id: string
-          is_msp: boolean | null
-          session_data: Json | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          current_organization_id?: string | null
-          current_team_id?: string | null
-          expires_at?: string | null
-          id?: string
-          is_msp?: boolean | null
-          session_data?: Json | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          current_organization_id?: string | null
-          current_team_id?: string | null
-          expires_at?: string | null
-          id?: string
-          is_msp?: boolean | null
-          session_data?: Json | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_sessions_current_organization_id_fkey"
-            columns: ["current_organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_sessions_current_team_id_fkey"
-            columns: ["current_team_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_sessions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      auto_init_msp_admin_session: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
       create_document_version: {
         Args: { doc_id: string; new_title?: string; new_content?: string }
         Returns: string
@@ -1635,13 +1573,6 @@ export type Database = {
           org_memberships_count: number
         }[]
       }
-      get_app_session_variables: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          current_team: string
-          is_msp: boolean
-        }[]
-      }
       get_client_esn: {
         Args: { p_client_org_id: string }
         Returns: string
@@ -1655,14 +1586,6 @@ export type Database = {
         Returns: {
           id: string
           is_msp_admin: boolean
-        }[]
-      }
-      get_current_user_session: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          current_organization_id: string
-          current_team_id: string
-          is_msp: boolean
         }[]
       }
       get_keys_by_namespace: {
@@ -1695,16 +1618,6 @@ export type Database = {
         Args: { p_team_id: string; p_namespace: string; p_key: string }
         Returns: Json
       }
-      initialize_user_session: {
-        Args: { p_organization_id?: string; p_team_id?: string }
-        Returns: {
-          user_id: string
-          organization_id: string
-          team_id: string
-          is_msp: boolean
-          success: boolean
-        }[]
-      }
       is_msp_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -1712,10 +1625,6 @@ export type Database = {
       is_user_in_msp_organization: {
         Args: Record<PropertyKey, never>
         Returns: boolean
-      }
-      set_app_session_variables: {
-        Args: { p_team_id?: string; p_is_msp?: boolean }
-        Returns: undefined
       }
       set_setting: {
         Args: {
@@ -1725,19 +1634,6 @@ export type Database = {
           p_value: Json
         }
         Returns: string
-      }
-      set_user_session_context: {
-        Args: { p_organization_id?: string; p_team_id?: string }
-        Returns: undefined
-      }
-      test_session_variables: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          current_team_var: string
-          is_msp_var: string
-          parsed_team: string
-          parsed_is_msp: boolean
-        }[]
       }
       trigger_team_backup: {
         Args: { p_team_id: string; p_provider_id: string }
