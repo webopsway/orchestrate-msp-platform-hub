@@ -29,7 +29,7 @@ export function useOrganizations(): UseOrganizationsReturn {
     } finally {
       setLoading(false);
     }
-  }, [sessionContext?.current_team_id]);
+  }, [sessionContext?.current_team_id, sessionContext?.is_msp]);
 
   const createOrganization = useCallback(async (data: OrganizationFormData): Promise<boolean> => {
     try {

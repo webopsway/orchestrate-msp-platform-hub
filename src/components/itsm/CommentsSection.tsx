@@ -71,8 +71,9 @@ export function CommentsSection({ ticketId, ticketType, readonly = false }: Comm
   };
 
   const addComment = async () => {
-    if (!newComment.trim() || !user || !sessionContext?.current_team_id) {
-      if (!sessionContext?.current_team_id) {
+    const teamId = sessionContext?.current_team_id;
+    if (!newComment.trim() || !user || (!teamId && !sessionContext?.is_msp)) {
+      if (!teamId && !sessionContext?.is_msp) {
         toast.error('Aucune équipe sélectionnée');
       }
       return;
@@ -85,7 +86,7 @@ export function CommentsSection({ ticketId, ticketType, readonly = false }: Comm
       const insertData: any = {
         content: newComment.trim(),
         created_by: user.id,
-        team_id: sessionContext.current_team_id,
+        team_id: teamId || sessionContext?.current_organization_id || '',
       };
       insertData[columnName] = ticketId;
       

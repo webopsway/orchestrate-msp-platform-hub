@@ -84,7 +84,7 @@ interface DocumentVersion {
 }
 
 const Documentation = () => {
-  const { sessionContext } = useAuth();
+  const { sessionContext, user } = useAuth();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [versions, setVersions] = useState<DocumentVersion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -123,7 +123,7 @@ const Documentation = () => {
   }, [sessionContext]);
 
   const fetchDocuments = async () => {
-    if (!sessionContext?.current_team_id) return;
+    if (!sessionContext?.current_team_id && !sessionContext?.is_msp) return;
 
     try {
       setLoading(true);
@@ -156,17 +156,17 @@ const Documentation = () => {
   };
 
   const createDocument = async () => {
-    if (!sessionContext?.current_team_id) return;
+    if (!sessionContext?.current_team_id && !sessionContext?.is_msp) return;
 
     try {
       setLoading(true);
       
       const docData = {
-        team_id: sessionContext.current_team_id,
+        team_id: sessionContext?.current_team_id || sessionContext?.current_organization_id || '',
         title: newDocument.title,
         content: newDocument.content,
         version: "1.0",
-        created_by: sessionContext.current_team_id, // TODO: utiliser l'ID utilisateur réel
+        created_by: user?.id || '',
         metadata: {
           category: newDocument.category,
           tags: newDocument.tags,

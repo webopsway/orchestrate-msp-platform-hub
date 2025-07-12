@@ -7,7 +7,7 @@ import { Tables } from "@/integrations/supabase/types";
 export type Documentation = Tables<'documentation'>;
 
 export const useDocumentation = () => {
-  const { user } = useAuth();
+  const { user, sessionContext } = useAuth();
   const [documents, setDocuments] = useState<Documentation[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -17,10 +17,16 @@ export const useDocumentation = () => {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('documentation')
-        .select('*')
-        .order('created_at', { ascending: false });
+      
+      // MSP admin peut voir tous les documents, autres voient par team
+      let query = supabase.from('documentation').select('*');
+      const teamId = sessionContext?.current_team_id;
+      
+      if (teamId && !sessionContext?.is_msp) {
+        query = query.eq('team_id', teamId);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
       setDocuments(data || []);
@@ -46,9 +52,8 @@ export const useDocumentation = () => {
       let targetTeamId = document.team_id;
       
       if (!targetTeamId) {
-        // If no team_id provided, get current team from session
-        const { data: sessionData } = await supabase.rpc('get_current_user_session');
-        targetTeamId = sessionData?.[0]?.current_team_id;
+        // Utiliser l'équipe courante ou l'organisation par défaut pour MSP admin
+        targetTeamId = sessionContext?.current_team_id || sessionContext?.current_organization_id;
       }
 
       if (!targetTeamId) {
@@ -191,8 +196,7 @@ export const useDocumentation = () => {
     try {
       setLoading(true);
 
-      const { data: sessionData } = await supabase.rpc('get_current_user_session');
-      const currentTeamId = sessionData?.[0]?.current_team_id;
+      const currentTeamId = sessionContext?.current_team_id;
 
       const { data, error } = await supabase.functions.invoke('generate-document', {
         body: {

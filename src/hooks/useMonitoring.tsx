@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Tables } from '@/integrations/supabase/types';
 
 type MonitoringAlert = Tables<'monitoring_alerts'>;
@@ -13,6 +14,7 @@ interface MonitoringStats {
 }
 
 export const useMonitoring = () => {
+  const { sessionContext } = useAuth();
   const [alerts, setAlerts] = useState<MonitoringAlert[]>([]);
   const [uptimeChecks, setUptimeChecks] = useState<UptimeCheck[]>([]);
   const [stats, setStats] = useState<MonitoringStats>({
@@ -29,18 +31,27 @@ export const useMonitoring = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch alerts
-      const { data: alertsData, error: alertsError } = await supabase
-        .from('monitoring_alerts')
-        .select('*')
+      // Fetch alerts - MSP admin voit tout, autres voient par team
+      let alertsQuery = supabase.from('monitoring_alerts').select('*');
+      const teamId = sessionContext?.current_team_id;
+      
+      if (teamId && !sessionContext?.is_msp) {
+        alertsQuery = alertsQuery.eq('team_id', teamId);
+      }
+      
+      const { data: alertsData, error: alertsError } = await alertsQuery
         .order('created_at', { ascending: false });
 
       if (alertsError) throw alertsError;
 
-      // Fetch uptime checks
-      const { data: uptimeData, error: uptimeError } = await supabase
-        .from('uptime_checks')
-        .select('*')
+      // Fetch uptime checks - MSP admin voit tout, autres voient par team
+      let uptimeQuery = supabase.from('uptime_checks').select('*');
+      
+      if (teamId && !sessionContext?.is_msp) {
+        uptimeQuery = uptimeQuery.eq('team_id', teamId);
+      }
+      
+      const { data: uptimeData, error: uptimeError } = await uptimeQuery
         .order('checked_at', { ascending: false });
 
       if (uptimeError) throw uptimeError;
@@ -78,11 +89,9 @@ export const useMonitoring = () => {
     expected_status_codes?: number[];
   }) => {
     try {
-      // Get current user's session to get team_id
-      const { data: sessionData } = await supabase.rpc('get_current_user_session');
-      const teamId = sessionData?.[0]?.current_team_id;
+      const teamId = sessionContext?.current_team_id;
       
-      if (!teamId) {
+      if (!teamId && !sessionContext?.is_msp) {
         throw new Error('No team context available');
       }
 
@@ -90,7 +99,7 @@ export const useMonitoring = () => {
         .from('uptime_checks')
         .insert([{
           ...data,
-          team_id: teamId,
+          team_id: teamId || sessionContext?.current_organization_id || '',
           method: data.method || 'GET',
           check_interval: data.check_interval || 300,
           timeout_seconds: data.timeout_seconds || 30,

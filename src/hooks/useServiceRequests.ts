@@ -40,14 +40,20 @@ export const useServiceRequests = () => {
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('itsm_service_requests')
-        .select(`
-          *,
-          requested_by_profile:requested_by(email, first_name, last_name),
-          assigned_to_profile:assigned_to(email, first_name, last_name)
-        `)
-        .order('created_at', { ascending: false });
+      
+      // MSP admin peut voir toutes les demandes, autres voient par team
+      let query = supabase.from('itsm_service_requests').select(`
+        *,
+        requested_by_profile:requested_by(email, first_name, last_name),
+        assigned_to_profile:assigned_to(email, first_name, last_name)
+      `);
+      
+      const teamId = sessionContext?.current_team_id;
+      if (teamId && !sessionContext?.is_msp) {
+        query = query.eq('team_id', teamId);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
       setRequests(data as any || []);
@@ -62,7 +68,8 @@ export const useServiceRequests = () => {
 
   const createRequest = async (requestData: Partial<ServiceRequest>) => {
     try {
-      if (!sessionContext?.current_team_id || !user) {
+      const teamId = sessionContext?.current_team_id;
+      if ((!teamId && !sessionContext?.is_msp) || !user) {
         throw new Error('Session non valide');
       }
 
@@ -77,7 +84,7 @@ export const useServiceRequests = () => {
           service_category: requestData.service_category || 'general',
           due_date: requestData.due_date,
           requested_by: user.id,
-          team_id: sessionContext.current_team_id
+          team_id: teamId || sessionContext?.current_organization_id || ''
         })
         .select()
         .single();
@@ -180,10 +187,10 @@ export const useServiceRequests = () => {
   };
 
   useEffect(() => {
-    if (sessionContext?.current_team_id) {
+    if (sessionContext?.current_team_id || sessionContext?.is_msp) {
       fetchRequests();
     }
-  }, [sessionContext?.current_team_id]);
+  }, [sessionContext?.current_team_id, sessionContext?.is_msp]);
 
   return {
     requests,

@@ -89,7 +89,7 @@ interface CloudProvider {
 }
 
 const CloudAccounts = () => {
-  const { sessionContext } = useAuth();
+  const { sessionContext, user } = useAuth();
   const [accounts, setAccounts] = useState<CloudAccount[]>([]);
   const [providers, setProviders] = useState<CloudProvider[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,7 +115,7 @@ const CloudAccounts = () => {
   }, [sessionContext]);
 
   const fetchCloudData = async () => {
-    if (!sessionContext?.current_team_id) return;
+    if (!sessionContext?.current_team_id && !sessionContext?.is_msp) return;
 
     try {
       setLoading(true);
@@ -159,16 +159,16 @@ const CloudAccounts = () => {
   };
 
   const createAccount = async () => {
-    if (!sessionContext?.current_team_id) return;
+    if (!sessionContext?.current_team_id && !sessionContext?.is_msp) return;
 
     try {
       setLoading(true);
       
       const accountData = {
-        team_id: sessionContext.current_team_id,
+        team_id: sessionContext?.current_team_id || sessionContext?.current_organization_id || '',
         provider_id: newAccount.provider_id,
         config: newAccount.config,
-        configured_by: sessionContext.current_team_id // TODO: utiliser l'ID utilisateur réel
+        configured_by: user?.id || ''
       };
       
       const { data, error } = await supabase

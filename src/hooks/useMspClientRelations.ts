@@ -51,13 +51,14 @@ export interface CreateMspClientRelationData {
 }
 
 export const useMspClientRelations = () => {
-  const { sessionContext } = useAuth();
+  const { sessionContext, user } = useAuth();
   const [relations, setRelations] = useState<MspClientRelation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchRelations = async () => {
-    if (!sessionContext?.current_team_id) {
+    // MSP admin peut voir toutes les relations, sinon on n'affiche rien
+    if (!sessionContext?.is_msp) {
       setRelations([]);
       return;
     }
@@ -90,8 +91,8 @@ export const useMspClientRelations = () => {
   };
 
   const createRelation = async (data: CreateMspClientRelationData): Promise<boolean> => {
-    if (!sessionContext?.current_team_id) {
-      toast.error('Aucune équipe sélectionnée');
+    if (!sessionContext?.is_msp) {
+      toast.error('Seuls les admins MSP peuvent créer des relations');
       return false;
     }
 
@@ -99,12 +100,11 @@ export const useMspClientRelations = () => {
     setError(null);
 
     try {
-      const { data: userData } = await supabase.auth.getUser();
       const { error: createError } = await supabase
         .from('msp_client_relations')
         .insert({
           ...data,
-          created_by: userData.user?.id || ''
+          created_by: user?.id || ''
         });
 
       if (createError) throw createError;
@@ -223,10 +223,10 @@ export const useMspClientRelations = () => {
   };
 
   useEffect(() => {
-    if (sessionContext?.current_team_id) {
+    if (sessionContext?.is_msp) {
       fetchRelations();
     }
-  }, [sessionContext?.current_team_id]);
+  }, [sessionContext?.is_msp]);
 
   return {
     relations,

@@ -29,24 +29,28 @@ interface NotificationHistory {
 }
 
 export const useNotifications = () => {
-  const { sessionContext } = useAuth();
+  const { sessionContext, user } = useAuth();
   const [transports, setTransports] = useState<NotificationTransport[]>([]);
   const [notifications, setNotifications] = useState<NotificationHistory[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchTransports = useCallback(async () => {
-    if (!sessionContext?.current_team_id) {
+    const teamId = sessionContext?.current_team_id;
+    if (!teamId && !sessionContext?.is_msp) {
       setTransports([]);
       return;
     }
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('notification_transports')
-        .select('*')
-        .eq('team_id', sessionContext.current_team_id)
-        .order('created_at', { ascending: false });
+      let query = supabase.from('notification_transports').select('*');
+      
+      // MSP admin peut voir tous les transports, sinon filtrer par team
+      if (teamId && !sessionContext?.is_msp) {
+        query = query.eq('team_id', teamId);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
       setTransports(data || []);
@@ -56,19 +60,24 @@ export const useNotifications = () => {
     } finally {
       setLoading(false);
     }
-  }, [sessionContext?.current_team_id]);
+  }, [sessionContext?.current_team_id, sessionContext?.is_msp]);
 
   const fetchNotifications = useCallback(async () => {
-    if (!sessionContext?.current_team_id) {
+    const teamId = sessionContext?.current_team_id;
+    if (!teamId && !sessionContext?.is_msp) {
       setNotifications([]);
       return;
     }
 
     try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('team_id', sessionContext.current_team_id)
+      let query = supabase.from('notifications').select('*');
+      
+      // MSP admin peut voir toutes les notifications, sinon filtrer par team
+      if (teamId && !sessionContext?.is_msp) {
+        query = query.eq('team_id', teamId);
+      }
+      
+      const { data, error } = await query
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -78,7 +87,7 @@ export const useNotifications = () => {
       console.error('Error fetching notifications:', error);
       toast.error('Erreur lors du chargement de l\'historique');
     }
-  }, [sessionContext?.current_team_id]);
+  }, [sessionContext?.current_team_id, sessionContext?.is_msp]);
 
   const createTransport = useCallback(async (transportData: {
     channel: string;
@@ -86,7 +95,8 @@ export const useNotifications = () => {
     config: any;
     is_active: boolean;
   }) => {
-    if (!sessionContext?.current_team_id) {
+    const teamId = sessionContext?.current_team_id;
+    if (!teamId && !sessionContext?.is_msp) {
       toast.error('Aucune équipe sélectionnée');
       throw new Error('No team ID available');
     }
@@ -96,11 +106,11 @@ export const useNotifications = () => {
       const { data, error } = await supabase
         .from('notification_transports')
         .insert([{
-          team_id: sessionContext.current_team_id,
+          team_id: teamId || sessionContext?.current_organization_id || '', 
           channel: transportData.channel,
           scope: transportData.scope,
           config: transportData.config,
-          configured_by: sessionContext.current_team_id, // TODO: Use actual user ID
+          configured_by: user?.id || '',
           is_active: transportData.is_active
         }])
         .select()
@@ -118,7 +128,7 @@ export const useNotifications = () => {
     } finally {
       setLoading(false);
     }
-  }, [sessionContext?.current_team_id, fetchTransports]);
+  }, [sessionContext?.current_team_id, sessionContext?.is_msp, sessionContext?.current_organization_id, user?.id, fetchTransports]);
 
   const updateTransport = useCallback(async (transportId: string, updates: {
     channel?: string;
