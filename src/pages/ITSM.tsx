@@ -43,7 +43,10 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Info
+  Info,
+  Eye,
+  Edit,
+  Trash2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -465,41 +468,22 @@ const ITSM = () => {
                             size="sm"
                             title="Voir les détails"
                           >
-                            <Info className="h-4 w-4" />
+                            <Eye className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             title="Modifier"
                           >
-                            <FileText className="h-4 w-4" />
+                            <Edit className="h-4 w-4" />
                           </Button>
-                          <Select
-                            value={item.status}
-                            onValueChange={(value) => updateItemStatus(item.id, value, item.type)}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Supprimer"
                           >
-                            <SelectTrigger className="w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {(item.type as string) === 'incident' ? (
-                                <>
-                                  <SelectItem value="open">Ouvert</SelectItem>
-                                  <SelectItem value="in_progress">En cours</SelectItem>
-                                  <SelectItem value="resolved">Résolu</SelectItem>
-                                  <SelectItem value="closed">Fermé</SelectItem>
-                                </>
-                              ) : (
-                                <>
-                                  <SelectItem value="draft">Brouillon</SelectItem>
-                                  <SelectItem value="pending_approval">En attente</SelectItem>
-                                  <SelectItem value="approved">Approuvé</SelectItem>
-                                  <SelectItem value="implemented">Implémenté</SelectItem>
-                                  <SelectItem value="rejected">Rejeté</SelectItem>
-                                </>
-                              )}
-                            </SelectContent>
-                          </Select>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -508,6 +492,56 @@ const ITSM = () => {
               </Table>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Section Statut séparée */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Changement de statut</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {filteredItems.map((item) => (
+              <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center space-x-4">
+                  <Badge variant="outline">
+                    {(item.type as string) === 'incident' ? 'INC' : 'CHG'}-{item.id.slice(0, 8)}
+                  </Badge>
+                  <span className="font-medium">{item.title}</span>
+                  <Badge variant={getStatusColor(item.status)}>
+                    {item.status}
+                  </Badge>
+                </div>
+                <Select
+                  value={item.status}
+                  onValueChange={(value) => updateItemStatus(item.id, value, item.type)}
+                >
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(item.type as string) === 'incident' ? (
+                      <>
+                        <SelectItem value="open">Ouvert</SelectItem>
+                        <SelectItem value="in_progress">En cours</SelectItem>
+                        <SelectItem value="resolved">Résolu</SelectItem>
+                        <SelectItem value="closed">Fermé</SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="draft">Brouillon</SelectItem>
+                        <SelectItem value="pending_approval">En attente</SelectItem>
+                        <SelectItem value="approved">Approuvé</SelectItem>
+                        <SelectItem value="implemented">Implémenté</SelectItem>
+                        <SelectItem value="rejected">Rejeté</SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
