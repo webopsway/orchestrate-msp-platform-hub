@@ -15,6 +15,12 @@ export class ServiceRequestService {
         return [];
       }
       
+      console.log('🔍 Debug ServiceRequestService.fetchRequests:');
+      console.log('User:', user.id);
+      console.log('UserProfile:', userProfile);
+      console.log('Is MSP Admin:', userProfile?.is_msp_admin);
+      console.log('Default Team ID:', userProfile?.default_team_id);
+      
       // MSP admin peut voir toutes les demandes, autres voient par team
       let query = supabase.from('itsm_service_requests').select(`
         *,
@@ -24,10 +30,20 @@ export class ServiceRequestService {
       
       // Filter by team if not MSP admin
       if (!userProfile?.is_msp_admin && userProfile?.default_team_id) {
+        console.log('🔍 Filtrage par équipe:', userProfile.default_team_id);
         query = query.eq('team_id', userProfile.default_team_id);
+      } else if (userProfile?.is_msp_admin) {
+        console.log('🔍 Admin MSP - pas de filtrage par équipe');
+      } else {
+        console.log('🔍 Pas d\'équipe par défaut et pas admin MSP');
       }
       
       const { data, error } = await query.order('created_at', { ascending: false });
+
+      console.log('🔍 Résultat de la requête:');
+      console.log('Data count:', data?.length || 0);
+      console.log('Error:', error);
+      console.log('Sample data:', data?.[0]);
 
       if (error) {
         console.error('Erreur lors de la récupération des demandes:', error);
