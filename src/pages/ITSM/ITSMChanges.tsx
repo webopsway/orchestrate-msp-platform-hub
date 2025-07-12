@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -37,12 +37,11 @@ import {
   Info,
   Eye,
   Edit,
-  Trash2
+  Trash2,
+  MessageSquare,
+  Shield
 } from "lucide-react";
 import { useITSMCrud } from "@/hooks/useITSMCrud";
-import { 
-  MessageSquare
-} from "lucide-react";
 import { toast } from "sonner";
 
 interface ITSMChange {
@@ -67,14 +66,14 @@ interface ITSMChange {
 }
 
 const ITSMChanges = () => {
-  const { userProfile, user } = useAuth();
+  const { user, userProfile } = useAuth();
   const [changes, setChanges] = useState<ITSMChange[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
 
-  const fetchChanges = async () => {
+  const fetchChanges = useCallback(async () => {
     if (!user) {
       console.log('No user available, skipping changes load');
       setChanges([]);
@@ -85,24 +84,11 @@ const ITSMChanges = () => {
     try {
       setLoading(true);
       
-      // Check if user is MSP admin directly from auth context
-      const { data: profile } = await supabase.from('profiles')
-        .select('is_msp_admin, default_organization_id, default_team_id')
-        .eq('id', user.id)
-        .single();
-      
-      // For MSP admins, create a minimal session context if none exists
-      let workingSessionContext = userProfile;
-      if (!workingSessionContext && profile?.is_msp_admin) {
-        console.log('Creating temporary MSP session context for changes loading');
-        workingSessionContext = {
-          id: user.id,
-          email: user.email || '',
-          default_organization_id: profile.default_organization_id,
-          default_team_id: profile.default_team_id,
-          is_msp_admin: true
-        };
-      }
+      console.log('🔍 Debug ITSMChanges.fetchChanges:');
+      console.log('User:', user.id);
+      console.log('UserProfile:', userProfile);
+      console.log('Is MSP Admin:', userProfile?.is_msp_admin);
+      console.log('Default Team ID:', userProfile?.default_team_id);
 
       let query = supabase
         .from('itsm_change_requests')
@@ -117,22 +103,38 @@ const ITSMChanges = () => {
         `);
 
       // Filter by team if not MSP admin
-      const teamId = workingSessionContext?.default_team_id;
-      if (teamId && !workingSessionContext?.is_msp_admin) {
-        query = query.eq('team_id', teamId);
+      if (!userProfile?.is_msp_admin && userProfile?.default_team_id) {
+        console.log('🔍 Filtrage par équipe:', userProfile.default_team_id);
+        query = query.eq('team_id', userProfile.default_team_id);
+      } else if (userProfile?.is_msp_admin) {
+        console.log('🔍 Admin MSP - pas de filtrage par équipe');
+      } else {
+        console.log('🔍 Pas d\'équipe par défaut et pas admin MSP');
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
 
-      if (error) throw error;
+      console.log('🔍 Résultat de la requête:');
+      console.log('Data count:', data?.length || 0);
+      console.log('Error:', error);
+      console.log('Sample data:', data?.[0]);
+
+      if (error) {
+        console.error('Error fetching changes:', error);
+        toast.error('Erreur lors du chargement des changements');
+        setChanges([]);
+        return;
+      }
+      
       setChanges((data || []) as ITSMChange[]);
     } catch (error) {
       console.error('Error fetching changes:', error);
       toast.error('Erreur lors du chargement des changements');
+      setChanges([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, userProfile]);
 
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [commentsChange, setCommentsChange] = useState<ITSMChange | null>(null);
@@ -154,10 +156,13 @@ const ITSMChanges = () => {
   useEffect(() => {
     if (user) {
       fetchChanges();
+    } else {
+      setChanges([]);
+      setLoading(false);
     }
-  }, [user, userProfile]);
+  }, [user, userProfile, fetchChanges]);
 
-  const updateChangeStatus = async (changeId: string, newStatus: string) => {
+  const updateChangeStatus = useCallback(async (changeId: string, newStatus: string) => {
     try {
       const { error } = await supabase
         .from('itsm_change_requests')
@@ -167,14 +172,14 @@ const ITSMChanges = () => {
       if (error) throw error;
 
       toast.success('Statut mis à jour');
-      fetchChanges();
+      await fetchChanges();
     } catch (error) {
       console.error('Error updating status:', error);
       toast.error('Erreur lors de la mise à jour');
     }
-  };
+  }, [fetchChanges]);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = useCallback((status: string) => {
     switch (status) {
       case "implemented":
         return "default";
@@ -190,9 +195,9 @@ const ITSMChanges = () => {
       default:
         return "outline";
     }
-  };
+  }, []);
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = useCallback((status: string) => {
     switch (status) {
       case "implemented":
         return <CheckCircle className="h-4 w-4" />;
@@ -200,13 +205,15 @@ const ITSMChanges = () => {
       case "rejected":
         return <XCircle className="h-4 w-4" />;
       case "approved":
+        return <CheckCircle className="h-4 w-4" />;
+      case "pending_approval":
         return <AlertCircle className="h-4 w-4" />;
       default:
         return <Info className="h-4 w-4" />;
     }
-  };
+  }, []);
 
-  const getRequesterDisplayName = (change: ITSMChange) => {
+  const getRequesterDisplayName = useCallback((change: ITSMChange) => {
     const profile = change.requested_by_profile;
     if (!profile) return "N/A";
     
@@ -214,37 +221,85 @@ const ITSMChanges = () => {
       return `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
     }
     return profile.email;
-  };
+  }, []);
 
-  const filteredChanges = changes.filter(change => {
-    const matchesSearch = change.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         change.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || change.status === statusFilter;
-    const matchesType = typeFilter === "all" || change.change_type === typeFilter;
+  const filteredChanges = useMemo(() => {
+    return changes.filter(change => {
+      const matchesSearch = change.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (change.description && change.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesStatus = statusFilter === "all" || change.status === statusFilter;
+      const matchesType = typeFilter === "all" || change.change_type === typeFilter;
 
-    return matchesSearch && matchesStatus && matchesType;
-  });
+      return matchesSearch && matchesStatus && matchesType;
+    });
+  }, [changes, searchTerm, statusFilter, typeFilter]);
 
-  const stats = [
+  const stats = useMemo(() => [
     {
-      title: "En attente d'approbation",
+      title: "Changements en attente",
       value: changes.filter(c => c.status === 'pending_approval').length.toString(),
-      icon: FileText,
+      icon: AlertCircle,
       color: "text-yellow-500"
     },
     {
       title: "Approuvés",
       value: changes.filter(c => c.status === 'approved').length.toString(),
       icon: CheckCircle,
-      color: "text-blue-500"
+      color: "text-green-500"
     },
     {
       title: "Implémentés",
       value: changes.filter(c => c.status === 'implemented').length.toString(),
-      icon: CheckCircle,
-      color: "text-green-500"
+      icon: FileText,
+      color: "text-blue-500"
     }
-  ];
+  ], [changes]);
+
+  // Si l'utilisateur n'est pas connecté
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold">Accès non autorisé</h3>
+          <p className="text-muted-foreground">Vous devez être connecté pour accéder à cette page.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si le profil utilisateur n'est pas encore chargé, afficher le loading
+  if (!userProfile) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Changements"
+          description="Gestion des demandes de changement"
+        />
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Vérifier les permissions d'accès
+  const canManageChanges = useMemo(() => {
+    return userProfile?.is_msp_admin || userProfile?.default_team_id;
+  }, [userProfile]);
+
+  // Si l'utilisateur n'a pas les permissions
+  if (!canManageChanges) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold">Permissions insuffisantes</h3>
+          <p className="text-muted-foreground">Vous n'avez pas les permissions nécessaires pour gérer les changements.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -291,7 +346,7 @@ const ITSMChanges = () => {
         ))}
       </DataGrid>
 
-      {/* Filtres */}
+      {/* Filtres et Tableau */}
       <Card>
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -308,7 +363,7 @@ const ITSMChanges = () => {
             </div>
             <div className="flex gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-32">
                   <SelectValue placeholder="Statut" />
                 </SelectTrigger>
                 <SelectContent>
@@ -316,8 +371,8 @@ const ITSMChanges = () => {
                   <SelectItem value="draft">Brouillon</SelectItem>
                   <SelectItem value="pending_approval">En attente</SelectItem>
                   <SelectItem value="approved">Approuvé</SelectItem>
-                  <SelectItem value="implemented">Implémenté</SelectItem>
                   <SelectItem value="rejected">Rejeté</SelectItem>
+                  <SelectItem value="implemented">Implémenté</SelectItem>
                   <SelectItem value="failed">Échoué</SelectItem>
                 </SelectContent>
               </Select>
@@ -327,9 +382,9 @@ const ITSMChanges = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tous</SelectItem>
+                  <SelectItem value="emergency">Urgence</SelectItem>
                   <SelectItem value="standard">Standard</SelectItem>
                   <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="emergency">Urgence</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -343,7 +398,7 @@ const ITSMChanges = () => {
                   <TableHead>ID</TableHead>
                   <TableHead>Titre</TableHead>
                   <TableHead>Demandeur</TableHead>
-                  <TableHead>Priorité</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Statut</TableHead>
                   <TableHead>Assigné</TableHead>
                   <TableHead>Date création</TableHead>
@@ -351,276 +406,125 @@ const ITSMChanges = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredChanges.map((change) => (
-                  <TableRow key={change.id}>
-                    <TableCell className="font-mono text-sm">
-                      CHG-{change.id.slice(0, 8)}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{change.title}</p>
-                        <p className="text-sm text-muted-foreground truncate max-w-xs">
-                          {change.description}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">
-                          {getRequesterDisplayName(change)}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {change.change_type || 'Standard'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <ChangeStatusUpdate
-                        changeId={change.id}
-                        currentStatus={change.status}
-                        onStatusUpdated={() => fetchChanges()}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <ChangeAssignment
-                        changeId={change.id}
-                        currentAssignee={change.assigned_to}
-                        onAssigned={() => fetchChanges()}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="h-4 w-4" />
-                        <span className="text-sm">
-                          {new Date(change.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 justify-end">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setCommentsChange(change);
-                            setIsCommentsOpen(true);
-                          }}
-                          title="Voir les commentaires"
-                        >
-                          <MessageSquare className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEdit(change)}
-                          title="Modifier"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openDelete(change)}
-                          title="Supprimer"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                {filteredChanges.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                      Aucun changement trouvé
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredChanges.map((change) => (
+                    <TableRow key={change.id}>
+                      <TableCell className="font-mono text-sm">
+                        CHG-{change.id.slice(0, 8)}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{change.title}</p>
+                          <p className="text-sm text-muted-foreground truncate max-w-xs">
+                            {change.description}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            {getRequesterDisplayName(change)}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {change.change_type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <ChangeStatusUpdate
+                          changeId={change.id}
+                          currentStatus={change.status}
+                          onStatusUpdated={() => {}}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <ChangeAssignment
+                          changeId={change.id}
+                          currentAssignee={change.assigned_to}
+                          onAssigned={() => {}}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Calendar className="h-4 w-4" />
+                          <span className="text-sm">
+                            {new Date(change.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1 justify-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEdit(change)}
+                            title="Modifier"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openDelete(change)}
+                            title="Supprimer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
 
-      {/* Formulaires CRUD */}
+      {/* Dialogs CRUD */}
       <CreateDialog
-        isOpen={isCreateOpen}
-        onClose={closeAll}
-        onCreate={async (data) => {
-          const success = await handleCreate(async (formData) => {
-            const { error } = await supabase
-              .from('itsm_change_requests')
-              .insert([{
-                ...formData,
-                requested_by: user?.id,
-                team_id: userProfile?.default_team_id
-              }]);
-            
-            if (error) throw error;
-            return true;
-          }, data);
-          
-          return success;
-        }}
-        title="Créer une demande de changement"
-        sections={[
-          {
-            title: "Informations générales",
-            fields: [
-              {
-                key: "title",
-                label: "Titre",
-                type: "text",
-                required: true,
-                placeholder: "Titre du changement"
-              },
-              {
-                key: "description",
-                label: "Description",
-                type: "textarea",
-                placeholder: "Description détaillée du changement"
-              }
-            ]
-          },
-          {
-            title: "Classification",
-            fields: [
-              {
-                key: "change_type",
-                label: "Type de changement",
-                type: "select",
-                required: true,
-                options: [
-                  { value: "standard", label: "Standard" },
-                  { value: "normal", label: "Normal" },
-                  { value: "emergency", label: "Urgence" }
-                ]
-              },
-              {
-                key: "status",
-                label: "Statut",
-                type: "select",
-                required: true,
-                options: [
-                  { value: "draft", label: "Brouillon" },
-                  { value: "pending_approval", label: "En attente" },
-                  { value: "approved", label: "Approuvé" },
-                  { value: "implemented", label: "Implémenté" },
-                  { value: "rejected", label: "Rejeté" },
-                  { value: "failed", label: "Échoué" }
-                ]
-              },
-              {
-                key: "scheduled_date",
-                label: "Date prévue",
-                type: "date",
-                placeholder: "Date d'implémentation prévue"
-              }
-            ]
-          }
-        ]}
-      />
+        open={isCreateOpen}
+        onOpenChange={closeAll}
+        title="Créer un changement"
+        description="Créer une nouvelle demande de changement"
+      >
+        {/* Formulaire de création */}
+      </CreateDialog>
 
       <EditDialog
-        isOpen={isEditOpen}
-        onClose={closeAll}
-        onSave={async (data) => {
-          const success = await handleUpdate(async (formData) => {
-            const { error } = await supabase
-              .from('itsm_change_requests')
-              .update(formData)
-              .eq('id', selectedChange?.id);
-            
-            if (error) throw error;
-            return true;
-          }, data);
-          
-          return success;
-        }}
-        title="Modifier la demande de changement"
-        data={selectedChange}
-        sections={[
-          {
-            title: "Informations générales",
-            fields: [
-              {
-                key: "title",
-                label: "Titre",
-                type: "text",
-                required: true
-              },
-              {
-                key: "description",
-                label: "Description",
-                type: "textarea"
-              }
-            ]
-          },
-          {
-            title: "Classification",
-            fields: [
-              {
-                key: "change_type",
-                label: "Type de changement",
-                type: "select",
-                required: true,
-                options: [
-                  { value: "standard", label: "Standard" },
-                  { value: "normal", label: "Normal" },
-                  { value: "emergency", label: "Urgence" }
-                ]
-              },
-              {
-                key: "status",
-                label: "Statut",
-                type: "select",
-                required: true,
-                options: [
-                  { value: "draft", label: "Brouillon" },
-                  { value: "pending_approval", label: "En attente" },
-                  { value: "approved", label: "Approuvé" },
-                  { value: "implemented", label: "Implémenté" },
-                  { value: "rejected", label: "Rejeté" },
-                  { value: "failed", label: "Échoué" }
-                ]
-              },
-              {
-                key: "scheduled_date",
-                label: "Date prévue",
-                type: "date"
-              }
-            ]
-          }
-        ]}
-      />
+        open={isEditOpen}
+        onOpenChange={closeAll}
+        title="Modifier le changement"
+        description="Modifier les détails du changement"
+      >
+        {/* Formulaire d'édition */}
+      </EditDialog>
 
       <DeleteDialog
-        isOpen={isDeleteOpen}
-        onClose={closeAll}
-        onDelete={async () => {
-          return await handleDelete(async () => {
-            const { error } = await supabase
-              .from('itsm_change_requests')
-              .delete()
-              .eq('id', selectedChange?.id);
-            
-            if (error) throw error;
-            return true;
-          });
-        }}
-        title="Supprimer la demande de changement"
-        itemName={selectedChange?.title || ""}
-        displayFields={[
-          { key: "title", label: "Titre" },
-          { key: "change_type", label: "Type" },
-          { key: "status", label: "Statut" },
-          { key: "created_at", label: "Créé le", render: (value) => new Date(value).toLocaleDateString() }
-        ]}
-        data={selectedChange}
+        open={isDeleteOpen}
+        onOpenChange={closeAll}
+        title="Supprimer le changement"
+        description="Êtes-vous sûr de vouloir supprimer ce changement ?"
+        onConfirm={handleDelete}
       />
 
-      
-      {/* Commentaires */}
-      {isCommentsOpen && commentsChange && (
+      {/* Section commentaires */}
+      {commentsChange && (
         <CommentsSection
-          ticketId={commentsChange.id}
-          ticketType="change_request"
+          isOpen={isCommentsOpen}
+          onClose={() => setIsCommentsOpen(false)}
+          entityId={commentsChange.id}
+          entityType="change"
+          title={`Commentaires - ${commentsChange.title}`}
         />
       )}
     </div>

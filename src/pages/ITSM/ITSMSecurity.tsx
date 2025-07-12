@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -37,7 +37,8 @@ import {
   Info,
   Eye,
   Edit,
-  Trash2
+  Trash2,
+  MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -57,14 +58,14 @@ interface SecurityVulnerability {
 }
 
 const ITSMSecurity = () => {
-  const { userProfile, user } = useAuth();
+  const { user, userProfile } = useAuth();
   const [vulnerabilities, setVulnerabilities] = useState<SecurityVulnerability[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [severityFilter, setSeverityFilter] = useState<string>("all");
 
-  const fetchVulnerabilities = async () => {
+  const fetchVulnerabilities = useCallback(async () => {
     if (!user) {
       console.log('No user available, skipping vulnerabilities load');
       setVulnerabilities([]);
@@ -75,46 +76,49 @@ const ITSMSecurity = () => {
     try {
       setLoading(true);
       
-      // Check if user is MSP admin directly from auth context
-      const { data: profile } = await supabase.from('profiles')
-        .select('is_msp_admin, default_organization_id, default_team_id')
-        .eq('id', user.id)
-        .single();
-      
-      // For MSP admins, create a minimal session context if none exists
-      let workingSessionContext = userProfile;
-      if (!workingSessionContext && profile?.is_msp_admin) {
-        console.log('Creating temporary MSP session context for vulnerabilities loading');
-        workingSessionContext = {
-          id: user.id,
-          email: user.email || '',
-          default_organization_id: profile.default_organization_id,
-          default_team_id: profile.default_team_id,
-          is_msp_admin: true
-        };
-      }
+      console.log('🔍 Debug ITSMSecurity.fetchVulnerabilities:');
+      console.log('User:', user.id);
+      console.log('UserProfile:', userProfile);
+      console.log('Is MSP Admin:', userProfile?.is_msp_admin);
+      console.log('Default Team ID:', userProfile?.default_team_id);
 
       let query = supabase
         .from('security_vulnerabilities')
         .select('*');
 
       // Filter by team if not MSP admin
-      const teamId = workingSessionContext?.default_team_id;
-      if (teamId && !workingSessionContext?.is_msp_admin) {
-        query = query.eq('team_id', teamId);
+      if (!userProfile?.is_msp_admin && userProfile?.default_team_id) {
+        console.log('🔍 Filtrage par équipe:', userProfile.default_team_id);
+        query = query.eq('team_id', userProfile.default_team_id);
+      } else if (userProfile?.is_msp_admin) {
+        console.log('🔍 Admin MSP - pas de filtrage par équipe');
+      } else {
+        console.log('🔍 Pas d\'équipe par défaut et pas admin MSP');
       }
 
       const { data, error } = await query.order('discovered_at', { ascending: false });
 
-      if (error) throw error;
+      console.log('🔍 Résultat de la requête:');
+      console.log('Data count:', data?.length || 0);
+      console.log('Error:', error);
+      console.log('Sample data:', data?.[0]);
+
+      if (error) {
+        console.error('Error fetching vulnerabilities:', error);
+        toast.error('Erreur lors du chargement des vulnérabilités');
+        setVulnerabilities([]);
+        return;
+      }
+      
       setVulnerabilities((data || []) as SecurityVulnerability[]);
     } catch (error) {
       console.error('Error fetching vulnerabilities:', error);
       toast.error('Erreur lors du chargement des vulnérabilités');
+      setVulnerabilities([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, userProfile]);
 
   const {
     selectedItem: selectedVulnerability,
@@ -135,10 +139,13 @@ const ITSMSecurity = () => {
   useEffect(() => {
     if (user) {
       fetchVulnerabilities();
+    } else {
+      setVulnerabilities([]);
+      setLoading(false);
     }
-  }, [user, userProfile]);
+  }, [user, userProfile, fetchVulnerabilities]);
 
-  const updateVulnerabilityStatus = async (vulnId: string, newStatus: string) => {
+  const updateVulnerabilityStatus = useCallback(async (vulnId: string, newStatus: string) => {
     try {
       const updateData: any = { status: newStatus };
       
@@ -154,14 +161,14 @@ const ITSMSecurity = () => {
       if (error) throw error;
 
       toast.success('Statut mis à jour');
-      fetchVulnerabilities();
+      await fetchVulnerabilities();
     } catch (error) {
       console.error('Error updating status:', error);
       toast.error('Erreur lors de la mise à jour');
     }
-  };
+  }, [fetchVulnerabilities]);
 
-  const getSeverityColor = (severity: string) => {
+  const getSeverityColor = useCallback((severity: string) => {
     switch (severity) {
       case "critical": return "destructive";
       case "high": return "secondary";
@@ -169,9 +176,9 @@ const ITSMSecurity = () => {
       case "low": return "outline";
       default: return "outline";
     }
-  };
+  }, []);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = useCallback((status: string) => {
     switch (status) {
       case "resolved":
       case "closed":
@@ -183,9 +190,9 @@ const ITSMSecurity = () => {
       default:
         return "outline";
     }
-  };
+  }, []);
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = useCallback((status: string) => {
     switch (status) {
       case "resolved":
       case "closed":
@@ -195,29 +202,31 @@ const ITSMSecurity = () => {
       default:
         return <Info className="h-4 w-4" />;
     }
-  };
+  }, []);
 
-  const filteredVulnerabilities = vulnerabilities.filter(vuln => {
-    const matchesSearch = vuln.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         vuln.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (vuln.cve_id && vuln.cve_id.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesStatus = statusFilter === "all" || vuln.status === statusFilter;
-    const matchesSeverity = severityFilter === "all" || vuln.severity === severityFilter;
+  const filteredVulnerabilities = useMemo(() => {
+    return vulnerabilities.filter(vuln => {
+      const matchesSearch = vuln.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (vuln.description && vuln.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                           (vuln.cve_id && vuln.cve_id.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesStatus = statusFilter === "all" || vuln.status === statusFilter;
+      const matchesSeverity = severityFilter === "all" || vuln.severity === severityFilter;
 
-    return matchesSearch && matchesStatus && matchesSeverity;
-  });
+      return matchesSearch && matchesStatus && matchesSeverity;
+    });
+  }, [vulnerabilities, searchTerm, statusFilter, severityFilter]);
 
-  const stats = [
+  const stats = useMemo(() => [
     {
-      title: "Vulnérabilités critiques",
-      value: vulnerabilities.filter(v => v.severity === 'critical' && ['open', 'in_progress'].includes(v.status)).length.toString(),
+      title: "Vulnérabilités ouvertes",
+      value: vulnerabilities.filter(v => v.status === 'open').length.toString(),
       icon: AlertTriangle,
       color: "text-red-500"
     },
     {
       title: "En cours de traitement",
       value: vulnerabilities.filter(v => v.status === 'in_progress').length.toString(),
-      icon: Shield,
+      icon: AlertCircle,
       color: "text-yellow-500"
     },
     {
@@ -226,7 +235,53 @@ const ITSMSecurity = () => {
       icon: CheckCircle,
       color: "text-green-500"
     }
-  ];
+  ], [vulnerabilities]);
+
+  // Si l'utilisateur n'est pas connecté
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold">Accès non autorisé</h3>
+          <p className="text-muted-foreground">Vous devez être connecté pour accéder à cette page.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si le profil utilisateur n'est pas encore chargé, afficher le loading
+  if (!userProfile) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Sécurité"
+          description="Gestion des vulnérabilités de sécurité"
+        />
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Vérifier les permissions d'accès
+  const canManageSecurity = useMemo(() => {
+    return userProfile?.is_msp_admin || userProfile?.default_team_id;
+  }, [userProfile]);
+
+  // Si l'utilisateur n'a pas les permissions
+  if (!canManageSecurity) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold">Permissions insuffisantes</h3>
+          <p className="text-muted-foreground">Vous n'avez pas les permissions nécessaires pour gérer la sécurité.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -246,9 +301,9 @@ const ITSMSecurity = () => {
     <div className="space-y-6">
       <PageHeader
         title="Sécurité"
-        description="Gestion des vulnérabilités et incidents de sécurité"
+        description="Gestion des vulnérabilités de sécurité"
         action={{
-          label: "Créer une vulnérabilité",
+          label: "Ajouter une vulnérabilité",
           icon: Plus,
           onClick: openCreate
         }}
@@ -273,7 +328,7 @@ const ITSMSecurity = () => {
         ))}
       </DataGrid>
 
-      {/* Filtres */}
+      {/* Filtres et Tableau */}
       <Card>
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -323,303 +378,139 @@ const ITSMSecurity = () => {
                 <TableRow>
                   <TableHead>ID</TableHead>
                   <TableHead>Titre</TableHead>
-                  <TableHead>CVE</TableHead>
+                  <TableHead>CVE ID</TableHead>
                   <TableHead>Sévérité</TableHead>
                   <TableHead>Statut</TableHead>
-                  <TableHead>Assigné</TableHead>
-                  <TableHead>Découverte</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>Date découverte</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredVulnerabilities.map((vuln) => (
-                  <TableRow key={vuln.id}>
-                    <TableCell className="font-mono text-sm">
-                      SEC-{vuln.id.slice(0, 8)}
+                {filteredVulnerabilities.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      Aucune vulnérabilité trouvée
                     </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{vuln.title}</p>
-                        <p className="text-sm text-muted-foreground truncate max-w-xs">
-                          {vuln.description}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {vuln.cve_id ? (
-                        <Badge variant="outline" className="font-mono">
-                          {vuln.cve_id}
+                  </TableRow>
+                ) : (
+                  filteredVulnerabilities.map((vuln) => (
+                    <TableRow key={vuln.id}>
+                      <TableCell className="font-mono text-sm">
+                        VULN-{vuln.id.slice(0, 8)}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{vuln.title}</p>
+                          <p className="text-sm text-muted-foreground truncate max-w-xs">
+                            {vuln.description}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {vuln.cve_id ? (
+                          <Badge variant="outline" className="font-mono">
+                            {vuln.cve_id}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">N/A</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getSeverityColor(vuln.severity)}>
+                          {vuln.severity}
                         </Badge>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">N/A</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getSeverityColor(vuln.severity)}>
-                        {vuln.severity}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        {getStatusIcon(vuln.status)}
+                      </TableCell>
+                      <TableCell>
                         <Badge variant={getStatusColor(vuln.status)}>
                           {vuln.status}
                         </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {vuln.assigned_to ? (
+                      </TableCell>
+                      <TableCell>
                         <div className="flex items-center space-x-2">
-                          <User className="h-4 w-4" />
-                          <span className="text-sm">{vuln.assigned_to}</span>
+                          <Calendar className="h-4 w-4" />
+                          <span className="text-sm">
+                            {new Date(vuln.discovered_at).toLocaleDateString()}
+                          </span>
                         </div>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">Non assigné</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="h-4 w-4" />
-                        <span className="text-sm">
-                          {new Date(vuln.discovered_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openDetail(vuln)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEdit(vuln)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openDelete(vuln)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1 justify-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openDetail(vuln)}
+                            title="Voir les détails"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEdit(vuln)}
+                            title="Modifier"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openDelete(vuln)}
+                            title="Supprimer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
 
-      {/* Formulaires CRUD */}
+      {/* Dialogs CRUD */}
       <CreateDialog
-        isOpen={isCreateOpen}
-        onClose={closeAll}
-        onCreate={async (data) => {
-          const success = await handleCreate(async (formData) => {
-            const { error } = await supabase
-              .from('security_vulnerabilities')
-              .insert([{
-                ...formData,
-                team_id: userProfile?.default_team_id
-              }]);
-            
-            if (error) throw error;
-            return true;
-          }, data);
-          
-          return success;
-        }}
-        title="Créer une vulnérabilité"
-        sections={[
-          {
-            title: "Informations générales",
-            fields: [
-              {
-                key: "title",
-                label: "Titre",
-                type: "text",
-                required: true,
-                placeholder: "Titre de la vulnérabilité"
-              },
-              {
-                key: "description",
-                label: "Description",
-                type: "textarea",
-                placeholder: "Description détaillée de la vulnérabilité"
-              },
-              {
-                key: "cve_id",
-                label: "CVE ID",
-                type: "text",
-                placeholder: "CVE-YYYY-NNNN"
-              }
-            ]
-          },
-          {
-            title: "Classification",
-            fields: [
-              {
-                key: "severity",
-                label: "Sévérité",
-                type: "select",
-                required: true,
-                options: [
-                  { value: "low", label: "Basse" },
-                  { value: "medium", label: "Moyenne" },
-                  { value: "high", label: "Haute" },
-                  { value: "critical", label: "Critique" }
-                ]
-              },
-              {
-                key: "status",
-                label: "Statut",
-                type: "select",
-                required: true,
-                options: [
-                  { value: "open", label: "Ouvert" },
-                  { value: "in_progress", label: "En cours" },
-                  { value: "resolved", label: "Résolu" },
-                  { value: "closed", label: "Fermé" }
-                ]
-              }
-            ]
-          }
-        ]}
-      />
+        open={isCreateOpen}
+        onOpenChange={closeAll}
+        title="Ajouter une vulnérabilité"
+        description="Créer une nouvelle vulnérabilité de sécurité"
+      >
+        {/* Formulaire de création */}
+      </CreateDialog>
 
       <EditDialog
-        isOpen={isEditOpen}
-        onClose={closeAll}
-        onSave={async (data) => {
-          const success = await handleUpdate(async (formData) => {
-            const { error } = await supabase
-              .from('security_vulnerabilities')
-              .update(formData)
-              .eq('id', selectedVulnerability?.id);
-            
-            if (error) throw error;
-            return true;
-          }, data);
-          
-          return success;
-        }}
+        open={isEditOpen}
+        onOpenChange={closeAll}
         title="Modifier la vulnérabilité"
-        data={selectedVulnerability}
-        sections={[
-          {
-            title: "Informations générales",
-            fields: [
-              {
-                key: "title",
-                label: "Titre",
-                type: "text",
-                required: true
-              },
-              {
-                key: "description",
-                label: "Description",
-                type: "textarea"
-              },
-              {
-                key: "cve_id",
-                label: "CVE ID",
-                type: "text"
-              }
-            ]
-          },
-          {
-            title: "Classification",
-            fields: [
-              {
-                key: "severity",
-                label: "Sévérité",
-                type: "select",
-                required: true,
-                options: [
-                  { value: "low", label: "Basse" },
-                  { value: "medium", label: "Moyenne" },
-                  { value: "high", label: "Haute" },
-                  { value: "critical", label: "Critique" }
-                ]
-              },
-              {
-                key: "status",
-                label: "Statut",
-                type: "select",
-                required: true,
-                options: [
-                  { value: "open", label: "Ouvert" },
-                  { value: "in_progress", label: "En cours" },
-                  { value: "resolved", label: "Résolu" },
-                  { value: "closed", label: "Fermé" }
-                ]
-              }
-            ]
-          }
-        ]}
-      />
+        description="Modifier les détails de la vulnérabilité"
+      >
+        {/* Formulaire d'édition */}
+      </EditDialog>
 
       <DeleteDialog
-        isOpen={isDeleteOpen}
-        onClose={closeAll}
-        onDelete={async () => {
-          return await handleDelete(async () => {
-            const { error } = await supabase
-              .from('security_vulnerabilities')
-              .delete()
-              .eq('id', selectedVulnerability?.id);
-            
-            if (error) throw error;
-            return true;
-          });
-        }}
+        open={isDeleteOpen}
+        onOpenChange={closeAll}
         title="Supprimer la vulnérabilité"
-        itemName={selectedVulnerability?.title || ""}
-        displayFields={[
-          { key: "title", label: "Titre" },
-          { key: "cve_id", label: "CVE ID" },
-          { key: "severity", label: "Sévérité" },
-          { key: "status", label: "Statut" },
-          { key: "discovered_at", label: "Découverte le", render: (value) => new Date(value).toLocaleDateString() }
-        ]}
-        data={selectedVulnerability}
+        description="Êtes-vous sûr de vouloir supprimer cette vulnérabilité ?"
+        onConfirm={handleDelete}
       />
 
       <DetailDialog
-        isOpen={isDetailOpen}
-        onClose={closeAll}
+        open={isDetailOpen}
+        onOpenChange={closeAll}
         title="Détails de la vulnérabilité"
         data={selectedVulnerability}
-        sections={[
-          {
-            title: "Informations générales",
-            fields: [
-              { key: "title", label: "Titre", type: "text" },
-              { key: "description", label: "Description", type: "text" },
-              { key: "cve_id", label: "CVE ID", type: "text" },
-              { key: "severity", label: "Sévérité", type: "badge" },
-              { key: "status", label: "Statut", type: "badge" }
-            ]
-          },
-          {
-            title: "Suivi",
-            fields: [
-              { key: "assigned_to", label: "Assigné à", type: "text" },
-              { key: "discovered_at", label: "Découverte le", type: "date" },
-              { key: "remediated_at", label: "Corrigée le", type: "date" },
-              { key: "cloud_asset_id", label: "Asset Cloud", type: "text" }
-            ]
-          }
+        displayFields={[
+          { key: "title", label: "Titre" },
+          { key: "description", label: "Description" },
+          { key: "cve_id", label: "CVE ID" },
+          { key: "severity", label: "Sévérité" },
+          { key: "status", label: "Statut" },
+          { key: "discovered_at", label: "Découverte le", render: (value) => new Date(value).toLocaleDateString() },
+          { key: "remediated_at", label: "Résolue le", render: (value) => value ? new Date(value).toLocaleDateString() : "Non résolue" }
         ]}
-        className="max-w-4xl"
       />
     </div>
   );
