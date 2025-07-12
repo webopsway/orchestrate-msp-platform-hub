@@ -57,7 +57,7 @@ interface SecurityVulnerability {
 }
 
 const ITSMSecurity = () => {
-  const { sessionContext, user } = useAuth();
+  const { userProfile, user } = useAuth();
   const [vulnerabilities, setVulnerabilities] = useState<SecurityVulnerability[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -82,13 +82,15 @@ const ITSMSecurity = () => {
         .single();
       
       // For MSP admins, create a minimal session context if none exists
-      let workingSessionContext = sessionContext;
+      let workingSessionContext = userProfile;
       if (!workingSessionContext && profile?.is_msp_admin) {
         console.log('Creating temporary MSP session context for vulnerabilities loading');
         workingSessionContext = {
-          current_organization_id: profile.default_organization_id,
-          current_team_id: profile.default_team_id,
-          is_msp: true
+          id: user.id,
+          email: user.email || '',
+          default_organization_id: profile.default_organization_id,
+          default_team_id: profile.default_team_id,
+          is_msp_admin: true
         };
       }
 
@@ -97,8 +99,8 @@ const ITSMSecurity = () => {
         .select('*');
 
       // Filter by team if not MSP admin
-      const teamId = workingSessionContext?.current_team_id;
-      if (teamId && !workingSessionContext?.is_msp) {
+      const teamId = workingSessionContext?.default_team_id;
+      if (teamId && !workingSessionContext?.is_msp_admin) {
         query = query.eq('team_id', teamId);
       }
 
@@ -134,7 +136,7 @@ const ITSMSecurity = () => {
     if (user) {
       fetchVulnerabilities();
     }
-  }, [user, sessionContext]);
+  }, [user, userProfile]);
 
   const updateVulnerabilityStatus = async (vulnId: string, newStatus: string) => {
     try {
@@ -426,7 +428,7 @@ const ITSMSecurity = () => {
               .from('security_vulnerabilities')
               .insert([{
                 ...formData,
-                team_id: sessionContext?.current_team_id
+                team_id: userProfile?.default_team_id
               }]);
             
             if (error) throw error;

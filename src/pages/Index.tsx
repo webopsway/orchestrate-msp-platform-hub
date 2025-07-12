@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
   const { userProfile } = useAuth();
-  const isMspAdmin = sessionContext?.is_msp || false;
+  const isMspAdmin = userProfile?.is_msp_admin || false;
 
   return (
     <div className="space-y-6">

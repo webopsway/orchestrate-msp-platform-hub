@@ -69,10 +69,10 @@ const Teams = () => {
   useEffect(() => {
     fetchData();
     fetchOrganizations();
-  }, [sessionContext, currentPage, pageSize, searchTerm, filters]);
+  }, [userProfile, currentPage, pageSize, searchTerm, filters]);
 
   const fetchData = async () => {
-    if (!sessionContext?.current_team_id) return;
+    if (!userProfile?.default_team_id) return;
 
     try {
       setLoading(true);

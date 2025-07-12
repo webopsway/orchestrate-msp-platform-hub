@@ -84,7 +84,7 @@ interface DocumentVersion {
 }
 
 const Documentation = () => {
-  const { sessionContext, user } = useAuth();
+  const { userProfile, user } = useAuth();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [versions, setVersions] = useState<DocumentVersion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,10 +120,10 @@ const Documentation = () => {
 
   useEffect(() => {
     fetchDocuments();
-  }, [sessionContext]);
+  }, [userProfile]);
 
   const fetchDocuments = async () => {
-    if (!sessionContext?.current_team_id && !sessionContext?.is_msp) return;
+    if (!userProfile?.default_team_id && !userProfile?.is_msp_admin) return;
 
     try {
       setLoading(true);
@@ -132,7 +132,7 @@ const Documentation = () => {
       const { data: docsData, error: docsError } = await supabase
         .from('documentation')
         .select('*')
-        .eq('team_id', sessionContext.current_team_id)
+        .eq('team_id', userProfile.default_team_id)
         .order('updated_at', { ascending: false });
 
       if (docsError) throw docsError;
@@ -156,13 +156,13 @@ const Documentation = () => {
   };
 
   const createDocument = async () => {
-    if (!sessionContext?.current_team_id && !sessionContext?.is_msp) return;
+    if (!userProfile?.default_team_id && !userProfile?.is_msp_admin) return;
 
     try {
       setLoading(true);
       
       const docData = {
-        team_id: sessionContext?.current_team_id || sessionContext?.current_organization_id || '',
+        team_id: userProfile?.default_team_id || userProfile?.default_organization_id || '',
         title: newDocument.title,
         content: newDocument.content,
         version: "1.0",
@@ -207,7 +207,7 @@ const Documentation = () => {
           title: editDocument.title,
           content: editDocument.content,
           version: (parseFloat(selectedDocument.version) + 0.1).toFixed(1),
-          updated_by: sessionContext?.current_team_id,
+          updated_by: userProfile?.id,
           updated_at: new Date().toISOString(),
           metadata: {
             category: editDocument.category,

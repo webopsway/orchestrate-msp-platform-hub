@@ -67,7 +67,7 @@ interface ITSMChange {
 }
 
 const ITSMChanges = () => {
-  const { sessionContext, user } = useAuth();
+  const { userProfile, user } = useAuth();
   const [changes, setChanges] = useState<ITSMChange[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -92,13 +92,15 @@ const ITSMChanges = () => {
         .single();
       
       // For MSP admins, create a minimal session context if none exists
-      let workingSessionContext = sessionContext;
+      let workingSessionContext = userProfile;
       if (!workingSessionContext && profile?.is_msp_admin) {
         console.log('Creating temporary MSP session context for changes loading');
         workingSessionContext = {
-          current_organization_id: profile.default_organization_id,
-          current_team_id: profile.default_team_id,
-          is_msp: true
+          id: user.id,
+          email: user.email || '',
+          default_organization_id: profile.default_organization_id,
+          default_team_id: profile.default_team_id,
+          is_msp_admin: true
         };
       }
 
@@ -115,8 +117,8 @@ const ITSMChanges = () => {
         `);
 
       // Filter by team if not MSP admin
-      const teamId = workingSessionContext?.current_team_id;
-      if (teamId && !workingSessionContext?.is_msp) {
+      const teamId = workingSessionContext?.default_team_id;
+      if (teamId && !workingSessionContext?.is_msp_admin) {
         query = query.eq('team_id', teamId);
       }
 
@@ -153,7 +155,7 @@ const ITSMChanges = () => {
     if (user) {
       fetchChanges();
     }
-  }, [user, sessionContext]);
+  }, [user, userProfile]);
 
   const updateChangeStatus = async (changeId: string, newStatus: string) => {
     try {
@@ -447,7 +449,7 @@ const ITSMChanges = () => {
               .insert([{
                 ...formData,
                 requested_by: user?.id,
-                team_id: sessionContext?.current_team_id
+                team_id: userProfile?.default_team_id
               }]);
             
             if (error) throw error;

@@ -102,7 +102,7 @@ interface NotificationConfig {
 }
 
 const Monitoring = () => {
-  const { sessionContext } = useAuth();
+  const { userProfile } = useAuth();
   const [uptimeChecks, setUptimeChecks] = useState<UptimeCheck[]>([]);
   const [notifications, setNotifications] = useState<NotificationConfig[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,11 +141,11 @@ const Monitoring = () => {
   useEffect(() => {
     fetchMonitoringData();
     // Removed generateMockMetrics() - using real data only
-  }, [sessionContext]);
+  }, [userProfile]);
 
   const fetchMonitoringData = async () => {
-    const teamId = sessionContext?.current_team_id;
-    if (!teamId && !sessionContext?.is_msp) return;
+    const teamId = userProfile?.default_team_id;
+    if (!teamId && !userProfile?.is_msp_admin) return;
 
     try {
       setLoading(true);
@@ -153,7 +153,7 @@ const Monitoring = () => {
       // Récupérer les uptime checks
       let uptimeQuery = supabase.from('uptime_checks').select('*');
       
-      if (teamId && !sessionContext?.is_msp) {
+      if (teamId && !userProfile?.is_msp_admin) {
         uptimeQuery = uptimeQuery.eq('team_id', teamId);
       }
       
@@ -165,7 +165,7 @@ const Monitoring = () => {
       // Récupérer les notifications
       let notificationQuery = supabase.from('notification_transports').select('*');
       
-      if (teamId && !sessionContext?.is_msp) {
+      if (teamId && !userProfile?.is_msp_admin) {
         notificationQuery = notificationQuery.eq('team_id', teamId);
       }
       
@@ -183,8 +183,8 @@ const Monitoring = () => {
 
   // Removed generateMockMetrics function - using real metrics from database
   const loadRealMetrics = async () => {
-    const teamId = sessionContext?.current_team_id;
-    if (!teamId && !sessionContext?.is_msp) return;
+    const teamId = userProfile?.default_team_id;
+    if (!teamId && !userProfile?.is_msp_admin) return;
 
     try {
       // Charger les vraies métriques depuis la base de données
@@ -198,14 +198,14 @@ const Monitoring = () => {
   };
 
   const createUptimeCheck = async () => {
-    const teamId = sessionContext?.current_team_id;
-    if (!teamId && !sessionContext?.is_msp) return;
+    const teamId = userProfile?.default_team_id;
+    if (!teamId && !userProfile?.is_msp_admin) return;
 
     try {
       setLoading(true);
       
       const checkData = {
-        team_id: teamId || sessionContext?.current_organization_id || '',
+        team_id: teamId || userProfile?.default_organization_id || '',
         name: newUptimeCheck.name,
         url: newUptimeCheck.url,
         method: newUptimeCheck.method,
@@ -236,14 +236,14 @@ const Monitoring = () => {
   };
 
   const createNotification = async () => {
-    const teamId = sessionContext?.current_team_id;
-    if (!teamId && !sessionContext?.is_msp) return;
+    const teamId = userProfile?.default_team_id;
+    if (!teamId && !userProfile?.is_msp_admin) return;
 
     try {
       setLoading(true);
       
       const notificationData = {
-        team_id: teamId || sessionContext?.current_organization_id || '',
+        team_id: teamId || userProfile?.default_organization_id || '',
         name: newNotification.name,
         type: newNotification.type,
         config: newNotification.config,
@@ -251,7 +251,7 @@ const Monitoring = () => {
       };
       
       const notificationInsert = {
-        team_id: teamId || sessionContext?.current_organization_id || '',
+        team_id: teamId || userProfile?.default_organization_id || '',
         channel: newNotification.type,
         config: newNotification.config,
         configured_by: '00000000-0000-0000-0000-000000000000',

@@ -122,11 +122,11 @@ const Notifications = () => {
   });
 
   useEffect(() => {
-    if (sessionContext?.current_team_id) {
+    if (userProfile?.default_team_id) {
       fetchTransports();
       fetchNotifications();
     }
-  }, [sessionContext, fetchTransports, fetchNotifications]);
+  }, [userProfile, fetchTransports, fetchNotifications]);
 
   const resetForm = () => {
     setFormData({

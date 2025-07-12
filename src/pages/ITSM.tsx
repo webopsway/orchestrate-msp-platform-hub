@@ -64,7 +64,7 @@ interface ITSMItem {
 }
 
 const ITSM = () => {
-  const { sessionContext, user } = useAuth();
+  const { userProfile, user } = useAuth();
   const [items, setItems] = useState<ITSMItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -85,12 +85,12 @@ const ITSM = () => {
 
   useEffect(() => {
     fetchITSMItems();
-  }, [sessionContext]);
+  }, [userProfile]);
 
   const fetchITSMItems = async () => {
     try {
       setLoading(true);
-      console.log('Fetching ITSM items for team:', sessionContext?.current_team_id);
+      console.log('Fetching ITSM items for team:', userProfile?.default_team_id);
       
       // Récupérer les incidents
       const { data: incidents, error: incidentsError } = await supabase
@@ -138,13 +138,13 @@ const ITSM = () => {
   };
 
   const createITSMItem = async () => {
-    if (!sessionContext?.current_team_id || !user?.id) return;
+    if (!userProfile?.default_team_id || !user?.id) return;
 
     try {
       setLoading(true);
       
       const itemData = {
-        team_id: sessionContext.current_team_id,
+        team_id: userProfile.default_team_id,
         title: newItem.title,
         description: newItem.description,
         priority: newItem.priority,

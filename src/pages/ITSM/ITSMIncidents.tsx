@@ -65,7 +65,7 @@ interface ITSMIncident {
 }
 
 const ITSMIncidents = () => {
-  const { sessionContext, user } = useAuth();
+  const { userProfile, user } = useAuth();
   const [incidents, setIncidents] = useState<ITSMIncident[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -90,13 +90,15 @@ const ITSMIncidents = () => {
         .single();
       
       // For MSP admins, create a minimal session context if none exists
-      let workingSessionContext = sessionContext;
+      let workingSessionContext = userProfile;
       if (!workingSessionContext && profile?.is_msp_admin) {
         console.log('Creating temporary MSP session context for incidents loading');
         workingSessionContext = {
-          current_organization_id: profile.default_organization_id,
-          current_team_id: profile.default_team_id,
-          is_msp: true
+          id: user.id,
+          email: user.email || '',
+          default_organization_id: profile.default_organization_id,
+          default_team_id: profile.default_team_id,
+          is_msp_admin: true
         };
       }
 
@@ -113,8 +115,8 @@ const ITSMIncidents = () => {
         `);
 
       // Filter by team if not MSP admin
-      const teamId = workingSessionContext?.current_team_id;
-      if (teamId && !workingSessionContext?.is_msp) {
+      const teamId = workingSessionContext?.default_team_id;
+      if (teamId && !workingSessionContext?.is_msp_admin) {
         query = query.eq('team_id', teamId);
       }
 
@@ -163,7 +165,7 @@ const ITSMIncidents = () => {
     if (user) {
       fetchIncidents();
     }
-  }, [user, sessionContext]);
+  }, [user, userProfile]);
 
   const updateIncidentStatus = async (incidentId: string, newStatus: string) => {
     try {
@@ -474,7 +476,7 @@ const ITSMIncidents = () => {
               .insert([{
                 ...formData,
                 created_by: user?.id,
-                team_id: sessionContext?.current_team_id
+                team_id: userProfile?.default_team_id
               }]);
             
             if (error) throw error;

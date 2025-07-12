@@ -203,8 +203,8 @@ const ITSMRequests = () => {
     );
   }
 
-  // Si le contexte de session n'est pas encore chargé, afficher le loading
-  if (!sessionContext) {
+  // Si le profil utilisateur n'est pas encore chargé, afficher le loading
+  if (!userProfile) {
     return (
       <div className="space-y-6">
         <PageHeader

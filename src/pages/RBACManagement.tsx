@@ -403,7 +403,7 @@ const RBACManagement = () => {
                         <RBACGuard resource="roles" action="update">
                           <Button variant="ghost" size="sm" onClick={() => openPermissionModal({
                             ...role,
-                            team_id: sessionContext?.current_team_id || '',
+                            team_id: userProfile?.default_team_id || '',
                             permissions: [],
                             is_system: role.is_system || false,
                             is_default: role.is_default || false,

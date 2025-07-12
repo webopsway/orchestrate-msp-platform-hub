@@ -89,7 +89,7 @@ interface CloudProvider {
 }
 
 const CloudAccounts = () => {
-  const { sessionContext, user } = useAuth();
+  const { userProfile, user } = useAuth();
   const [accounts, setAccounts] = useState<CloudAccount[]>([]);
   const [providers, setProviders] = useState<CloudProvider[]>([]);
   const [loading, setLoading] = useState(true);
@@ -112,10 +112,10 @@ const CloudAccounts = () => {
 
   useEffect(() => {
     fetchCloudData();
-  }, [sessionContext]);
+  }, [userProfile]);
 
   const fetchCloudData = async () => {
-    if (!sessionContext?.current_team_id && !sessionContext?.is_msp) return;
+    if (!userProfile?.default_team_id && !userProfile?.is_msp_admin) return;
 
     try {
       setLoading(true);
@@ -141,7 +141,7 @@ const CloudAccounts = () => {
       const { data: accountsData, error: accountsError } = await supabase
         .from('cloud_credentials')
         .select('*')
-        .eq('team_id', sessionContext.current_team_id);
+        .eq('team_id', userProfile.default_team_id);
 
       if (accountsError) throw accountsError;
       setAccounts((accountsData || []).map(a => ({
@@ -159,13 +159,13 @@ const CloudAccounts = () => {
   };
 
   const createAccount = async () => {
-    if (!sessionContext?.current_team_id && !sessionContext?.is_msp) return;
+    if (!userProfile?.default_team_id && !userProfile?.is_msp_admin) return;
 
     try {
       setLoading(true);
       
       const accountData = {
-        team_id: sessionContext?.current_team_id || sessionContext?.current_organization_id || '',
+        team_id: userProfile?.default_team_id || userProfile?.default_organization_id || '',
         provider_id: newAccount.provider_id,
         config: newAccount.config,
         configured_by: user?.id || ''

@@ -32,7 +32,7 @@ const NewTeams = () => {
   useEffect(() => {
     fetchTeams();
     fetchOrganizations();
-  }, [sessionContext]);
+  }, [userProfile]);
 
   const fetchTeams = async () => {
     try {

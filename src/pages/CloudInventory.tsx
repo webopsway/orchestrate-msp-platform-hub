@@ -82,7 +82,7 @@ interface CloudProvider {
 
 const CloudInventory = () => {
   const { userProfile } = useAuth();
-  const hasValidContext = sessionContext?.is_msp || sessionContext?.current_team_id;
+  const hasValidContext = userProfile?.is_msp_admin || userProfile?.default_team_id;
   const [assets, setAssets] = useState<CloudAssetWithProvider[]>([]);
   const [providers, setProviders] = useState<CloudProvider[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,7 +116,7 @@ const CloudInventory = () => {
       setLoading(true);
       
       const [assetsData, providersData] = await Promise.all([
-        cloudService.getAssets(),
+        cloudService.getAssets(userProfile),
         cloudService.getProviders()
       ]);
 
@@ -139,7 +139,7 @@ const CloudInventory = () => {
     try {
       setLoading(true);
       
-      const executionIds = await cloudService.refreshInventory();
+      const executionIds = await cloudService.refreshInventory(userProfile);
       
       if (executionIds.length > 0) {
         toast.success(`Inventaire mis à jour - ${executionIds.length} tâche(s) démarrée(s)`);
