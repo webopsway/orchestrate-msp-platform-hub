@@ -79,6 +79,8 @@ export class OrganizationService {
   static async update(id: string, data: OrganizationFormData): Promise<void> {
     const updateData = {
       name: data.name,
+      type: data.type || 'client',
+      is_msp: data.is_msp || false,
       updated_at: new Date().toISOString(),
       metadata: {
         description: data.description,
