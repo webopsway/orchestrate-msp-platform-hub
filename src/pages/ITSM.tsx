@@ -406,7 +406,6 @@ const ITSM = () => {
                     <TableHead>Priorité</TableHead>
                     <TableHead>Statut</TableHead>
                     <TableHead>Assigné</TableHead>
-                    <TableHead>Assignation</TableHead>
                     <TableHead>Date création</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
