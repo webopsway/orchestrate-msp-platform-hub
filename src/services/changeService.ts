@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { User } from '@supabase/supabase-js';
-import type { UserProfile } from '@/types/user';
+import type { UserProfile } from '@/contexts/AuthContext';
 import type { Change, CreateChangeData, UpdateChangeData } from '@/types/change';
 import { toast } from 'sonner';
 
@@ -44,7 +44,7 @@ export class ChangeService {
         return [];
       }
 
-      return (data || []) as Change[];
+      return (data || []) as unknown as Change[];
     } catch (error) {
       console.error('Error fetching changes:', error);
       toast.error('Erreur lors du chargement des changements');
