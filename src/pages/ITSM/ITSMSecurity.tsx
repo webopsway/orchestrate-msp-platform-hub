@@ -3,14 +3,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   PageHeader, 
-  DataGrid,
-  CreateDialog,
-  EditDialog,
-  DeleteDialog,
-  DetailDialog
+  DataGrid
 } from "@/components/common";
 import { CommentsSection } from "@/components/itsm/CommentsSection";
 import { useITSMCrud } from "@/hooks/useITSMCrud";
+import { VulnerabilityForm } from "@/components/forms/VulnerabilityForm";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Shield, 
   Plus, 
@@ -120,21 +118,106 @@ const ITSMSecurity = () => {
     }
   }, [user, userProfile]);
 
-  const {
-    selectedItem: selectedVulnerability,
-    isCreateOpen,
-    isEditOpen,
-    isDeleteOpen,
-    isDetailOpen,
-    openCreate,
-    openEdit,
-    openDelete,
-    openDetail,
-    closeAll,
-    handleCreate,
-    handleUpdate,
-    handleDelete
-  } = useITSMCrud<SecurityVulnerability>({ onRefresh: fetchVulnerabilities });
+  const [selectedVulnerability, setSelectedVulnerability] = useState<SecurityVulnerability | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+
+  const openDetail = useCallback((vulnerability: SecurityVulnerability) => {
+    setSelectedVulnerability(vulnerability);
+    setIsDetailOpen(true);
+  }, []);
+
+  const closeDetail = useCallback(() => {
+    setSelectedVulnerability(null);
+    setIsDetailOpen(false);
+  }, []);
+
+  const openCreate = useCallback(() => {
+    setIsCreateOpen(true);
+  }, []);
+
+  const openEdit = useCallback((vulnerability: SecurityVulnerability) => {
+    setSelectedVulnerability(vulnerability);
+    setIsEditOpen(true);
+  }, []);
+
+  const openDelete = useCallback((vulnerability: SecurityVulnerability) => {
+    setSelectedVulnerability(vulnerability);
+    setIsDeleteOpen(true);
+  }, []);
+
+  const closeAll = useCallback(() => {
+    setIsCreateOpen(false);
+    setIsEditOpen(false);
+    setIsDeleteOpen(false);
+    setSelectedVulnerability(null);
+  }, []);
+
+  const handleCreate = useCallback(async (data: any): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('security_vulnerabilities')
+        .insert([{
+          ...data,
+          team_id: userProfile?.default_team_id
+        }]);
+      
+      if (error) throw error;
+      
+      toast.success('Vulnérabilité créée avec succès');
+      await fetchVulnerabilities();
+      closeAll();
+      return true;
+    } catch (error) {
+      console.error('Error creating vulnerability:', error);
+      toast.error('Erreur lors de la création');
+      return false;
+    }
+  }, [userProfile, fetchVulnerabilities, closeAll]);
+
+  const handleUpdate = useCallback(async (data: any): Promise<boolean> => {
+    if (!selectedVulnerability) return false;
+    
+    try {
+      const { error } = await supabase
+        .from('security_vulnerabilities')
+        .update(data)
+        .eq('id', selectedVulnerability.id);
+      
+      if (error) throw error;
+      
+      toast.success('Vulnérabilité mise à jour avec succès');
+      await fetchVulnerabilities();
+      closeAll();
+      return true;
+    } catch (error) {
+      console.error('Error updating vulnerability:', error);
+      toast.error('Erreur lors de la mise à jour');
+      return false;
+    }
+  }, [selectedVulnerability, fetchVulnerabilities, closeAll]);
+
+  const handleDelete = useCallback(async () => {
+    if (!selectedVulnerability) return;
+    
+    try {
+      const { error } = await supabase
+        .from('security_vulnerabilities')
+        .delete()
+        .eq('id', selectedVulnerability.id);
+      
+      if (error) throw error;
+      
+      toast.success('Vulnérabilité supprimée avec succès');
+      await fetchVulnerabilities();
+      closeAll();
+    } catch (error) {
+      console.error('Error deleting vulnerability:', error);
+      toast.error('Erreur lors de la suppression');
+    }
+  }, [selectedVulnerability, fetchVulnerabilities, closeAll]);
 
   useEffect(() => {
     if (user) {
@@ -470,60 +553,110 @@ const ITSMSecurity = () => {
         </CardContent>
       </Card>
 
-      {/* Dialogs CRUD */}
-      <CreateDialog
-        isOpen={isCreateOpen}
-        onClose={closeAll}
-        title="Ajouter une vulnérabilité"
-        sections={[]}
-        onCreate={async () => false}
-      />
+      {/* Dialog de création */}
+      <Dialog open={isCreateOpen} onOpenChange={closeAll}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Ajouter une vulnérabilité</DialogTitle>
+          </DialogHeader>
+          <VulnerabilityForm
+            onSubmit={handleCreate}
+            onCancel={closeAll}
+          />
+        </DialogContent>
+      </Dialog>
 
-      <EditDialog
-        isOpen={isEditOpen}
-        onClose={closeAll}
-        title="Modifier la vulnérabilité"
-        sections={[]}
-        onSave={async () => false}
-        data={selectedVulnerability}
-      />
+      {/* Dialog d'édition */}
+      <Dialog open={isEditOpen} onOpenChange={closeAll}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Modifier la vulnérabilité</DialogTitle>
+          </DialogHeader>
+          {selectedVulnerability && (
+            <VulnerabilityForm
+              initialData={{
+                title: selectedVulnerability.title,
+                description: selectedVulnerability.description,
+                severity: selectedVulnerability.severity,
+                status: selectedVulnerability.status,
+                cve_id: selectedVulnerability.cve_id
+              }}
+              onSubmit={handleUpdate}
+              onCancel={closeAll}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
-      <DeleteDialog
-        isOpen={isDeleteOpen}
-        onClose={closeAll}
-        title="Supprimer la vulnérabilité"
-        itemName={selectedVulnerability?.title || "cette vulnérabilité"}
-        onDelete={async () => {
-          if (!selectedVulnerability) return false;
-          return await handleDelete(async () => {
-            const { error } = await supabase
-              .from('security_vulnerabilities')
-              .delete()
-              .eq('id', selectedVulnerability.id);
-            if (error) throw error;
-            return true;
-          });
-        }}
-      />
+      {/* Dialog de suppression */}
+      <Dialog open={isDeleteOpen} onOpenChange={closeAll}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer la vulnérabilité</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p>
+              Êtes-vous sûr de vouloir supprimer la vulnérabilité "{selectedVulnerability?.title}" ?
+              Cette action est irréversible.
+            </p>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={closeAll}>
+                Annuler
+              </Button>
+              <Button variant="destructive" onClick={handleDelete}>
+                Supprimer
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-      <DetailDialog
-        isOpen={isDetailOpen}
-        onClose={closeAll}
-        title="Détails de la vulnérabilité"
-        data={selectedVulnerability}
-        sections={[
-          {
-            title: "Informations générales",
-            fields: [
-              { key: "title", label: "Titre" },
-              { key: "description", label: "Description" },
-              { key: "cve_id", label: "CVE ID" },
-              { key: "severity", label: "Sévérité" },
-              { key: "status", label: "Statut" },
-            ]
-          }
-        ]}
-      />
+      {/* Vue détaillée */}
+      {selectedVulnerability && (
+        <Dialog open={isDetailOpen} onOpenChange={closeDetail}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+            <DialogHeader>
+              <DialogTitle>Détails de la vulnérabilité</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-semibold">CVE ID</h4>
+                  <p className="text-muted-foreground">{selectedVulnerability.cve_id || "N/A"}</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold">Sévérité</h4>
+                  <Badge variant={getSeverityColor(selectedVulnerability.severity)}>
+                    {selectedVulnerability.severity}
+                  </Badge>
+                </div>
+                <div>
+                  <h4 className="font-semibold">Statut</h4>
+                  <Badge variant={getStatusColor(selectedVulnerability.status)}>
+                    {selectedVulnerability.status}
+                  </Badge>
+                </div>
+                <div>
+                  <h4 className="font-semibold">Date de découverte</h4>
+                  <p className="text-muted-foreground">
+                    {new Date(selectedVulnerability.discovered_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold mb-2">Description</h4>
+                <p className="text-muted-foreground">{selectedVulnerability.description}</p>
+              </div>
+              
+              <CommentsSection
+                ticketId={selectedVulnerability.id}
+                ticketType="vulnerability"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
