@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -33,13 +33,20 @@ export interface ServiceRequest {
 }
 
 export const useServiceRequests = () => {
-  const { sessionContext, user } = useAuth();
+  const { user, sessionContext } = useAuth();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     try {
       setLoading(true);
+      
+      // Vérifier l'authentification
+      if (!user) {
+        console.warn('Utilisateur non connecté');
+        setRequests([]);
+        return;
+      }
       
       // MSP admin peut voir toutes les demandes, autres voient par team
       let query = supabase.from('itsm_service_requests').select(`
@@ -55,29 +62,48 @@ export const useServiceRequests = () => {
       
       const { data, error } = await query.order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setRequests(data as any || []);
+      if (error) {
+        console.error('Erreur lors de la récupération des demandes:', error);
+        toast.error('Erreur lors du chargement des demandes');
+        setRequests([]);
+        return;
+      }
+      
+      setRequests(data as ServiceRequest[] || []);
     } catch (error) {
-      console.error('Error fetching service requests:', error);
+      console.error('Erreur lors de la récupération des demandes:', error);
       toast.error('Erreur lors du chargement des demandes');
       setRequests([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, sessionContext?.current_team_id, sessionContext?.is_msp]);
 
-  const createRequest = async (requestData: Partial<ServiceRequest>) => {
+  const createRequest = useCallback(async (requestData: Partial<ServiceRequest>) => {
     try {
+      // Vérifier l'authentification
+      if (!user) {
+        toast.error('Vous devez être connecté pour créer une demande');
+        return false;
+      }
+
       const teamId = sessionContext?.current_team_id;
       if ((!teamId && !sessionContext?.is_msp) || !user) {
-        throw new Error('Session non valide');
+        toast.error('Session non valide ou équipe non sélectionnée');
+        return false;
+      }
+
+      // Validation des données
+      if (!requestData.title?.trim()) {
+        toast.error('Le titre est obligatoire');
+        return false;
       }
 
       const { data, error } = await supabase
         .from('itsm_service_requests')
         .insert({
-          title: requestData.title || '',
-          description: requestData.description,
+          title: requestData.title.trim(),
+          description: requestData.description?.trim(),
           priority: requestData.priority || 'medium',
           urgency: requestData.urgency || 'medium',
           impact: requestData.impact || 'medium',
@@ -89,78 +115,135 @@ export const useServiceRequests = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur lors de la création de la demande:', error);
+        toast.error('Erreur lors de la création de la demande');
+        return false;
+      }
       
       toast.success('Demande créée avec succès');
-      fetchRequests();
+      await fetchRequests();
       return true;
     } catch (error) {
-      console.error('Error creating service request:', error);
+      console.error('Erreur lors de la création de la demande:', error);
       toast.error('Erreur lors de la création');
       return false;
     }
-  };
+  }, [user, sessionContext, fetchRequests]);
 
-  const updateRequest = async (id: string, updates: Partial<ServiceRequest>) => {
+  const updateRequest = useCallback(async (id: string, updates: Partial<ServiceRequest>) => {
     try {
+      // Vérifier l'authentification
+      if (!user) {
+        toast.error('Vous devez être connecté pour modifier une demande');
+        return false;
+      }
+
+      // Validation des données
+      if (updates.title && !updates.title.trim()) {
+        toast.error('Le titre ne peut pas être vide');
+        return false;
+      }
+
       const { error } = await supabase
         .from('itsm_service_requests')
-        .update(updates)
+        .update({
+          ...updates,
+          title: updates.title?.trim(),
+          description: updates.description?.trim(),
+          updated_at: new Date().toISOString()
+        })
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur lors de la mise à jour de la demande:', error);
+        toast.error('Erreur lors de la mise à jour');
+        return false;
+      }
       
       toast.success('Demande mise à jour');
-      fetchRequests();
+      await fetchRequests();
       return true;
     } catch (error) {
-      console.error('Error updating service request:', error);
+      console.error('Erreur lors de la mise à jour de la demande:', error);
       toast.error('Erreur lors de la mise à jour');
       return false;
     }
-  };
+  }, [user, fetchRequests]);
 
-  const deleteRequest = async (id: string) => {
+  const deleteRequest = useCallback(async (id: string) => {
     try {
+      // Vérifier l'authentification
+      if (!user) {
+        toast.error('Vous devez être connecté pour supprimer une demande');
+        return false;
+      }
+
       const { error } = await supabase
         .from('itsm_service_requests')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur lors de la suppression de la demande:', error);
+        toast.error('Erreur lors de la suppression');
+        return false;
+      }
       
       toast.success('Demande supprimée');
-      fetchRequests();
+      await fetchRequests();
       return true;
     } catch (error) {
-      console.error('Error deleting service request:', error);
+      console.error('Erreur lors de la suppression de la demande:', error);
       toast.error('Erreur lors de la suppression');
       return false;
     }
-  };
+  }, [user, fetchRequests]);
 
-  const assignRequest = async (id: string, assigneeId: string | null) => {
+  const assignRequest = useCallback(async (id: string, assigneeId: string | null) => {
     try {
+      // Vérifier l'authentification
+      if (!user) {
+        toast.error('Vous devez être connecté pour assigner une demande');
+        return false;
+      }
+
       const { error } = await supabase
         .from('itsm_service_requests')
-        .update({ assigned_to: assigneeId })
+        .update({ 
+          assigned_to: assigneeId,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur lors de l\'assignation de la demande:', error);
+        toast.error('Erreur lors de l\'assignation');
+        return false;
+      }
       
       toast.success(assigneeId ? 'Demande assignée' : 'Assignation supprimée');
-      fetchRequests();
+      await fetchRequests();
       return true;
     } catch (error) {
-      console.error('Error assigning service request:', error);
+      console.error('Erreur lors de l\'assignation de la demande:', error);
       toast.error('Erreur lors de l\'assignation');
       return false;
     }
-  };
+  }, [user, fetchRequests]);
 
-  const updateStatus = async (id: string, status: ServiceRequest['status']) => {
+  const updateStatus = useCallback(async (id: string, status: ServiceRequest['status']) => {
     try {
-      const updates: any = { status };
+      // Vérifier l'authentification
+      if (!user) {
+        toast.error('Vous devez être connecté pour modifier le statut');
+        return false;
+      }
+
+      const updates: any = { 
+        status,
+        updated_at: new Date().toISOString()
+      };
       
       // Auto-set resolved_at when marking as resolved or closed
       if (status === 'resolved' || status === 'closed') {
@@ -174,23 +257,30 @@ export const useServiceRequests = () => {
         .update(updates)
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur lors de la mise à jour du statut:', error);
+        toast.error('Erreur lors de la mise à jour du statut');
+        return false;
+      }
       
       toast.success('Statut mis à jour');
-      fetchRequests();
+      await fetchRequests();
       return true;
     } catch (error) {
-      console.error('Error updating status:', error);
+      console.error('Erreur lors de la mise à jour du statut:', error);
       toast.error('Erreur lors de la mise à jour du statut');
       return false;
     }
-  };
+  }, [user, fetchRequests]);
 
   useEffect(() => {
-    if (sessionContext?.current_team_id || sessionContext?.is_msp) {
+    if (user && (sessionContext?.current_team_id || sessionContext?.is_msp)) {
       fetchRequests();
+    } else if (!user) {
+      setRequests([]);
+      setLoading(false);
     }
-  }, [sessionContext?.current_team_id, sessionContext?.is_msp]);
+  }, [user, sessionContext?.current_team_id, sessionContext?.is_msp, fetchRequests]);
 
   return {
     requests,

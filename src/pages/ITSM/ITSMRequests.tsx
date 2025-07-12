@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useServiceRequests, ServiceRequest } from "@/hooks/useServiceRequests";
 import { 
@@ -34,12 +34,13 @@ import {
   Trash2,
   CheckCircle,
   AlertCircle,
-  Info
+  Info,
+  Shield
 } from "lucide-react";
 import { toast } from "sonner";
 
 const ITSMRequests = () => {
-  const { sessionContext, user } = useAuth();
+  const { user, sessionContext } = useAuth();
   const { 
     requests, 
     loading, 
@@ -57,7 +58,7 @@ const ITSMRequests = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
-  const getRequesterDisplayName = (request: ServiceRequest) => {
+  const getRequesterDisplayName = useCallback((request: ServiceRequest) => {
     const profile = request.requested_by_profile;
     if (!profile) return "N/A";
     
@@ -65,63 +66,63 @@ const ITSMRequests = () => {
       return `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
     }
     return profile.email;
-  };
+  }, []);
 
-  const openDetail = (request: ServiceRequest) => {
+  const openDetail = useCallback((request: ServiceRequest) => {
     setSelectedRequest(request);
     setIsDetailOpen(true);
-  };
+  }, []);
 
-  const closeDetail = () => {
+  const closeDetail = useCallback(() => {
     setSelectedRequest(null);
     setIsDetailOpen(false);
-  };
+  }, []);
 
-  const openCreate = () => {
+  const openCreate = useCallback(() => {
     setIsCreateOpen(true);
-  };
+  }, []);
 
-  const openEdit = (request: ServiceRequest) => {
+  const openEdit = useCallback((request: ServiceRequest) => {
     setSelectedRequest(request);
     setIsEditOpen(true);
-  };
+  }, []);
 
-  const openDelete = (request: ServiceRequest) => {
+  const openDelete = useCallback((request: ServiceRequest) => {
     setSelectedRequest(request);
     setIsDeleteOpen(true);
-  };
+  }, []);
 
-  const closeAll = () => {
+  const closeAll = useCallback(() => {
     setIsCreateOpen(false);
     setIsEditOpen(false);
     setIsDeleteOpen(false);
     setSelectedRequest(null);
-  };
+  }, []);
 
-  const handleCreate = async (data: any) => {
+  const handleCreate = useCallback(async (data: any) => {
     const success = await createRequest(data);
     if (success) {
       closeAll();
     }
-  };
+  }, [createRequest, closeAll]);
 
-  const handleUpdate = async (data: any) => {
+  const handleUpdate = useCallback(async (data: any) => {
     if (!selectedRequest) return;
     const success = await updateRequest(selectedRequest.id, data);
     if (success) {
       closeAll();
     }
-  };
+  }, [selectedRequest, updateRequest, closeAll]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!selectedRequest) return;
     const success = await deleteRequest(selectedRequest.id);
     if (success) {
       closeAll();
     }
-  };
+  }, [selectedRequest, deleteRequest, closeAll]);
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityColor = useCallback((priority: string) => {
     switch (priority) {
       case "critical": return "destructive";
       case "high": return "secondary";
@@ -129,9 +130,9 @@ const ITSMRequests = () => {
       case "low": return "outline";
       default: return "outline";
     }
-  };
+  }, []);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = useCallback((status: string) => {
     switch (status) {
       case "resolved":
       case "closed":
@@ -143,9 +144,9 @@ const ITSMRequests = () => {
       default:
         return "outline";
     }
-  };
+  }, []);
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = useCallback((status: string) => {
     switch (status) {
       case "resolved":
       case "closed":
@@ -155,18 +156,20 @@ const ITSMRequests = () => {
       default:
         return <Info className="h-4 w-4" />;
     }
-  };
+  }, []);
 
-  const filteredRequests = requests.filter(request => {
-    const matchesSearch = request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (request.description && request.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesStatus = statusFilter === "all" || request.status === statusFilter;
-    const matchesPriority = priorityFilter === "all" || request.priority === priorityFilter;
+  const filteredRequests = useMemo(() => {
+    return requests.filter(request => {
+      const matchesSearch = request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (request.description && request.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesStatus = statusFilter === "all" || request.status === statusFilter;
+      const matchesPriority = priorityFilter === "all" || request.priority === priorityFilter;
 
-    return matchesSearch && matchesStatus && matchesPriority;
-  });
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+  }, [requests, searchTerm, statusFilter, priorityFilter]);
 
-  const stats = [
+  const stats = useMemo(() => [
     {
       title: "Demandes ouvertes",
       value: requests.filter(r => r.status === 'open').length.toString(),
@@ -185,7 +188,38 @@ const ITSMRequests = () => {
       icon: CheckCircle,
       color: "text-green-500"
     }
-  ];
+  ], [requests]);
+
+  // Vérifier les permissions d'accès
+  const canManageRequests = useMemo(() => {
+    return sessionContext?.is_msp || sessionContext?.current_team_id;
+  }, [sessionContext]);
+
+  // Si l'utilisateur n'est pas connecté
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold">Accès non autorisé</h3>
+          <p className="text-muted-foreground">Vous devez être connecté pour accéder à cette page.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si l'utilisateur n'a pas les permissions
+  if (!canManageRequests) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold">Permissions insuffisantes</h3>
+          <p className="text-muted-foreground">Vous n'avez pas les permissions nécessaires pour gérer les demandes de service.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
