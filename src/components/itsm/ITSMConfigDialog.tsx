@@ -280,32 +280,60 @@ export const ITSMConfigDialog: React.FC<ITSMConfigDialogProps> = ({ teamId }) =>
           </div>
         )}
 
-        <div className="space-y-2">
-          <h4 className="font-medium">Éléments configurés :</h4>
-          <div className="flex flex-wrap gap-2">
-            {items.map((item) => (
-              <Badge 
-                key={item.id} 
-                variant="outline" 
-                className="flex items-center gap-2 p-2"
-                style={{ borderColor: getConfigColor(item) }}
-              >
-                <div 
-                  className="w-3 h-3 rounded-full" 
-                  style={{ backgroundColor: getConfigColor(item) }}
-                />
-                {getConfigLabel(item)}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-4 w-4 p-0 ml-1"
-                  onClick={() => startEditingConfig(item)}
-                >
-                  <Edit className="h-3 w-3" />
-                </Button>
-              </Badge>
-            ))}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium text-sm">Configurations existantes</h4>
+            <Badge variant="outline" className="text-xs">
+              {items.length} élément{items.length > 1 ? 's' : ''}
+            </Badge>
           </div>
+          
+          {items.length === 0 ? (
+            <div className="text-center py-6 text-muted-foreground">
+              <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">Aucune configuration trouvée</p>
+              <p className="text-xs">Utilisez les valeurs par défaut ou créez une nouvelle configuration</p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {items.map((item) => (
+                <div 
+                  key={item.id} 
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-4 h-4 rounded-full border-2 border-white shadow-sm" 
+                      style={{ backgroundColor: getConfigColor(item) }}
+                    />
+                    <div>
+                      <div className="font-medium text-sm">{getConfigLabel(item)}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Clé: <code className="bg-muted px-1 rounded text-xs">{item.config_key}</code>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Badge 
+                      variant={item.is_active ? "default" : "secondary"}
+                      className="text-xs"
+                    >
+                      {item.is_active ? "Actif" : "Inactif"}
+                    </Badge>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0"
+                      onClick={() => startEditingConfig(item)}
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
