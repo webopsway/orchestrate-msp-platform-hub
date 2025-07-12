@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { User, UserCreateData, UserUpdateData } from "@/types/user";
 import { UserService } from "@/services/userService";
+import { supabase } from "@/integrations/supabase/client";
 
 // Re-export types for backward compatibility
 export type { User, UserCreateData, UserUpdateData };
@@ -38,15 +39,32 @@ export function useUsers(): UseUsersReturn {
       setError(null);
       setLoading(true);
       
-      // Wait for session context to be loaded
-      if (!sessionContext) {
+      // Check if user is MSP admin directly from auth context
+      const { data: profile } = await supabase.from('profiles')
+        .select('is_msp_admin, default_organization_id, default_team_id')
+        .eq('id', user.id)
+        .single();
+      
+      // For MSP admins, create a minimal session context if none exists
+      let workingSessionContext = sessionContext;
+      if (!workingSessionContext && profile?.is_msp_admin) {
+        console.log('Creating temporary MSP session context for data loading');
+        workingSessionContext = {
+          current_organization_id: profile.default_organization_id,
+          current_team_id: profile.default_team_id,
+          is_msp: true
+        };
+      }
+      
+      // Wait for session context to be loaded (unless MSP admin)
+      if (!workingSessionContext) {
         console.log('No session context available, waiting...');
         setUsers([]);
         setTotalCount(0);
         return;
       }
       
-      const { users: loadedUsers, count } = await UserService.loadUsers(sessionContext);
+      const { users: loadedUsers, count } = await UserService.loadUsers(workingSessionContext);
       setUsers(loadedUsers);
       setTotalCount(count);
       
@@ -128,14 +146,12 @@ export function useUsers(): UseUsersReturn {
   useEffect(() => {
     console.log('useUsers useEffect - user:', user?.id, 'sessionContext:', sessionContext);
     
-    // Charger les utilisateurs si l'utilisateur est connecté et a une session valide
-    if (user && (sessionContext?.is_msp || sessionContext?.current_team_id)) {
+    // Load users if user is connected
+    if (user) {
+      // Try to load users (the loadUsers function will handle MSP admin case)
       loadUsers();
-    } else if (user && !sessionContext) {
-      // Utilisateur connecté mais pas de contexte de session encore
-      console.log('User connected but no session context yet, waiting...');
-    } else if (!user) {
-      // Pas d'utilisateur connecté
+    } else {
+      // No user connected
       setUsers([]);
       setTotalCount(0);
       setLoading(false);

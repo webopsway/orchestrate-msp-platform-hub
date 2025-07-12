@@ -88,6 +88,61 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
+    let initializationAttempted = false;
+
+    const handleSessionInitialization = async (userId: string) => {
+      if (initializationAttempted) return;
+      initializationAttempted = true;
+      
+      console.log('Attempting session initialization for user:', userId);
+      try {
+        await initializeSession();
+        console.log('Session initialization completed');
+        
+        // Check if session context was successfully set
+        if (sessionContext) {
+          // Check if this is a first-time MSP admin setup
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_msp_admin, default_organization_id, default_team_id')
+            .eq('id', userId)
+            .single();
+            
+          if (profile?.is_msp_admin && profile.default_organization_id && profile.default_team_id) {
+            // Check if organization still has default name
+            const { data: org } = await supabase
+              .from('organizations')
+              .select('name')
+              .eq('id', profile.default_organization_id)
+              .single();
+              
+            if (org?.name === 'Mon Organisation MSP') {
+              // Redirect to setup page for customization
+              window.location.href = '/setup';
+              return;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Session initialization failed:', error);
+        // For MSP admins, force a minimal context if initialization fails
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_msp_admin, default_organization_id, default_team_id')
+          .eq('id', userId)
+          .single();
+          
+        if (profile?.is_msp_admin) {
+          console.log('Creating fallback MSP context');
+          setSessionContext({
+            current_organization_id: profile.default_organization_id,
+            current_team_id: profile.default_team_id,
+            is_msp: true
+          });
+        }
+      }
+    };
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -96,44 +151,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        if (event === 'SIGNED_IN' && session?.user) {
-          console.log('User signed in, initializing session...');
-          // Defer session initialization to prevent deadlocks
-          setTimeout(async () => {
-            await initializeSession();
-            
-            // Check if this is a first-time MSP admin setup
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('is_msp_admin, default_organization_id, default_team_id')
-              .eq('id', session.user.id)
-              .single();
-              
-            if (profile?.is_msp_admin && profile.default_organization_id && profile.default_team_id) {
-              // Check if organization still has default name
-              const { data: org } = await supabase
-                .from('organizations')
-                .select('name')
-                .eq('id', profile.default_organization_id)
-                .single();
-                
-              if (org?.name === 'Mon Organisation MSP') {
-                // Redirect to setup page for customization
-                window.location.href = '/setup';
-                return;
-              }
-            }
-          }, 100);
+        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+          console.log('User authenticated, initializing session...');
+          await handleSessionInitialization(session.user.id);
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out, clearing session context');
           setSessionContext(null);
-        } else if (event === 'TOKEN_REFRESHED') {
-          console.log('Token refreshed, session should be maintained');
-        } else if (event === 'INITIAL_SESSION' && session?.user) {
-          console.log('Initial session detected, initializing...');
-          setTimeout(async () => {
-            await initializeSession();
-          }, 100);
+          initializationAttempted = false;
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          console.log('Token refreshed, ensuring session is maintained');
+          if (!sessionContext) {
+            await handleSessionInitialization(session.user.id);
+          }
         }
         
         setLoading(false);
@@ -141,17 +170,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
       console.log('Getting existing session:', session?.user?.id, error);
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
         console.log('Existing session found, initializing context...');
-        // Initialize session context for existing session
-        setTimeout(() => {
-          initializeSession();
-        }, 100);
+        await handleSessionInitialization(session.user.id);
       } else {
         console.log('No existing session found');
       }
