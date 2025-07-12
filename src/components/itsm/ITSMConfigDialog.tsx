@@ -134,39 +134,40 @@ export const ITSMConfigDialog: React.FC<ITSMConfigDialogProps> = ({ teamId }) =>
     }
   };
 
-  // Fonction pour initialiser les configurations par défaut
-  const initializeDefaultConfigs = async (configType: string) => {
+  // Fonction pour remplir le formulaire avec les valeurs par défaut
+  const fillFormWithDefaults = (configType: string) => {
     const defaultConfigs = getDefaultConfigs(configType);
     const existingKeys = new Set((configType === 'priorities' ? priorities : 
                                   configType === 'statuses' ? statuses : categories)
                                   .map(item => item.config_key));
 
-    try {
-      for (const config of defaultConfigs) {
-        if (!existingKeys.has(config.config_key)) {
-          await createConfig.mutateAsync({
-            team_id: teamId,
-            config_type: configType as any,
-            config_key: config.config_key,
-            config_value: config.config_value as any,
-            is_active: true,
-            display_order: 0,
-            created_by: '', // Will be set by RLS
-          });
-        }
-      }
+    // Trouver la première valeur par défaut qui n'existe pas encore
+    const availableDefault = defaultConfigs.find(config => !existingKeys.has(config.config_key));
+    
+    if (availableDefault) {
+      setConfigForm({
+        config_key: availableDefault.config_key,
+        config_value: availableDefault.config_value
+      });
       
       toast({
-        title: "Succès",
-        description: "Configuration par défaut initialisée"
+        title: "Formulaire rempli",
+        description: "Formulaire rempli avec une valeur par défaut"
       });
-    } catch (error) {
-      console.error('Error initializing default configs:', error);
-      toast({
-        title: "Erreur",
-        description: "Erreur lors de l'initialisation",
-        variant: "destructive"
-      });
+    } else {
+      // Si toutes les valeurs par défaut existent, prendre la première pour exemple
+      const firstDefault = defaultConfigs[0];
+      if (firstDefault) {
+        setConfigForm({
+          config_key: '',
+          config_value: firstDefault.config_value
+        });
+        
+        toast({
+          title: "Exemple chargé",
+          description: "Toutes les valeurs par défaut existent déjà. Exemple chargé."
+        });
+      }
     }
   };
 
@@ -271,7 +272,7 @@ export const ITSMConfigDialog: React.FC<ITSMConfigDialogProps> = ({ teamId }) =>
             <Button
               size="sm"
               variant="outline"
-              onClick={() => initializeDefaultConfigs(configType)}
+              onClick={() => fillFormWithDefaults(configType)}
             >
               <Zap className="h-4 w-4 mr-1" />
               Valeurs par défaut
