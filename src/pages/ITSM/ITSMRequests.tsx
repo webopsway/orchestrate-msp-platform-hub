@@ -218,6 +218,24 @@ const ITSMRequests = () => {
     );
   }
 
+  // Vérifier les permissions d'accès
+  const canManageRequests = useMemo(() => {
+    return userProfile?.is_msp_admin || userProfile?.default_team_id;
+  }, [userProfile]);
+
+  // Si l'utilisateur n'a pas les permissions
+  if (!canManageRequests) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold">Permissions insuffisantes</h3>
+          <p className="text-muted-foreground">Vous n'avez pas les permissions nécessaires pour gérer les demandes de service.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">

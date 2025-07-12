@@ -22,9 +22,9 @@ export class ServiceRequestService {
         assigned_to_profile:assigned_to(email, first_name, last_name)
       `);
       
-      const teamId = userProfile?.default_team_id;
-      if (teamId && !userProfile?.is_msp_admin) {
-        query = query.eq('team_id', teamId);
+      // Filter by team if not MSP admin
+      if (!userProfile?.is_msp_admin && userProfile?.default_team_id) {
+        query = query.eq('team_id', userProfile.default_team_id);
       }
       
       const { data, error } = await query.order('created_at', { ascending: false });
@@ -55,9 +55,8 @@ export class ServiceRequestService {
         return false;
       }
 
-      const teamId = userProfile?.default_team_id;
-      if ((!teamId && !userProfile?.is_msp_admin) || !user) {
-        toast.error('Session non valide ou équipe non sélectionnée');
+      if (!userProfile?.default_team_id && !userProfile?.is_msp_admin) {
+        toast.error('Équipe non sélectionnée ou permissions insuffisantes');
         return false;
       }
 
@@ -78,7 +77,7 @@ export class ServiceRequestService {
           service_category: requestData.service_category || 'general',
           due_date: requestData.due_date,
           requested_by: user.id,
-          team_id: teamId || userProfile?.default_organization_id || ''
+          team_id: userProfile?.default_team_id || ''
         })
         .select()
         .single();
