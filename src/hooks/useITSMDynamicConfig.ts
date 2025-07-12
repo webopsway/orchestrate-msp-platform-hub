@@ -43,8 +43,8 @@ export interface UpdateConfigData {
 
 // Hook principal pour gérer les configurations ITSM
 export const useITSMDynamicConfig = (configType?: 'priorities' | 'statuses' | 'categories' | 'ticket_types') => {
-  const { user } = useAuth();
-  const teamId = user?.user_metadata?.default_team_id;
+  const { userProfile } = useAuth();
+  const teamId = userProfile?.default_team_id;
 
   return useQuery({
     queryKey: ['itsm-dynamic-config', teamId, configType],
@@ -73,8 +73,8 @@ export const useITSMDynamicConfig = (configType?: 'priorities' | 'statuses' | 'c
 export const useCreateITSMDynamicConfig = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { user } = useAuth();
-  const teamId = user?.user_metadata?.default_team_id;
+  const { user, userProfile } = useAuth();
+  const teamId = userProfile?.default_team_id;
 
   return useMutation({
     mutationFn: async (configData: CreateConfigData) => {

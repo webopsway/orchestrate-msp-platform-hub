@@ -1845,6 +1845,10 @@ export type Database = {
         Args: { p_team_id: string; p_namespace: string; p_key: string }
         Returns: Json
       }
+      initialize_default_itsm_configs: {
+        Args: { p_team_id: string }
+        Returns: undefined
+      }
       is_msp_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
