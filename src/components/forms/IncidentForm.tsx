@@ -6,6 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle } from "lucide-react";
+import { useGlobalITSMConfig } from "@/hooks/useGlobalITSMConfig";
+import { ITSMBadge } from "@/components/itsm/ITSMBadge";
 import type { Incident, CreateIncidentData, UpdateIncidentData } from "@/types/incident";
 
 interface IncidentFormProps {
@@ -23,6 +25,9 @@ export function IncidentForm({ initialData, onSubmit, onCancel }: IncidentFormPr
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  const { data: priorities = [] } = useGlobalITSMConfig('priorities');
+  const { data: statuses = [] } = useGlobalITSMConfig('statuses', 'incident');
 
   useEffect(() => {
     if (initialData) {
@@ -126,10 +131,11 @@ export function IncidentForm({ initialData, onSubmit, onCancel }: IncidentFormPr
                   <SelectValue placeholder="Sélectionner une priorité" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">Basse</SelectItem>
-                  <SelectItem value="medium">Moyenne</SelectItem>
-                  <SelectItem value="high">Haute</SelectItem>
-                  <SelectItem value="critical">Critique</SelectItem>
+                  {priorities.map((priority) => (
+                    <SelectItem key={priority.config_key} value={priority.config_key}>
+                      <ITSMBadge type="priority" value={priority.config_key} />
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {errors.priority && (
@@ -166,10 +172,11 @@ export function IncidentForm({ initialData, onSubmit, onCancel }: IncidentFormPr
                   <SelectValue placeholder="Sélectionner un statut" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="open">Ouvert</SelectItem>
-                  <SelectItem value="in_progress">En cours</SelectItem>
-                  <SelectItem value="resolved">Résolu</SelectItem>
-                  <SelectItem value="closed">Fermé</SelectItem>
+                  {statuses.map((status) => (
+                    <SelectItem key={status.config_key} value={status.config_key}>
+                      <ITSMBadge type="status" value={status.config_key} category="incident" />
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {errors.status && (

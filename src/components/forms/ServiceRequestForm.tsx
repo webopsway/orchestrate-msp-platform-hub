@@ -12,6 +12,8 @@ import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useGlobalITSMConfig } from "@/hooks/useGlobalITSMConfig";
+import { ITSMBadge } from "@/components/itsm/ITSMBadge";
 import {
   Form,
   FormControl,
@@ -47,6 +49,8 @@ export const ServiceRequestForm = ({
   isLoading = false
 }: ServiceRequestFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { data: priorities = [] } = useGlobalITSMConfig('priorities');
 
   const form = useForm<ServiceRequestFormData>({
     resolver: zodResolver(serviceRequestSchema),
@@ -81,12 +85,6 @@ export const ServiceRequestForm = ({
     { value: "maintenance", label: "Maintenance" }
   ];
 
-  const priorityOptions = [
-    { value: "low", label: "Basse", color: "text-blue-600" },
-    { value: "medium", label: "Moyenne", color: "text-yellow-600" },
-    { value: "high", label: "Haute", color: "text-orange-600" },
-    { value: "critical", label: "Critique", color: "text-red-600" }
-  ];
 
   return (
     <Form {...form}>
@@ -231,9 +229,9 @@ export const ServiceRequestForm = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {priorityOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          <span className={option.color}>{option.label}</span>
+                      {priorities.map((priority) => (
+                        <SelectItem key={priority.config_key} value={priority.config_key}>
+                          <ITSMBadge type="priority" value={priority.config_key} />
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -263,9 +261,9 @@ export const ServiceRequestForm = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {priorityOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          <span className={option.color}>{option.label}</span>
+                      {priorities.map((priority) => (
+                        <SelectItem key={priority.config_key} value={priority.config_key}>
+                          <ITSMBadge type="priority" value={priority.config_key} />
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -295,9 +293,9 @@ export const ServiceRequestForm = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {priorityOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          <span className={option.color}>{option.label}</span>
+                      {priorities.map((priority) => (
+                        <SelectItem key={priority.config_key} value={priority.config_key}>
+                          <ITSMBadge type="priority" value={priority.config_key} />
                         </SelectItem>
                       ))}
                     </SelectContent>
