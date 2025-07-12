@@ -168,7 +168,7 @@ export function UserProfile() {
                     Administrateur MSP
                   </Badge>
                 )}
-                {sessionContext?.current_team_id && (
+                {(sessionContext?.current_team_id || sessionContext?.current_organization_id) && (
                   <Badge variant="outline">Équipe Active</Badge>
                 )}
               </div>

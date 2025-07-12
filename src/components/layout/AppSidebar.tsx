@@ -138,7 +138,7 @@ export function AppSidebar() {
     const loadSidebarConfig = async () => {
       try {
         // Récupérer la configuration depuis app_settings
-        const teamId = sessionContext?.current_team_id || null;
+        const teamId = sessionContext?.current_team_id || sessionContext?.current_organization_id || null;
         const config = await getSetting(teamId, 'ui', 'sidebar_config');
         
         if (config) {
@@ -149,8 +149,10 @@ export function AppSidebar() {
       }
     };
 
-    loadSidebarConfig();
-  }, [sessionContext, getSetting]);
+    if (sessionContext?.is_msp || sessionContext?.current_team_id) {
+      loadSidebarConfig();
+    }
+  }, [sessionContext?.is_msp, sessionContext?.current_team_id, sessionContext?.current_organization_id, getSetting]);
 
   const isActive = (path: string) => currentPath === path;
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
@@ -247,9 +249,12 @@ export function AppSidebar() {
                   {sessionContext.is_msp ? 'Mode MSP' : 'Mode Équipe'}
                 </span>
               </div>
-              {sessionContext.current_team_id && (
+              {(sessionContext.current_team_id || sessionContext.current_organization_id) && (
                 <div className="text-xs text-muted-foreground truncate">
-                  Équipe: {sessionContext.current_team_id.slice(0, 8)}...
+                  {sessionContext.current_team_id 
+                    ? `Équipe: ${sessionContext.current_team_id.slice(0, 8)}...` 
+                    : `Org: ${sessionContext.current_organization_id?.slice(0, 8)}...`
+                  }
                 </div>
               )}
             </div>

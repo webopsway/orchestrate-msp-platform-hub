@@ -144,25 +144,32 @@ const Monitoring = () => {
   }, [sessionContext]);
 
   const fetchMonitoringData = async () => {
-    if (!sessionContext?.current_team_id) return;
+    const teamId = sessionContext?.current_team_id;
+    if (!teamId && !sessionContext?.is_msp) return;
 
     try {
       setLoading(true);
       
       // Récupérer les uptime checks
-      const { data: uptimeData, error: uptimeError } = await supabase
-        .from('uptime_checks')
-        .select('*')
-        .eq('team_id', sessionContext.current_team_id);
+      let uptimeQuery = supabase.from('uptime_checks').select('*');
+      
+      if (teamId && !sessionContext?.is_msp) {
+        uptimeQuery = uptimeQuery.eq('team_id', teamId);
+      }
+      
+      const { data: uptimeData, error: uptimeError } = await uptimeQuery;
 
       if (uptimeError) throw uptimeError;
       setUptimeChecks((uptimeData as any) || []);
 
       // Récupérer les notifications
-      const { data: notificationData, error: notificationError } = await supabase
-        .from('notification_transports')
-        .select('*')
-        .eq('team_id', sessionContext.current_team_id);
+      let notificationQuery = supabase.from('notification_transports').select('*');
+      
+      if (teamId && !sessionContext?.is_msp) {
+        notificationQuery = notificationQuery.eq('team_id', teamId);
+      }
+      
+      const { data: notificationData, error: notificationError } = await notificationQuery;
 
       if (notificationError) throw notificationError;
       setNotifications((notificationData as any) || []);
@@ -176,7 +183,8 @@ const Monitoring = () => {
 
   // Removed generateMockMetrics function - using real metrics from database
   const loadRealMetrics = async () => {
-    if (!sessionContext?.current_team_id) return;
+    const teamId = sessionContext?.current_team_id;
+    if (!teamId && !sessionContext?.is_msp) return;
 
     try {
       // Charger les vraies métriques depuis la base de données
@@ -190,13 +198,14 @@ const Monitoring = () => {
   };
 
   const createUptimeCheck = async () => {
-    if (!sessionContext?.current_team_id) return;
+    const teamId = sessionContext?.current_team_id;
+    if (!teamId && !sessionContext?.is_msp) return;
 
     try {
       setLoading(true);
       
       const checkData = {
-        team_id: sessionContext.current_team_id,
+        team_id: teamId || sessionContext?.current_organization_id || '',
         name: newUptimeCheck.name,
         url: newUptimeCheck.url,
         method: newUptimeCheck.method,
@@ -227,13 +236,14 @@ const Monitoring = () => {
   };
 
   const createNotification = async () => {
-    if (!sessionContext?.current_team_id) return;
+    const teamId = sessionContext?.current_team_id;
+    if (!teamId && !sessionContext?.is_msp) return;
 
     try {
       setLoading(true);
       
       const notificationData = {
-        team_id: sessionContext.current_team_id,
+        team_id: teamId || sessionContext?.current_organization_id || '',
         name: newNotification.name,
         type: newNotification.type,
         config: newNotification.config,
@@ -241,7 +251,7 @@ const Monitoring = () => {
       };
       
       const notificationInsert = {
-        team_id: sessionContext.current_team_id,
+        team_id: teamId || sessionContext?.current_organization_id || '',
         channel: newNotification.type,
         config: newNotification.config,
         configured_by: '00000000-0000-0000-0000-000000000000',

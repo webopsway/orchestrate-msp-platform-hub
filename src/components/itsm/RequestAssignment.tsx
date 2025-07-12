@@ -46,23 +46,74 @@ export function RequestAssignment({
     try {
       setLoading(true);
       
-      const { data: orgMembers, error: orgError } = await supabase
-        .from('organization_memberships')
-        .select(`
-          user_id,
-          profiles:user_id (
-            id,
-            email,
-            first_name,
-            last_name
-          )
-        `)
-        .eq('organization_id', sessionContext?.current_organization_id);
+      const organizationId = sessionContext?.current_organization_id;
+      const teamId = sessionContext?.current_team_id;
+      
+      if (sessionContext?.is_msp) {
+        // MSP admin sees all users if organization context is available
+        if (organizationId) {
+          const { data: orgMembers, error: orgError } = await supabase
+            .from('organization_memberships')
+            .select(`
+              user_id,
+              profiles:user_id (
+                id,
+                email,
+                first_name,
+                last_name
+              )
+            `)
+            .eq('organization_id', organizationId);
 
-      if (orgError) throw orgError;
+          if (orgError) throw orgError;
+          const orgUsers = orgMembers?.map(member => member.profiles).filter(Boolean) || [];
+          setUsers(orgUsers as User[]);
+        } else {
+          // If no organization context, show all users (for MSP admin)
+          const { data: allUsers, error: usersError } = await supabase
+            .from('profiles')
+            .select('id, email, first_name, last_name');
+            
+          if (usersError) throw usersError;
+          setUsers(allUsers as User[]);
+        }
+      } else if (teamId) {
+        // Regular users see team members
+        const { data: teamMembers, error: teamError } = await supabase
+          .from('team_memberships')
+          .select(`
+            user_id,
+            profiles:user_id (
+              id,
+              email,
+              first_name,
+              last_name
+            )
+          `)
+          .eq('team_id', teamId);
 
-      const orgUsers = orgMembers?.map(member => member.profiles).filter(Boolean) || [];
-      setUsers(orgUsers as User[]);
+        if (teamError) throw teamError;
+        const teamUsers = teamMembers?.map(member => member.profiles).filter(Boolean) || [];
+        setUsers(teamUsers as User[]);
+      } else if (organizationId) {
+        // Fallback to organization level
+        const { data: orgMembers, error: orgError } = await supabase
+          .from('organization_memberships')
+          .select(`
+            user_id,
+            profiles:user_id (
+              id,
+              email,
+              first_name,
+              last_name
+            )
+          `)
+          .eq('organization_id', organizationId);
+
+        if (orgError) throw orgError;
+        const orgUsers = orgMembers?.map(member => member.profiles).filter(Boolean) || [];
+        setUsers(orgUsers as User[]);
+      }
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Erreur lors du chargement des utilisateurs');

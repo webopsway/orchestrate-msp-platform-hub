@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useUsers } from "@/hooks/useUsers";
 import { CRUDTable } from "@/components/common/CRUDTable";
-import { SessionTester } from "@/components/SessionTester";
 import { 
   Dialog, 
   DialogContent, 
@@ -326,10 +325,6 @@ const Users = () => {
 
   return (
     <div className="space-y-6">
-      {/* Session Debugging Component */}
-      <div className="mb-6">
-        <SessionTester />
-      </div>
 
       {/* Statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

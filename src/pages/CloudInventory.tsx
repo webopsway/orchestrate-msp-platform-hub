@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSession } from "@/hooks/useSession";
+import { useAuth } from "@/contexts/AuthContext";
 import { cloudService, CloudAssetWithProvider } from "@/services/cloudService";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -81,7 +81,8 @@ interface CloudProvider {
 }
 
 const CloudInventory = () => {
-  const { sessionContext, hasValidContext } = useSession();
+  const { sessionContext } = useAuth();
+  const hasValidContext = sessionContext?.is_msp || sessionContext?.current_team_id;
   const [assets, setAssets] = useState<CloudAssetWithProvider[]>([]);
   const [providers, setProviders] = useState<CloudProvider[]>([]);
   const [loading, setLoading] = useState(true);

@@ -49,7 +49,7 @@ export function UserMenu() {
               {sessionContext?.is_msp && (
                 <Badge variant="default" className="text-xs">MSP Admin</Badge>
               )}
-              {sessionContext?.current_team_id && (
+              {(sessionContext?.current_team_id || sessionContext?.current_organization_id) && (
                 <Badge variant="outline" className="text-xs">Équipe Active</Badge>
               )}
             </div>
