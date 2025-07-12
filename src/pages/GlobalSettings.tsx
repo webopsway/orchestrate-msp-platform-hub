@@ -555,45 +555,217 @@ export default function GlobalSettings() {
         </TabsContent>
 
         <TabsContent value="namespaces" className="space-y-6">
-          <h2 className="text-2xl font-semibold">Namespaces Disponibles</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold">Namespaces Disponibles</h2>
+            {selectedNamespace && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSelectedNamespace('');
+                  setSelectedKey('');
+                }}
+              >
+                <X className="mr-2 h-4 w-4" />
+                Retour aux namespaces
+              </Button>
+            )}
+          </div>
           
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {namespaces.map((namespace) => (
-              <Card key={namespace.namespace}>
+          {!selectedNamespace ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {namespaces.map((namespace) => (
+                <Card key={namespace.namespace} className="hover:shadow-md transition-shadow cursor-pointer">
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Settings className="h-5 w-5" />
+                      <span>{namespace.namespace}</span>
+                    </CardTitle>
+                    <CardDescription>
+                      {namespace.setting_count} paramètre{namespace.setting_count > 1 ? 's' : ''}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        {namespace.is_global && (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            <Globe className="mr-1 h-3 w-3" />
+                            Global
+                          </Badge>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedNamespace(namespace.namespace);
+                          fetchKeys(namespace.namespace);
+                        }}
+                      >
+                        Explorer
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <Settings className="h-5 w-5" />
-                    <span>{namespace.namespace}</span>
+                    <Settings className="h-6 w-6" />
+                    <span>Namespace: {selectedNamespace}</span>
                   </CardTitle>
                   <CardDescription>
-                    {namespace.setting_count} paramètre{namespace.setting_count > 1 ? 's' : ''}
+                    Exploration des clés et paramètres du namespace "{selectedNamespace}"
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      {namespace.is_global && (
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                          <Globe className="mr-1 h-3 w-3" />
-                          Global
-                        </Badge>
+              </Card>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Clés Disponibles</CardTitle>
+                    <CardDescription>
+                      Cliquez sur une clé pour voir ses paramètres
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {loading ? (
+                        <div className="text-center py-4">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                          <p className="text-sm text-muted-foreground mt-2">Chargement des clés...</p>
+                        </div>
+                      ) : keys.length > 0 ? (
+                        keys.map((key) => (
+                          <div
+                            key={key.key}
+                            className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                              selectedKey === key.key
+                                ? 'bg-primary/10 border-primary'
+                                : 'hover:bg-muted border-border'
+                            }`}
+                            onClick={() => setSelectedKey(key.key)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium">{key.key}</span>
+                              <div className="flex space-x-1">
+                                {key.has_global && (
+                                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                                    <Globe className="mr-1 h-3 w-3" />
+                                    Global
+                                  </Badge>
+                                )}
+                                {key.has_team && (
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                                    <Users className="mr-1 h-3 w-3" />
+                                    {key.team_count} équipe{key.team_count > 1 ? 's' : ''}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8">
+                          <Settings className="mx-auto h-8 w-8 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground mt-2">
+                            Aucune clé trouvée dans ce namespace
+                          </p>
+                        </div>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedNamespace(namespace.namespace);
-                        fetchKeys(namespace.namespace);
-                      }}
-                    >
-                      Explorer
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Détails des Paramètres</CardTitle>
+                    <CardDescription>
+                      {selectedKey ? `Paramètres pour "${selectedKey}"` : 'Sélectionnez une clé pour voir les détails'}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {selectedKey ? (
+                      <div className="space-y-4">
+                        {settings
+                          .filter(s => s.namespace === selectedNamespace && s.key === selectedKey)
+                          .map((setting) => (
+                            <div
+                              key={`${setting.team_id || 'global'}-${setting.namespace}-${setting.key}`}
+                              className="p-4 border rounded-lg"
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center space-x-2">
+                                  {setting.team_id ? (
+                                    <>
+                                      <Users className="h-4 w-4 text-green-500" />
+                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                        Équipe: {setting.team_id}
+                                      </Badge>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Globe className="h-4 w-4 text-blue-500" />
+                                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                        Global MSP
+                                      </Badge>
+                                    </>
+                                  )}
+                                </div>
+                                <div className="flex space-x-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEditSetting(setting)}
+                                  >
+                                    <Edit3 className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteSetting(setting)}
+                                    className="text-red-600 hover:text-red-700"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                              <div className="bg-muted p-3 rounded text-sm font-mono">
+                                <pre className="whitespace-pre-wrap text-xs">{formatValue(setting.value)}</pre>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-2">
+                                Créé le {format(new Date(setting.created_at), 'dd/MM/yyyy à HH:mm', { locale: fr })}
+                                {setting.updated_at !== setting.created_at && (
+                                  <> • Modifié le {format(new Date(setting.updated_at), 'dd/MM/yyyy à HH:mm', { locale: fr })}</>
+                                )}
+                              </p>
+                            </div>
+                          ))}
+                        {settings.filter(s => s.namespace === selectedNamespace && s.key === selectedKey).length === 0 && (
+                          <div className="text-center py-8">
+                            <AlertTriangle className="mx-auto h-8 w-8 text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground mt-2">
+                              Aucun paramètre trouvé pour cette clé
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Settings className="mx-auto h-8 w-8 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Sélectionnez une clé pour voir ses paramètres
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="teams" className="space-y-6">
