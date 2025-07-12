@@ -1,5 +1,4 @@
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 export interface SessionContext {
   current_organization_id?: string;
@@ -52,10 +51,10 @@ class SessionService {
 
   // Check if user has required context
   hasValidContext(): boolean {
-    return !!(this.sessionContext?.current_team_id && this.sessionContext?.current_organization_id);
+    return !!(this.userProfile?.is_msp_admin || (this.sessionContext?.current_team_id && this.sessionContext?.current_organization_id));
   }
 
-  // Initialize session for authenticated user
+  // Initialize session for authenticated user using only Supabase auth
   async initializeSession(organizationId?: string, teamId?: string): Promise<boolean> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -63,6 +62,8 @@ class SessionService {
         this.clearSession();
         return false;
       }
+
+      console.log('Initializing session for user:', user.id);
 
       // Load user profile
       const { data: profile, error: profileError } = await supabase
@@ -78,50 +79,16 @@ class SessionService {
       }
 
       this.userProfile = profile;
+      console.log('User profile loaded:', profile);
 
-      // Try to get existing session from database first (more reliable)
-      console.log('Loading session for user:', user.id);
-      const { data: existingSession, error: sessionError } = await supabase
-        .from('user_sessions')
-        .select('current_organization_id, current_team_id, is_msp, expires_at')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      // Create session context based on user profile
+      this.sessionContext = {
+        current_organization_id: organizationId || profile.default_organization_id,
+        current_team_id: teamId || profile.default_team_id,
+        is_msp: profile.is_msp_admin || false
+      };
 
-      console.log('Existing session data:', existingSession, 'Error:', sessionError);
-
-      if (existingSession && new Date(existingSession.expires_at) > new Date()) {
-        // Session is valid
-        this.sessionContext = existingSession;
-        console.log('Using existing valid session:', this.sessionContext);
-      } else {
-        // Try to initialize session with edge function as fallback
-        console.log('No valid session found, trying edge function...');
-        const { data, error } = await supabase.functions.invoke('init-user-session', {
-          body: {
-            organization_id: organizationId || profile.default_organization_id,
-            team_id: teamId || profile.default_team_id
-          }
-        });
-
-        if (error || !data?.session_context) {
-          console.error('Edge function failed:', error);
-          // As last resort, create a basic session context for MSP admin
-          if (profile.is_msp_admin && profile.default_organization_id && profile.default_team_id) {
-            this.sessionContext = {
-              current_organization_id: profile.default_organization_id,
-              current_team_id: profile.default_team_id,
-              is_msp: true
-            };
-            console.log('Created fallback session for MSP admin:', this.sessionContext);
-          } else {
-            this.clearSession();
-            return false;
-          }
-        } else {
-          this.sessionContext = data.session_context;
-        }
-      }
-
+      console.log('Session context created:', this.sessionContext);
       this.notifyListeners();
       return true;
     } catch (error) {
@@ -143,22 +110,20 @@ class SessionService {
     return this.userProfile?.is_msp_admin === true;
   }
 
-  // Get current team ID with validation
+  // Get current team ID - for MSP admin, always return their default team
   getCurrentTeamId(): string | null {
-    if (!this.sessionContext?.current_team_id) {
-      toast.error('Aucune équipe sélectionnée');
-      return null;
+    if (this.userProfile?.is_msp_admin) {
+      return this.userProfile.default_team_id || null;
     }
-    return this.sessionContext.current_team_id;
+    return this.sessionContext?.current_team_id || null;
   }
 
-  // Get current organization ID with validation
+  // Get current organization ID - for MSP admin, always return their default org
   getCurrentOrganizationId(): string | null {
-    if (!this.sessionContext?.current_organization_id) {
-      toast.error('Aucune organisation sélectionnée');
-      return null;
+    if (this.userProfile?.is_msp_admin) {
+      return this.userProfile.default_organization_id || null;
     }
-    return this.sessionContext.current_organization_id;
+    return this.sessionContext?.current_organization_id || null;
   }
 
   // Switch to different team/organization

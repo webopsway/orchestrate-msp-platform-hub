@@ -206,11 +206,11 @@ export function useUsers(): UseUsersReturn {
 
   useEffect(() => {
     console.log('useUsers useEffect - sessionContext:', sessionContext);
-    // Pour les MSP admin, charger les utilisateurs même sans team sélectionnée
-    if (sessionContext?.current_team_id || sessionContext?.is_msp) {
+    // Charger les utilisateurs si l'utilisateur est MSP admin ou a une session valide
+    if (sessionContext?.is_msp || sessionContext?.current_team_id) {
       loadUsers();
     }
-  }, [loadUsers, sessionContext?.current_team_id, sessionContext?.is_msp]);
+  }, [loadUsers, sessionContext?.is_msp, sessionContext?.current_team_id]);
 
   return {
     users,
