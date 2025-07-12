@@ -17,8 +17,6 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { ITSMConfigDialog } from '@/components/itsm/ITSMConfigDialog';
-import { ITSMConfigManager } from '@/components/itsm/ITSMConfigManager';
 import { useOrganizationsAndTeams } from '@/hooks/useOrganizationsAndTeams';
 
 export default function GlobalSettings() {
@@ -542,16 +540,19 @@ export default function GlobalSettings() {
                     }
                   </DialogDescription>
                 </DialogHeader>
-                <ITSMConfigDialog 
-                  teamId={configLevel === 'team' ? selectedTeam : selectedOrganization} 
-                />
+                <div className="p-4 text-center text-muted-foreground">
+                  Module Configuration ITSM supprimé
+                </div>
               </DialogContent>
             </Dialog>
           )}
         </TabsContent>
 
         <TabsContent value="itsm-dynamic" className="space-y-6">
-          <ITSMConfigManager />
+          <div className="p-8 text-center text-muted-foreground">
+            <h3 className="text-lg font-medium mb-2">Module Configuration ITSM supprimé</h3>
+            <p>Ce module a été complètement supprimé du système.</p>
+          </div>
         </TabsContent>
 
         <TabsContent value="namespaces" className="space-y-6">

@@ -52,7 +52,10 @@ import {
 import { RequestAssignment } from "@/components/itsm/RequestAssignment";
 import { SLAStatusBadge } from "@/components/itsm/SLAStatusBadge";
 import { ITSMBadge } from "@/components/itsm";
-import { useSLATracking } from "@/hooks/useITSMConfig";
+// Temporary hook placeholder - to be replaced
+const useSLATracking = (teamId: string) => {
+  return { data: [], isLoading: false, error: null };
+};
 import { toast } from "sonner";
 
 interface ITSMItem {

@@ -2,7 +2,7 @@ export { useIncidents } from "./useIncidents";
 export { useChanges } from "./useChanges";
 export * from "./useGlobalITSMConfig";
 export * from "./useITSMColors";
-export * from "./useITSMConfigurationData";
+
 
 // Export du nouveau système de configuration dynamique avec préfixes pour éviter les conflits
 export {

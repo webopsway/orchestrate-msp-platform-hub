@@ -2,7 +2,60 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Clock, AlertTriangle, CheckCircle, XCircle, TrendingUp } from 'lucide-react';
-import { SLATracking, getSLAStatus } from '@/hooks/useITSMConfig';
+// Types SLA temporaires - à remplacer par une nouvelle implémentation
+interface SLATracking {
+  response_due_at: string;
+  resolution_due_at: string;
+  escalation_due_at?: string;
+  first_response_at?: string;
+  resolved_at?: string;
+  is_escalated: boolean;
+  response_sla_breached: boolean;
+  resolution_sla_breached: boolean;
+  sla_policy?: {
+    name: string;
+    response_time_hours: number;
+    resolution_time_hours: number;
+  };
+}
+
+const getSLAStatus = (tracking?: SLATracking) => {
+  if (!tracking) return { status: 'unknown', label: 'Aucun SLA', color: '#6b7280' };
+  
+  if (tracking.resolved_at) {
+    if (tracking.response_sla_breached || tracking.resolution_sla_breached) {
+      return { status: 'resolved_late', label: 'Résolu en retard', color: '#f59e0b' };
+    }
+    return { status: 'resolved_on_time', label: 'Résolu à temps', color: '#10b981' };
+  }
+  
+  if (tracking.resolution_sla_breached) {
+    return { status: 'breached', label: 'SLA dépassé', color: '#ef4444' };
+  }
+  
+  if (tracking.response_sla_breached) {
+    return { status: 'response_breached', label: 'Réponse en retard', color: '#f59e0b' };
+  }
+  
+  if (tracking.is_escalated) {
+    return { status: 'escalated', label: 'Escaladé', color: '#8b5cf6' };
+  }
+  
+  // Vérifier si on approche de la limite
+  const now = new Date();
+  const nextDeadline = tracking.first_response_at 
+    ? new Date(tracking.resolution_due_at)
+    : new Date(tracking.response_due_at);
+  
+  const timeLeft = nextDeadline.getTime() - now.getTime();
+  const hoursLeft = timeLeft / (1000 * 60 * 60);
+  
+  if (hoursLeft < 2) {
+    return { status: 'at_risk', label: 'À risque', color: '#f59e0b' };
+  }
+  
+  return { status: 'on_track', label: 'Dans les délais', color: '#10b981' };
+};
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
