@@ -1,19 +1,14 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { useIncidents, Incident } from "@/hooks/useIncidents";
 import { 
   PageHeader, 
-  DataGrid,
-  CreateDialog,
-  EditDialog,
-  DeleteDialog,
-  ActionButtons
+  DataGrid
 } from "@/components/common";
-import { CommentsSection } from "@/components/itsm/CommentsSection";
-import { IncidentDetailView } from "@/components/itsm/IncidentDetailView";
 import { IncidentAssignment } from "@/components/itsm/IncidentAssignment";
-import { QuickStatusUpdate } from "@/components/itsm/QuickStatusUpdate";
-import { useITSMCrud } from "@/hooks/useITSMCrud";
+import { IncidentStatusUpdate } from "@/components/itsm/IncidentStatusUpdate";
+import { IncidentDetailView } from "@/components/itsm/IncidentDetailView";
+import { IncidentForm } from "@/components/forms/IncidentForm";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,175 +22,105 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   AlertTriangle, 
   Plus, 
-  Search, 
+  Search,
   User,
   Calendar,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Info,
   Eye,
   Edit,
   Trash2,
-  MessageSquare,
+  CheckCircle,
+  AlertCircle,
+  Info,
   Shield
 } from "lucide-react";
 import { toast } from "sonner";
 
-interface ITSMIncident {
-  id: string;
-  title: string;
-  description: string;
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
-  assigned_to?: string;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-  resolved_at?: string;
-  metadata?: any;
-  created_by_profile?: {
-    id: string;
-    email: string;
-    first_name?: string;
-    last_name?: string;
-  };
-}
-
 const ITSMIncidents = () => {
   const { user, userProfile } = useAuth();
-  const [incidents, setIncidents] = useState<ITSMIncident[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { 
+    incidents, 
+    loading, 
+    createIncident, 
+    updateIncident, 
+    deleteIncident 
+  } = useIncidents();
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
-  const fetchIncidents = useCallback(async () => {
-    if (!user) {
-      console.log('No user available, skipping incidents load');
-      setIncidents([]);
-      setLoading(false);
-      return;
+  const getRequesterDisplayName = useCallback((incident: Incident) => {
+    const profile = incident.created_by_profile;
+    if (!profile) return "N/A";
+    
+    if (profile.first_name || profile.last_name) {
+      return `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
     }
-
-    try {
-      setLoading(true);
-      
-      console.log('🔍 Debug ITSMIncidents.fetchIncidents:');
-      console.log('User:', user.id);
-      console.log('UserProfile:', userProfile);
-      console.log('Is MSP Admin:', userProfile?.is_msp_admin);
-      console.log('Default Team ID:', userProfile?.default_team_id);
-
-      let query = supabase
-        .from('itsm_incidents')
-        .select(`
-          *,
-          created_by_profile:profiles!created_by (
-            id,
-            email,
-            first_name,
-            last_name
-          )
-        `);
-
-      // Filter by team if not MSP admin
-      if (!userProfile?.is_msp_admin && userProfile?.default_team_id) {
-        console.log('🔍 Filtrage par équipe:', userProfile.default_team_id);
-        query = query.eq('team_id', userProfile.default_team_id);
-      } else if (userProfile?.is_msp_admin) {
-        console.log('🔍 Admin MSP - pas de filtrage par équipe');
-      } else {
-        console.log('🔍 Pas d\'équipe par défaut et pas admin MSP');
-      }
-
-      const { data, error } = await query.order('created_at', { ascending: false });
-
-      console.log('🔍 Résultat de la requête:');
-      console.log('Data count:', data?.length || 0);
-      console.log('Error:', error);
-      console.log('Sample data:', data?.[0]);
-
-      if (error) {
-        console.error('Error fetching incidents:', error);
-        toast.error('Erreur lors du chargement des incidents');
-        setIncidents([]);
-        return;
-      }
-      
-      setIncidents((data || []) as ITSMIncident[]);
-    } catch (error) {
-      console.error('Error fetching incidents:', error);
-      toast.error('Erreur lors du chargement des incidents');
-      setIncidents([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [user, userProfile]);
-
-  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
-  const [commentsIncident, setCommentsIncident] = useState<ITSMIncident | null>(null);
-  const [isDetailViewOpen, setIsDetailViewOpen] = useState(false);
-  const [detailIncident, setDetailIncident] = useState<ITSMIncident | null>(null);
-  
-  const {
-    selectedItem: selectedIncident,
-    isCreateOpen,
-    isEditOpen,
-    isDeleteOpen,
-    openCreate,
-    openEdit,
-    openDelete,
-    closeAll,
-    handleCreate,
-    handleUpdate,
-    handleDelete
-  } = useITSMCrud<ITSMIncident>({ onRefresh: fetchIncidents });
-
-  const openDetailView = useCallback((incident: ITSMIncident) => {
-    setDetailIncident(incident);
-    setIsDetailViewOpen(true);
+    return profile.email;
   }, []);
 
-  const closeDetailView = useCallback(() => {
-    setIsDetailViewOpen(false);
-    setDetailIncident(null);
+  const openDetail = useCallback((incident: Incident) => {
+    setSelectedIncident(incident);
+    setIsDetailOpen(true);
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      fetchIncidents();
-    } else {
-      setIncidents([]);
-      setLoading(false);
+  const closeDetail = useCallback(() => {
+    setSelectedIncident(null);
+    setIsDetailOpen(false);
+  }, []);
+
+  const openCreate = useCallback(() => {
+    setIsCreateOpen(true);
+  }, []);
+
+  const openEdit = useCallback((incident: Incident) => {
+    setSelectedIncident(incident);
+    setIsEditOpen(true);
+  }, []);
+
+  const openDelete = useCallback((incident: Incident) => {
+    setSelectedIncident(incident);
+    setIsDeleteOpen(true);
+  }, []);
+
+  const closeAll = useCallback(() => {
+    setIsCreateOpen(false);
+    setIsEditOpen(false);
+    setIsDeleteOpen(false);
+    setSelectedIncident(null);
+  }, []);
+
+  const handleCreate = useCallback(async (data: any) => {
+    const success = await createIncident(data);
+    if (success) {
+      closeAll();
     }
-  }, [user, userProfile, fetchIncidents]);
+  }, [createIncident, closeAll]);
 
-  const updateIncidentStatus = useCallback(async (incidentId: string, newStatus: string) => {
-    try {
-      const updateData: any = { status: newStatus };
-      
-      if (newStatus === 'resolved') {
-        updateData.resolved_at = new Date().toISOString();
-      }
-
-      const { error } = await supabase
-        .from('itsm_incidents')
-        .update(updateData)
-        .eq('id', incidentId);
-
-      if (error) throw error;
-
-      toast.success('Statut mis à jour');
-      await fetchIncidents();
-    } catch (error) {
-      console.error('Error updating status:', error);
-      toast.error('Erreur lors de la mise à jour');
+  const handleUpdate = useCallback(async (data: any) => {
+    if (!selectedIncident) return;
+    const success = await updateIncident(selectedIncident.id, data);
+    if (success) {
+      closeAll();
     }
-  }, [fetchIncidents]);
+  }, [selectedIncident, updateIncident, closeAll]);
+
+  const handleDelete = useCallback(async () => {
+    if (!selectedIncident) return;
+    const success = await deleteIncident(selectedIncident.id);
+    if (success) {
+      closeAll();
+    }
+  }, [selectedIncident, deleteIncident, closeAll]);
 
   const getPriorityColor = useCallback((priority: string) => {
     switch (priority) {
@@ -231,16 +156,6 @@ const ITSMIncidents = () => {
       default:
         return <Info className="h-4 w-4" />;
     }
-  }, []);
-
-  const getRequesterDisplayName = useCallback((incident: ITSMIncident) => {
-    const profile = incident.created_by_profile;
-    if (!profile) return "N/A";
-    
-    if (profile.first_name || profile.last_name) {
-      return `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
-    }
-    return profile.email;
   }, []);
 
   const filteredIncidents = useMemo(() => {
@@ -459,7 +374,7 @@ const ITSMIncidents = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <QuickStatusUpdate
+                        <IncidentStatusUpdate
                           incidentId={incident.id}
                           currentStatus={incident.status}
                           onStatusUpdated={() => {}}
@@ -485,7 +400,7 @@ const ITSMIncidents = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => openDetailView(incident)}
+                            onClick={() => openDetail(incident)}
                             title="Voir les détails"
                           >
                             <Eye className="h-4 w-4" />
@@ -517,51 +432,65 @@ const ITSMIncidents = () => {
         </CardContent>
       </Card>
 
-      {/* Dialogs CRUD */}
-      <CreateDialog
-        open={isCreateOpen}
-        onOpenChange={closeAll}
-        title="Créer un incident"
-        description="Créer un nouvel incident de service"
-      >
-        {/* Formulaire de création */}
-      </CreateDialog>
+      {/* Dialog de création */}
+      <Dialog open={isCreateOpen} onOpenChange={closeAll}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Créer un incident</DialogTitle>
+          </DialogHeader>
+          <IncidentForm
+            onSubmit={handleCreate}
+            onCancel={closeAll}
+          />
+        </DialogContent>
+      </Dialog>
 
-      <EditDialog
-        open={isEditOpen}
-        onOpenChange={closeAll}
-        title="Modifier l'incident"
-        description="Modifier les détails de l'incident"
-      >
-        {/* Formulaire d'édition */}
-      </EditDialog>
+      {/* Dialog d'édition */}
+      <Dialog open={isEditOpen} onOpenChange={closeAll}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Modifier l'incident</DialogTitle>
+          </DialogHeader>
+          {selectedIncident && (
+            <IncidentForm
+              initialData={selectedIncident}
+              onSubmit={handleUpdate}
+              onCancel={closeAll}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
-      <DeleteDialog
-        open={isDeleteOpen}
-        onOpenChange={closeAll}
-        title="Supprimer l'incident"
-        description="Êtes-vous sûr de vouloir supprimer cet incident ?"
-        onConfirm={handleDelete}
-      />
+      {/* Dialog de suppression */}
+      <Dialog open={isDeleteOpen} onOpenChange={closeAll}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer l'incident</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p>
+              Êtes-vous sûr de vouloir supprimer l'incident "{selectedIncident?.title}" ?
+              Cette action est irréversible.
+            </p>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={closeAll}>
+                Annuler
+              </Button>
+              <Button variant="destructive" onClick={handleDelete}>
+                Supprimer
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Vue détaillée */}
-      {detailIncident && (
+      {selectedIncident && (
         <IncidentDetailView
-          incidentId={detailIncident.id}
-          isOpen={isDetailViewOpen}
-          onClose={closeDetailView}
+          incidentId={selectedIncident.id}
+          isOpen={isDetailOpen}
+          onClose={closeDetail}
           onIncidentUpdated={() => {}}
-        />
-      )}
-
-      {/* Section commentaires */}
-      {commentsIncident && (
-        <CommentsSection
-          isOpen={isCommentsOpen}
-          onClose={() => setIsCommentsOpen(false)}
-          entityId={commentsIncident.id}
-          entityType="incident"
-          title={`Commentaires - ${commentsIncident.title}`}
         />
       )}
     </div>

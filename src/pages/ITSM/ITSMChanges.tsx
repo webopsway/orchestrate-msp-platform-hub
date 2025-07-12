@@ -1,17 +1,14 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { useChanges, Change } from "@/hooks/useChanges";
 import { 
   PageHeader, 
-  DataGrid,
-  CreateDialog,
-  EditDialog,
-  DeleteDialog,
-  DetailDialog
+  DataGrid
 } from "@/components/common";
-import { CommentsSection } from "@/components/itsm/CommentsSection";
 import { ChangeAssignment } from "@/components/itsm/ChangeAssignment";
 import { ChangeStatusUpdate } from "@/components/itsm/ChangeStatusUpdate";
+import { ChangeDetailView } from "@/components/itsm/ChangeDetailView";
+import { ChangeForm } from "@/components/forms/ChangeForm";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,159 +22,105 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   FileText, 
   Plus, 
-  Search, 
+  Search,
   User,
   Calendar,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Info,
   Eye,
   Edit,
   Trash2,
-  MessageSquare,
+  CheckCircle,
+  AlertCircle,
+  Info,
   Shield
 } from "lucide-react";
-import { useITSMCrud } from "@/hooks/useITSMCrud";
 import { toast } from "sonner";
-
-interface ITSMChange {
-  id: string;
-  title: string;
-  description: string;
-  change_type: string;
-  status: 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'implemented' | 'failed';
-  requested_by: string;
-  approved_by?: string;
-  assigned_to?: string;
-  created_at: string;
-  updated_at: string;
-  scheduled_date?: string;
-  metadata?: any;
-  requested_by_profile?: {
-    id: string;
-    email: string;
-    first_name?: string;
-    last_name?: string;
-  };
-}
 
 const ITSMChanges = () => {
   const { user, userProfile } = useAuth();
-  const [changes, setChanges] = useState<ITSMChange[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { 
+    changes, 
+    loading, 
+    createChange, 
+    updateChange, 
+    deleteChange 
+  } = useChanges();
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [selectedChange, setSelectedChange] = useState<Change | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
-  const fetchChanges = useCallback(async () => {
-    if (!user) {
-      console.log('No user available, skipping changes load');
-      setChanges([]);
-      setLoading(false);
-      return;
+  const getRequesterDisplayName = useCallback((change: Change) => {
+    const profile = change.requested_by_profile;
+    if (!profile) return "N/A";
+    
+    if (profile.first_name || profile.last_name) {
+      return `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
     }
+    return profile.email;
+  }, []);
 
-    try {
-      setLoading(true);
-      
-      console.log('🔍 Debug ITSMChanges.fetchChanges:');
-      console.log('User:', user.id);
-      console.log('UserProfile:', userProfile);
-      console.log('Is MSP Admin:', userProfile?.is_msp_admin);
-      console.log('Default Team ID:', userProfile?.default_team_id);
+  const openDetail = useCallback((change: Change) => {
+    setSelectedChange(change);
+    setIsDetailOpen(true);
+  }, []);
 
-      let query = supabase
-        .from('itsm_change_requests')
-        .select(`
-          *,
-          requested_by_profile:profiles!requested_by (
-            id,
-            email,
-            first_name,
-            last_name
-          )
-        `);
+  const closeDetail = useCallback(() => {
+    setSelectedChange(null);
+    setIsDetailOpen(false);
+  }, []);
 
-      // Filter by team if not MSP admin
-      if (!userProfile?.is_msp_admin && userProfile?.default_team_id) {
-        console.log('🔍 Filtrage par équipe:', userProfile.default_team_id);
-        query = query.eq('team_id', userProfile.default_team_id);
-      } else if (userProfile?.is_msp_admin) {
-        console.log('🔍 Admin MSP - pas de filtrage par équipe');
-      } else {
-        console.log('🔍 Pas d\'équipe par défaut et pas admin MSP');
-      }
+  const openCreate = useCallback(() => {
+    setIsCreateOpen(true);
+  }, []);
 
-      const { data, error } = await query.order('created_at', { ascending: false });
+  const openEdit = useCallback((change: Change) => {
+    setSelectedChange(change);
+    setIsEditOpen(true);
+  }, []);
 
-      console.log('🔍 Résultat de la requête:');
-      console.log('Data count:', data?.length || 0);
-      console.log('Error:', error);
-      console.log('Sample data:', data?.[0]);
+  const openDelete = useCallback((change: Change) => {
+    setSelectedChange(change);
+    setIsDeleteOpen(true);
+  }, []);
 
-      if (error) {
-        console.error('Error fetching changes:', error);
-        toast.error('Erreur lors du chargement des changements');
-        setChanges([]);
-        return;
-      }
-      
-      setChanges((data || []) as ITSMChange[]);
-    } catch (error) {
-      console.error('Error fetching changes:', error);
-      toast.error('Erreur lors du chargement des changements');
-      setChanges([]);
-    } finally {
-      setLoading(false);
+  const closeAll = useCallback(() => {
+    setIsCreateOpen(false);
+    setIsEditOpen(false);
+    setIsDeleteOpen(false);
+    setSelectedChange(null);
+  }, []);
+
+  const handleCreate = useCallback(async (data: any) => {
+    const success = await createChange(data);
+    if (success) {
+      closeAll();
     }
-  }, [user, userProfile]);
+  }, [createChange, closeAll]);
 
-  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
-  const [commentsChange, setCommentsChange] = useState<ITSMChange | null>(null);
-
-  const {
-    selectedItem: selectedChange,
-    isCreateOpen,
-    isEditOpen,
-    isDeleteOpen,
-    openCreate,
-    openEdit,
-    openDelete,
-    closeAll,
-    handleCreate,
-    handleUpdate,
-    handleDelete
-  } = useITSMCrud<ITSMChange>({ onRefresh: fetchChanges });
-
-  useEffect(() => {
-    if (user) {
-      fetchChanges();
-    } else {
-      setChanges([]);
-      setLoading(false);
+  const handleUpdate = useCallback(async (data: any) => {
+    if (!selectedChange) return;
+    const success = await updateChange(selectedChange.id, data);
+    if (success) {
+      closeAll();
     }
-  }, [user, userProfile, fetchChanges]);
+  }, [selectedChange, updateChange, closeAll]);
 
-  const updateChangeStatus = useCallback(async (changeId: string, newStatus: string) => {
-    try {
-      const { error } = await supabase
-        .from('itsm_change_requests')
-        .update({ status: newStatus })
-        .eq('id', changeId);
-
-      if (error) throw error;
-
-      toast.success('Statut mis à jour');
-      await fetchChanges();
-    } catch (error) {
-      console.error('Error updating status:', error);
-      toast.error('Erreur lors de la mise à jour');
+  const handleDelete = useCallback(async () => {
+    if (!selectedChange) return;
+    const success = await deleteChange(selectedChange.id);
+    if (success) {
+      closeAll();
     }
-  }, [fetchChanges]);
+  }, [selectedChange, deleteChange, closeAll]);
 
   const getStatusColor = useCallback((status: string) => {
     switch (status) {
@@ -203,7 +146,7 @@ const ITSMChanges = () => {
         return <CheckCircle className="h-4 w-4" />;
       case "failed":
       case "rejected":
-        return <XCircle className="h-4 w-4" />;
+        return <AlertCircle className="h-4 w-4" />;
       case "approved":
         return <CheckCircle className="h-4 w-4" />;
       case "pending_approval":
@@ -211,16 +154,6 @@ const ITSMChanges = () => {
       default:
         return <Info className="h-4 w-4" />;
     }
-  }, []);
-
-  const getRequesterDisplayName = useCallback((change: ITSMChange) => {
-    const profile = change.requested_by_profile;
-    if (!profile) return "N/A";
-    
-    if (profile.first_name || profile.last_name) {
-      return `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
-    }
-    return profile.email;
   }, []);
 
   const filteredChanges = useMemo(() => {
@@ -466,6 +399,14 @@ const ITSMChanges = () => {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => openDetail(change)}
+                            title="Voir les détails"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => openEdit(change)}
                             title="Modifier"
                           >
@@ -490,41 +431,65 @@ const ITSMChanges = () => {
         </CardContent>
       </Card>
 
-      {/* Dialogs CRUD */}
-      <CreateDialog
-        open={isCreateOpen}
-        onOpenChange={closeAll}
-        title="Créer un changement"
-        description="Créer une nouvelle demande de changement"
-      >
-        {/* Formulaire de création */}
-      </CreateDialog>
+      {/* Dialog de création */}
+      <Dialog open={isCreateOpen} onOpenChange={closeAll}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Créer un changement</DialogTitle>
+          </DialogHeader>
+          <ChangeForm
+            onSubmit={handleCreate}
+            onCancel={closeAll}
+          />
+        </DialogContent>
+      </Dialog>
 
-      <EditDialog
-        open={isEditOpen}
-        onOpenChange={closeAll}
-        title="Modifier le changement"
-        description="Modifier les détails du changement"
-      >
-        {/* Formulaire d'édition */}
-      </EditDialog>
+      {/* Dialog d'édition */}
+      <Dialog open={isEditOpen} onOpenChange={closeAll}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Modifier le changement</DialogTitle>
+          </DialogHeader>
+          {selectedChange && (
+            <ChangeForm
+              initialData={selectedChange}
+              onSubmit={handleUpdate}
+              onCancel={closeAll}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
-      <DeleteDialog
-        open={isDeleteOpen}
-        onOpenChange={closeAll}
-        title="Supprimer le changement"
-        description="Êtes-vous sûr de vouloir supprimer ce changement ?"
-        onConfirm={handleDelete}
-      />
+      {/* Dialog de suppression */}
+      <Dialog open={isDeleteOpen} onOpenChange={closeAll}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer le changement</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p>
+              Êtes-vous sûr de vouloir supprimer le changement "{selectedChange?.title}" ?
+              Cette action est irréversible.
+            </p>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={closeAll}>
+                Annuler
+              </Button>
+              <Button variant="destructive" onClick={handleDelete}>
+                Supprimer
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-      {/* Section commentaires */}
-      {commentsChange && (
-        <CommentsSection
-          isOpen={isCommentsOpen}
-          onClose={() => setIsCommentsOpen(false)}
-          entityId={commentsChange.id}
-          entityType="change"
-          title={`Commentaires - ${commentsChange.title}`}
+      {/* Vue détaillée */}
+      {selectedChange && (
+        <ChangeDetailView
+          changeId={selectedChange.id}
+          isOpen={isDetailOpen}
+          onClose={closeDetail}
+          onChangeUpdated={() => {}}
         />
       )}
     </div>
