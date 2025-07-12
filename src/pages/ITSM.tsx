@@ -446,16 +446,6 @@ const ITSM = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {item.assigned_to ? (
-                          <div className="flex items-center space-x-2">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">{item.assigned_to}</span>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">Non assigné</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
                         <RequestAssignment
                           requestId={item.id}
                           currentAssignee={item.assigned_to}
