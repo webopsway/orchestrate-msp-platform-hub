@@ -1,24 +1,22 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { AlertTriangle, Calendar, User, Clock } from "lucide-react";
-import type { Incident } from "@/types/incident";
+import { FileText, Calendar, User, Clock } from "lucide-react";
+import type { Change } from "@/types/change";
 
-interface IncidentDetailViewProps {
-  incident: Incident;
+interface ChangeDetailViewProps {
+  change: Change;
 }
 
-export function IncidentDetailView({ incident }: IncidentDetailViewProps) {
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "critical":
+export function ChangeDetailView({ change }: ChangeDetailViewProps) {
+  const getChangeTypeColor = (changeType: string) => {
+    switch (changeType) {
+      case "emergency":
         return "destructive";
-      case "high":
+      case "standard":
         return "default";
-      case "medium":
+      case "normal":
         return "secondary";
-      case "low":
-        return "outline";
       default:
         return "outline";
     }
@@ -26,13 +24,17 @@ export function IncidentDetailView({ incident }: IncidentDetailViewProps) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "resolved":
-      case "closed":
+      case "implemented":
         return "default";
-      case "in_progress":
+      case "approved":
         return "secondary";
-      case "open":
+      case "pending_approval":
         return "outline";
+      case "draft":
+        return "outline";
+      case "failed":
+      case "rejected":
+        return "destructive";
       default:
         return "outline";
     }
@@ -53,38 +55,48 @@ export function IncidentDetailView({ incident }: IncidentDetailViewProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" />
-            Détails de l'incident
+            <FileText className="h-5 w-5" />
+            Détails du changement
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h3 className="font-semibold text-lg mb-2">{incident.title}</h3>
-              <p className="text-muted-foreground">{incident.description}</p>
+              <h3 className="font-semibold text-lg mb-2">{change.title}</h3>
+              <p className="text-muted-foreground">{change.description}</p>
             </div>
             
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Priorité:</span>
-                <Badge variant={getPriorityColor(incident.priority)}>
-                  {incident.priority}
+                <span className="text-sm font-medium">Type:</span>
+                <Badge variant={getChangeTypeColor(change.change_type)}>
+                  {change.change_type}
                 </Badge>
               </div>
               
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Statut:</span>
-                <Badge variant={getStatusColor(incident.status)}>
-                  {incident.status}
+                <Badge variant={getStatusColor(change.status)}>
+                  {change.status.replace('_', ' ')}
                 </Badge>
               </div>
               
-              {incident.assigned_to && (
+              {change.assigned_to && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Assigné à:</span>
                   <div className="flex items-center gap-1">
                     <User className="h-4 w-4" />
-                    <span className="text-sm">{incident.assigned_to}</span>
+                    <span className="text-sm">{change.assigned_to}</span>
+                  </div>
+                </div>
+              )}
+              
+              {change.scheduled_date && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Date prévue:</span>
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    <span className="text-sm">{formatDate(change.scheduled_date)}</span>
                   </div>
                 </div>
               )}
@@ -96,16 +108,16 @@ export function IncidentDetailView({ incident }: IncidentDetailViewProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>Créé le: {formatDate(incident.created_at)}</span>
+              <span>Créé le: {formatDate(change.created_at)}</span>
             </div>
             
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
-              <span>Mis à jour le: {formatDate(incident.updated_at)}</span>
+              <span>Mis à jour le: {formatDate(change.updated_at)}</span>
             </div>
           </div>
         </CardContent>
       </Card>
     </div>
   );
-}
+} 
