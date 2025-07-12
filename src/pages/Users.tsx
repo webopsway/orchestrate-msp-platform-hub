@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUsers } from "@/hooks/useUsers";
 import { CRUDTable } from "@/components/common/CRUDTable";
 import { SessionTester } from "@/components/SessionTester";
@@ -34,13 +34,14 @@ import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { UserForm } from "@/components/forms/UserForm";
 import type { User } from "@/hooks/useUsers";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Role {
   id: string;
   name: string;
   display_name: string;
-  permissions: string[];
-  is_system: boolean;
+  permissions?: string[];
+  is_system?: boolean;
 }
 
 const Users = () => {
@@ -56,12 +57,36 @@ const Users = () => {
     clearError 
   } = useUsers();
 
-  const [roles] = useState<Role[]>([
-    { id: '1', name: 'admin', display_name: 'Administrateur', permissions: [], is_system: true },
-    { id: '2', name: 'manager', display_name: 'Manager', permissions: [], is_system: true },
-    { id: '3', name: 'user', display_name: 'Utilisateur', permissions: [], is_system: true },
-    { id: '4', name: 'technician', display_name: 'Technicien', permissions: [], is_system: true }
-  ]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  
+  // Charger les rôles depuis la base de données
+  useEffect(() => {
+    const loadRoles = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('roles')
+          .select('id, name, display_name')
+          .order('display_name');
+          
+        if (error) throw error;
+        
+        setRoles(data || []);
+      } catch (err) {
+        console.error('Error loading roles:', err);
+        // Fallback vers les rôles par défaut
+        setRoles([
+          { id: '1', name: 'admin', display_name: 'Administrateur' },
+          { id: '2', name: 'manager', display_name: 'Manager' },
+          { id: '3', name: 'user', display_name: 'Utilisateur' },
+          { id: '4', name: 'msp', display_name: 'MSP Admin' },
+          { id: '5', name: 'editor', display_name: 'Éditeur' },
+          { id: '6', name: 'viewer', display_name: 'Visualiseur' }
+        ]);
+      }
+    };
+    
+    loadRoles();
+  }, []);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -78,38 +103,38 @@ const Users = () => {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   // États pour les formulaires
-  const [newUser, setNewUser] = useState({
+  const [editUser, setEditUser] = useState<{
+    email: string;
+    first_name: string;
+    last_name: string;
+    phone: string;
+    role: string;
+    status: "active" | "inactive" | "pending" | "suspended";
+    department: string;
+    position: string;
+  }>({
     email: "",
     first_name: "",
     last_name: "",
     phone: "",
     role: "",
-    department: "",
-    position: ""
-  });
-
-  const [editUser, setEditUser] = useState({
-    email: "",
-    first_name: "",
-    last_name: "",
-    phone: "",
-    role: "",
-    status: "active" as const,
+    status: "active",
     department: "",
     position: ""
   });
 
   const handleCreateUser = async (data: any) => {
+    console.log('handleCreateUser called with:', data);
     const success = await createUser(data);
     if (success) {
       setIsCreateModalOpen(false);
-      resetNewUserForm();
     }
   };
 
   const handleUpdateUser = async (data: any) => {
     if (!selectedUser) return;
     
+    console.log('handleUpdateUser called with:', data);
     const success = await updateUser(selectedUser.id, data);
     if (success) {
       setIsEditModalOpen(false);
@@ -140,18 +165,6 @@ const Users = () => {
     }
   };
 
-  const resetNewUserForm = () => {
-    setNewUser({
-      email: "",
-      first_name: "",
-      last_name: "",
-      phone: "",
-      role: "",
-      department: "",
-      position: ""
-    });
-  };
-
   const resetEditUserForm = () => {
     setEditUser({
       email: "",
@@ -174,7 +187,7 @@ const Users = () => {
       last_name: user.last_name || "",
       phone: user.metadata?.phone || "",
       role: user.metadata?.role || "",
-      status: "active" as const,
+      status: (user.metadata?.status as "active" | "inactive" | "pending" | "suspended") || "active",
       department: user.metadata?.department || "",
       position: user.metadata?.position || ""
     });
@@ -284,74 +297,6 @@ const Users = () => {
     }
   ];
 
-  const userFields = [
-    {
-      key: 'email',
-      label: 'Email',
-      type: 'email' as const,
-      required: true,
-      placeholder: 'utilisateur@example.com'
-    },
-    {
-      key: 'first_name',
-      label: 'Prénom',
-      type: 'text' as const,
-      required: true,
-      placeholder: 'Prénom'
-    },
-    {
-      key: 'last_name',
-      label: 'Nom',
-      type: 'text' as const,
-      required: true,
-      placeholder: 'Nom'
-    },
-    {
-      key: 'phone',
-      label: 'Téléphone',
-      type: 'text' as const,
-      placeholder: '+33 1 23 45 67 89'
-    },
-    {
-      key: 'role',
-      label: 'Rôle',
-      type: 'select' as const,
-      required: true,
-      options: roles.map(role => ({
-        value: role.name,
-        label: role.display_name
-      }))
-    },
-    {
-      key: 'department',
-      label: 'Département',
-      type: 'text' as const,
-      placeholder: 'IT, RH, Finance...'
-    },
-    {
-      key: 'position',
-      label: 'Poste',
-      type: 'text' as const,
-      placeholder: 'Développeur, Manager...'
-    }
-  ];
-
-  const editUserFields = [
-    ...userFields,
-    {
-      key: 'status',
-      label: 'Statut',
-      type: 'select' as const,
-      required: true,
-      options: [
-        { value: 'active', label: 'Actif' },
-        { value: 'inactive', label: 'Inactif' },
-        { value: 'pending', label: 'En attente' },
-        { value: 'suspended', label: 'Suspendu' }
-      ]
-    }
-  ];
-
   const stats = [
     {
       title: "Utilisateurs totaux",
@@ -361,7 +306,7 @@ const Users = () => {
     },
     {
       title: "Actifs",
-      value: users.filter(u => u.metadata?.status === 'active').length.toString(),
+      value: users.filter(u => u.metadata?.status === 'active' || !u.metadata?.status).length.toString(),
       icon: CheckCircle,
       color: "text-green-500"
     },
@@ -604,4 +549,4 @@ const Users = () => {
   );
 };
 
-export default Users; 
+export default Users;

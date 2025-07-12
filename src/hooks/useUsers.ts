@@ -126,15 +126,22 @@ export function useUsers(): UseUsersReturn {
       
       // Fusionner les métadonnées existantes avec les nouvelles
       const existingMetadata = (existingUser?.metadata as any) || {};
-      const incomingMetadata = data.metadata || {};
+      
+      // Construire les nouvelles métadonnées en gérant les deux formats possibles
       const newMetadata = {
         ...existingMetadata,
-        // Ne mettre à jour que les champs fournis et non vides
-        ...(incomingMetadata.phone !== undefined && { phone: incomingMetadata.phone }),
-        ...(incomingMetadata.role !== undefined && { role: incomingMetadata.role }),
-        ...(incomingMetadata.department !== undefined && { department: incomingMetadata.department }),
-        ...(incomingMetadata.position !== undefined && { position: incomingMetadata.position }),
-        ...(incomingMetadata.status !== undefined && { status: incomingMetadata.status }),
+        // Si les données viennent directement (depuis UserForm)
+        ...(data.phone !== undefined && { phone: data.phone }),
+        ...(data.role !== undefined && { role: data.role }),
+        ...(data.department !== undefined && { department: data.department }),
+        ...(data.position !== undefined && { position: data.position }),
+        ...(data.status !== undefined && { status: data.status }),
+        // Si les données viennent via metadata (format alternatif)
+        ...(data.metadata?.phone !== undefined && { phone: data.metadata.phone }),
+        ...(data.metadata?.role !== undefined && { role: data.metadata.role }),
+        ...(data.metadata?.department !== undefined && { department: data.metadata.department }),
+        ...(data.metadata?.position !== undefined && { position: data.metadata.position }),
+        ...(data.metadata?.status !== undefined && { status: data.metadata.status }),
       };
       
       console.log('Metadata merge result:', { existingMetadata, newMetadata });
