@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { IncidentService } from '@/services/incidentService';
-import type { Incident } from '@/types/incident';
+import type { Incident, CreateIncidentData } from '@/types/incident';
 
 // Re-export types for backward compatibility
 export type { Incident } from '@/types/incident';
@@ -32,7 +32,7 @@ export const useIncidents = () => {
   }, [user, userProfile]);
 
   const createIncident = useCallback(async (incidentData: Partial<Incident>) => {
-    const success = await IncidentService.createIncident(incidentData, user, userProfile);
+    const success = await IncidentService.createIncident(incidentData as CreateIncidentData, user, userProfile);
     if (success) {
       await fetchIncidents();
     }

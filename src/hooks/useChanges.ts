@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ChangeService } from '@/services/changeService';
-import type { Change } from '@/types/change';
+import type { Change, CreateChangeData } from '@/types/change';
 
 // Re-export types for backward compatibility
 export type { Change } from '@/types/change';
@@ -32,7 +32,7 @@ export const useChanges = () => {
   }, [user, userProfile]);
 
   const createChange = useCallback(async (changeData: Partial<Change>) => {
-    const success = await ChangeService.createChange(changeData, user, userProfile);
+    const success = await ChangeService.createChange(changeData as CreateChangeData, user, userProfile);
     if (success) {
       await fetchChanges();
     }
