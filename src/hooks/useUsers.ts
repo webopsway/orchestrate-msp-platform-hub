@@ -113,20 +113,40 @@ export function useUsers(): UseUsersReturn {
   }, [loadUsers]);
 
   const updateUser = useCallback(async (id: string, data: any): Promise<boolean> => {
+    console.log('updateUser called with:', { id, data });
     try {
+      // Récupérer l'utilisateur existant pour préserver les métadonnées
+      const { data: existingUser, error: fetchError } = await supabase
+        .from('profiles')
+        .select('metadata')
+        .eq('id', id)
+        .single();
+        
+      if (fetchError) throw fetchError;
+      
+      // Fusionner les métadonnées existantes avec les nouvelles
+      const existingMetadata = (existingUser?.metadata as any) || {};
+      const newMetadata = {
+        ...existingMetadata,
+        // Ne mettre à jour que les champs fournis et non vides
+        ...(data.phone !== undefined && { phone: data.phone }),
+        ...(data.role !== undefined && { role: data.role }),
+        ...(data.department !== undefined && { department: data.department }),
+        ...(data.position !== undefined && { position: data.position }),
+        ...(data.status !== undefined && { status: data.status }),
+      };
+      
+      console.log('Metadata merge result:', { existingMetadata, newMetadata });
+      
       const updateData = {
         email: data.email,
         first_name: data.first_name,
         last_name: data.last_name,
         updated_at: new Date().toISOString(),
-        metadata: {
-          phone: data.phone,
-          role: data.role,
-          department: data.department,
-          position: data.position,
-          status: data.status
-        }
+        metadata: newMetadata
       };
+      
+      console.log('Final updateData:', updateData);
 
       const { error } = await supabase
         .from('profiles')
