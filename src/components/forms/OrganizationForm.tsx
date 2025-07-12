@@ -33,12 +33,21 @@ import { Loader2 } from "lucide-react";
 
 const organizationSchema = z.object({
   name: z.string().min(1, "Le nom est requis"),
-  type: z.enum(["client", "esn", "msp"]),
+  type: z.enum(["client", "esn", "msp"]).optional(),
+  is_msp: z.boolean().optional(),
   description: z.string().optional(),
-  website: z.string().optional(),
+  website: z.string().url("URL invalide").optional().or(z.literal("")),
   email: z.string().email("Email invalide").optional().or(z.literal("")),
   phone: z.string().optional(),
-  is_msp: z.boolean().optional(),
+  street: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  postal_code: z.string().optional(),
+  country: z.string().optional(),
+  subscription_plan: z.string().optional(),
+  industry: z.string().optional(),
+  size: z.string().optional(),
+  contact_person: z.string().optional(),
 });
 
 type OrganizationFormData = z.infer<typeof organizationSchema>;
@@ -83,6 +92,15 @@ export const OrganizationForm = ({
         website: "",
         email: "",
         phone: "",
+        street: "",
+        city: "",
+        state: "",
+        postal_code: "",
+        country: "",
+        subscription_plan: "",
+        industry: "",
+        size: "",
+        contact_person: "",
         is_msp: false,
         ...defaultValues,
       };
@@ -228,6 +246,180 @@ export const OrganizationForm = ({
                   <FormControl>
                     <Input
                       placeholder="https://exemple.com"
+                      disabled={loading}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="street"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Adresse</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="123 Rue de la Paix"
+                        disabled={loading}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ville</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Paris"
+                        disabled={loading}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="state"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>État/Région</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Île-de-France"
+                        disabled={loading}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="postal_code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Code postal</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="75001"
+                        disabled={loading}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="country"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Pays</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="France"
+                      disabled={loading}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="industry"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Secteur d'activité</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value}
+                      disabled={loading}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionnez un secteur" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="technology">Technologie</SelectItem>
+                        <SelectItem value="healthcare">Santé</SelectItem>
+                        <SelectItem value="finance">Finance</SelectItem>
+                        <SelectItem value="education">Éducation</SelectItem>
+                        <SelectItem value="retail">Commerce</SelectItem>
+                        <SelectItem value="manufacturing">Industrie</SelectItem>
+                        <SelectItem value="other">Autre</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="size"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Taille</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value}
+                      disabled={loading}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Taille de l'organisation" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="1-10">1-10 employés</SelectItem>
+                        <SelectItem value="11-50">11-50 employés</SelectItem>
+                        <SelectItem value="51-200">51-200 employés</SelectItem>
+                        <SelectItem value="201-1000">201-1000 employés</SelectItem>
+                        <SelectItem value="1000+">1000+ employés</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="contact_person"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Personne de contact</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Nom de la personne de contact"
                       disabled={loading}
                       {...field}
                     />

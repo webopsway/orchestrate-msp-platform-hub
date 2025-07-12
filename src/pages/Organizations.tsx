@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { CRUDTable } from "@/components/common/CRUDTable";
+import { OrganizationForm } from "@/components/forms/OrganizationForm";
 import { 
   Dialog, 
   DialogContent, 
@@ -76,40 +77,6 @@ const Organizations = () => {
   const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
   const [selectedOrganizations, setSelectedOrganizations] = useState<string[]>([]);
 
-  // États pour les formulaires
-  const [newOrganization, setNewOrganization] = useState({
-    name: "",
-    description: "",
-    website: "",
-    email: "",
-    phone: "",
-    street: "",
-    city: "",
-    state: "",
-    postal_code: "",
-    country: "",
-    industry: "",
-    size: "",
-    contact_person: ""
-  });
-
-  const [editOrganization, setEditOrganization] = useState({
-    name: "",
-    description: "",
-    website: "",
-    email: "",
-    phone: "",
-    street: "",
-    city: "",
-    state: "",
-    postal_code: "",
-    country: "",
-    status: "active" as const,
-    subscription_plan: "",
-    industry: "",
-    size: "",
-    contact_person: ""
-  });
 
   // Filtrer et paginer les organisations côté client pour éviter les re-rendus
   const filteredOrganizations = organizations.filter(org => 
@@ -150,7 +117,6 @@ const Organizations = () => {
     const success = await createOrganization(data);
     if (success) {
       setIsCreateModalOpen(false);
-      resetNewOrgForm();
     }
   };
 
@@ -160,7 +126,6 @@ const Organizations = () => {
     if (success) {
       setIsEditModalOpen(false);
       setSelectedOrganization(null);
-      resetEditOrgForm();
     }
   };
 
@@ -172,64 +137,8 @@ const Organizations = () => {
     }
   };
 
-  const resetNewOrgForm = () => {
-    setNewOrganization({
-      name: "",
-      description: "",
-      website: "",
-      email: "",
-      phone: "",
-      street: "",
-      city: "",
-      state: "",
-      postal_code: "",
-      country: "",
-      industry: "",
-      size: "",
-      contact_person: ""
-    });
-  };
-
-  const resetEditOrgForm = () => {
-    setEditOrganization({
-      name: "",
-      description: "",
-      website: "",
-      email: "",
-      phone: "",
-      street: "",
-      city: "",
-      state: "",
-      postal_code: "",
-      country: "",
-      status: "active",
-      subscription_plan: "",
-      industry: "",
-      size: "",
-      contact_person: ""
-    });
-    setSelectedOrganization(null);
-  };
-
   const openEditModal = (org: Organization) => {
     setSelectedOrganization(org);
-    setEditOrganization({
-      name: org.name,
-      description: org.description || "",
-      website: org.website || "",
-      email: org.email || "",
-      phone: org.phone || "",
-      street: org.address?.street || "",
-      city: org.address?.city || "",
-      state: org.address?.state || "",
-      postal_code: org.address?.postal_code || "",
-      country: org.address?.country || "",
-      status: "active" as const,
-      subscription_plan: org.subscription_plan || "",
-      industry: org.metadata?.industry || "",
-      size: org.metadata?.size || "",
-      contact_person: org.metadata?.contact_person || ""
-    });
     setIsEditModalOpen(true);
   };
 
@@ -389,127 +298,6 @@ const Organizations = () => {
     }
   ];
 
-  const organizationFields = [
-    {
-      key: 'name',
-      label: 'Nom de l\'organisation',
-      type: 'text' as const,
-      required: true,
-      placeholder: 'Nom de l\'organisation'
-    },
-    {
-      key: 'description',
-      label: 'Description',
-      type: 'textarea' as const,
-      placeholder: 'Description de l\'organisation...'
-    },
-    {
-      key: 'website',
-      label: 'Site web',
-      type: 'text' as const,
-      placeholder: 'https://www.example.com'
-    },
-    {
-      key: 'email',
-      label: 'Email de contact',
-      type: 'email' as const,
-      placeholder: 'contact@example.com'
-    },
-    {
-      key: 'phone',
-      label: 'Téléphone',
-      type: 'text' as const,
-      placeholder: '+33 1 23 45 67 89'
-    },
-    {
-      key: 'street',
-      label: 'Adresse',
-      type: 'text' as const,
-      placeholder: '123 Rue de la Paix'
-    },
-    {
-      key: 'city',
-      label: 'Ville',
-      type: 'text' as const,
-      placeholder: 'Paris'
-    },
-    {
-      key: 'state',
-      label: 'État/Région',
-      type: 'text' as const,
-      placeholder: 'Île-de-France'
-    },
-    {
-      key: 'postal_code',
-      label: 'Code postal',
-      type: 'text' as const,
-      placeholder: '75001'
-    },
-    {
-      key: 'country',
-      label: 'Pays',
-      type: 'text' as const,
-      placeholder: 'France'
-    },
-    {
-      key: 'industry',
-      label: 'Secteur d\'activité',
-      type: 'select' as const,
-      options: [
-        { value: 'technology', label: 'Technologie' },
-        { value: 'healthcare', label: 'Santé' },
-        { value: 'finance', label: 'Finance' },
-        { value: 'education', label: 'Éducation' },
-        { value: 'retail', label: 'Commerce' },
-        { value: 'manufacturing', label: 'Industrie' },
-        { value: 'other', label: 'Autre' }
-      ]
-    },
-    {
-      key: 'size',
-      label: 'Taille',
-      type: 'select' as const,
-      options: [
-        { value: '1-10', label: '1-10 employés' },
-        { value: '11-50', label: '11-50 employés' },
-        { value: '51-200', label: '51-200 employés' },
-        { value: '201-1000', label: '201-1000 employés' },
-        { value: '1000+', label: '1000+ employés' }
-      ]
-    },
-    {
-      key: 'contact_person',
-      label: 'Personne de contact',
-      type: 'text' as const,
-      placeholder: 'Nom de la personne de contact'
-    }
-  ];
-
-  const editOrganizationFields = [
-    ...organizationFields,
-    {
-      key: 'status',
-      label: 'Statut',
-      type: 'select' as const,
-      required: true,
-      options: [
-        { value: 'active', label: 'Actif' },
-        { value: 'inactive', label: 'Inactif' },
-        { value: 'pending', label: 'En attente' },
-        { value: 'suspended', label: 'Suspendu' }
-      ]
-    },
-    {
-      key: 'subscription_plan',
-      label: 'Plan d\'abonnement',
-      type: 'select' as const,
-      options: [
-        { value: 'basic', label: 'Basic' },
-        { value: 'professional', label: 'Professional' },
-        { value: 'enterprise', label: 'Enterprise' }
-      ]
-    }
-  ];
 
   const stats = [
     {
@@ -606,7 +394,41 @@ const Organizations = () => {
         ]}
       />
 
-      {/* Utiliser les nouveaux formulaires depuis les pages dédiées */}
+      {/* Formulaire de création */}
+      <OrganizationForm
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
+        onSubmit={handleCreateOrganization}
+        loading={loading}
+        title="Nouvelle organisation"
+      />
+
+      {/* Formulaire d'édition */}
+      <OrganizationForm
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        onSubmit={handleUpdateOrganization}
+        loading={loading}
+        title="Modifier l'organisation"
+        defaultValues={selectedOrganization ? {
+          name: selectedOrganization.name,
+          type: selectedOrganization.type,
+          is_msp: selectedOrganization.is_msp,
+          description: selectedOrganization.description || "",
+          website: selectedOrganization.website || "",
+          email: selectedOrganization.email || "",
+          phone: selectedOrganization.phone || "",
+          street: selectedOrganization.address?.street || "",
+          city: selectedOrganization.address?.city || "",
+          state: selectedOrganization.address?.state || "",
+          postal_code: selectedOrganization.address?.postal_code || "",
+          country: selectedOrganization.address?.country || "",
+          subscription_plan: selectedOrganization.subscription_plan || "",
+          industry: selectedOrganization.metadata?.industry || "",
+          size: selectedOrganization.metadata?.size || "",
+          contact_person: selectedOrganization.metadata?.contact_person || "",
+        } : undefined}
+      />
 
       {/* Modal de visualisation */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
