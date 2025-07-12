@@ -175,8 +175,10 @@ export function useUsers(): UseUsersReturn {
   }, []);
 
   useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
+    if (sessionContext?.current_team_id) {
+      loadUsers();
+    }
+  }, [loadUsers, sessionContext?.current_team_id]);
 
   return {
     users,

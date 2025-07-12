@@ -1,9 +1,7 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { useUsers } from "@/hooks/useUsers";
 import { CRUDTable } from "@/components/common/CRUDTable";
 import { SessionTester } from "@/components/SessionTester";
-// import { CRUDForm } from "@/components/common/CRUDForm";
 import { 
   Dialog, 
   DialogContent, 
@@ -34,26 +32,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
-
-interface User {
-  id: string;
-  team_id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  phone?: string;
-  role: string;
-  status: 'active' | 'inactive' | 'pending' | 'suspended';
-  last_login?: string;
-  created_at: string;
-  updated_at: string;
-  metadata?: {
-    department?: string;
-    position?: string;
-    manager_id?: string;
-    [key: string]: any;
-  };
-}
+import { UserForm } from "@/components/forms/UserForm";
+import type { User } from "@/hooks/useUsers";
 
 interface Role {
   id: string;
@@ -64,11 +44,25 @@ interface Role {
 }
 
 const Users = () => {
-  const { sessionContext } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [totalCount, setTotalCount] = useState(0);
+  const { 
+    users, 
+    loading, 
+    error, 
+    totalCount, 
+    refresh, 
+    createUser, 
+    updateUser, 
+    deleteUser,
+    clearError 
+  } = useUsers();
+
+  const [roles] = useState<Role[]>([
+    { id: '1', name: 'admin', display_name: 'Administrateur', permissions: [], is_system: true },
+    { id: '2', name: 'manager', display_name: 'Manager', permissions: [], is_system: true },
+    { id: '3', name: 'user', display_name: 'Utilisateur', permissions: [], is_system: true },
+    { id: '4', name: 'technician', display_name: 'Technicien', permissions: [], is_system: true }
+  ]);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
@@ -105,192 +99,41 @@ const Users = () => {
     position: ""
   });
 
-  useEffect(() => {
-    fetchData();
-  }, [sessionContext, currentPage, pageSize, searchTerm, filters]);
-
-  const fetchData = async () => {
-    if (!sessionContext?.current_team_id) return;
-
-    try {
-      setLoading(true);
-      
-      // Récupérer les utilisateurs avec pagination
-      let query = supabase
-        .from('profiles')
-        .select('*', { count: 'exact' });
-
-      // Appliquer les filtres
-      if (searchTerm) {
-        query = query.or(`email.ilike.%${searchTerm}%,first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%`);
-      }
-
-      // Skip complex filters to avoid type issues
-      // filters.forEach(filter => {
-      //   if (filter.value) {
-      //     query = query.eq(filter.key, filter.value);
-      //   }
-      // });
-
-      // Pagination
-      const from = (currentPage - 1) * pageSize;
-      const to = from + pageSize - 1;
-      query = query.range(from, to);
-
-      const { data: usersData, error: usersError, count } = await query;
-
-      if (usersError) throw usersError;
-      
-      // Transform data to match interface
-      const transformedUsers = (usersData || []).map(user => ({
-        ...user,
-        team_id: sessionContext?.current_team_id,
-        first_name: user.first_name || '',
-        last_name: user.last_name || '',
-        role: 'user',
-        status: 'active' as const,
-        phone: (user.metadata as any)?.phone || '',
-        metadata: (user.metadata as any) || {},
-        created_at: user.created_at || new Date().toISOString(),
-        updated_at: user.updated_at || new Date().toISOString()
-      }));
-      
-      setUsers(transformedUsers);
-      setTotalCount(count || 0);
-
-      // Récupérer les rôles
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('roles')
-        .select('*');
-
-      if (rolesError) throw rolesError;
-      
-      // Transform data to match interface
-      const transformedRoles = (rolesData || []).map(role => ({
-        ...role,
-        permissions: [],
-        is_system: role.is_system_role || false
-      }));
-      
-      setRoles(transformedRoles);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      toast.error('Erreur lors du chargement des utilisateurs');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createUser = async (data: any) => {
-    if (!sessionContext?.current_team_id) return;
-
-    try {
-      setLoading(true);
-      
-      const userData = {
-        id: crypto.randomUUID(),
-        email: data.email,
-        first_name: data.first_name,
-        last_name: data.last_name,
-        metadata: {
-          phone: data.phone,
-          role: data.role,
-          status: 'pending',
-          department: data.department,
-          position: data.position
-        }
-      };
-      
-      const { data: newUser, error } = await supabase
-        .from('profiles')
-        .insert([userData])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      toast.success('Utilisateur créé avec succès');
+  const handleCreateUser = async (data: any) => {
+    const success = await createUser(data);
+    if (success) {
       setIsCreateModalOpen(false);
-      fetchData();
-    } catch (error) {
-      console.error('Error creating user:', error);
-      toast.error('Erreur lors de la création');
-    } finally {
-      setLoading(false);
+      resetNewUserForm();
     }
   };
 
-  const updateUser = async (data: any) => {
+  const handleUpdateUser = async (data: any) => {
     if (!selectedUser) return;
-
-    try {
-      setLoading(true);
-      
-      const updateData = {
-        email: data.email,
-        first_name: data.first_name,
-        last_name: data.last_name,
-        updated_at: new Date().toISOString(),
-        metadata: {
-          phone: data.phone,
-          role: data.role,
-          status: data.status,
-          department: data.department,
-          position: data.position
-        }
-      };
-
-      const { error } = await supabase
-        .from('profiles')
-        .update(updateData)
-        .eq('id', selectedUser.id);
-
-      if (error) throw error;
-
-      toast.success('Utilisateur mis à jour avec succès');
+    
+    const success = await updateUser(selectedUser.id, data);
+    if (success) {
       setIsEditModalOpen(false);
       setSelectedUser(null);
-      fetchData();
-    } catch (error) {
-      console.error('Error updating user:', error);
-      toast.error('Erreur lors de la mise à jour');
-    } finally {
-      setLoading(false);
+      resetEditUserForm();
     }
   };
 
-  const deleteUser = async (user: User) => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      toast.success('Utilisateur supprimé');
+  const handleDeleteUser = async (user: User) => {
+    const success = await deleteUser(user.id);
+    if (success) {
       setIsDeleteModalOpen(false);
       setSelectedUser(null);
-      fetchData();
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      toast.error('Erreur lors de la suppression');
     }
   };
 
   const bulkDeleteUsers = async () => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .in('id', selectedUsers);
-
-      if (error) throw error;
-
+      for (const userId of selectedUsers) {
+        await deleteUser(userId);
+      }
       toast.success(`${selectedUsers.length} utilisateurs supprimés`);
       setIsBulkActionModalOpen(false);
       setSelectedUsers([]);
-      fetchData();
     } catch (error) {
       console.error('Error bulk deleting users:', error);
       toast.error('Erreur lors de la suppression en masse');
@@ -327,10 +170,10 @@ const Users = () => {
     setSelectedUser(user);
     setEditUser({
       email: user.email,
-      first_name: user.first_name,
-      last_name: user.last_name,
-      phone: user.phone || "",
-      role: user.role,
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+      phone: user.metadata?.phone || "",
+      role: user.metadata?.role || "",
       status: "active" as const,
       department: user.metadata?.department || "",
       position: user.metadata?.position || ""
@@ -377,7 +220,7 @@ const Users = () => {
       filterable: true,
       render: (value: any, row: User) => (
         <div>
-          <p className="font-medium">{`${row.first_name} ${row.last_name}`}</p>
+          <p className="font-medium">{`${row.first_name || ''} ${row.last_name || ''}`}</p>
           <p className="text-sm text-muted-foreground">{row.email}</p>
         </div>
       )
@@ -389,10 +232,11 @@ const Users = () => {
       sortable: true,
       filterable: true,
       render: (value: any, row: User) => {
-        const role = roles.find(r => r.name === row.role);
+        const roleName = row.metadata?.role || 'user';
+        const role = roles.find(r => r.name === roleName);
         return (
           <Badge variant="outline">
-            {role?.display_name || row.role}
+            {role?.display_name || roleName}
           </Badge>
         );
       }
@@ -403,14 +247,17 @@ const Users = () => {
       type: 'custom' as const,
       sortable: true,
       filterable: true,
-      render: (value: any, row: User) => (
-        <div className="flex items-center space-x-2">
-          {getStatusIcon(row.status)}
-          <Badge variant={getStatusColor(row.status)}>
-            {row.status}
-          </Badge>
-        </div>
-      )
+      render: (value: any, row: User) => {
+        const status = row.metadata?.status || 'active';
+        return (
+          <div className="flex items-center space-x-2">
+            {getStatusIcon(status)}
+            <Badge variant={getStatusColor(status)}>
+              {status}
+            </Badge>
+          </div>
+        );
+      }
     },
     {
       key: 'department',
@@ -426,7 +273,7 @@ const Users = () => {
       type: 'date' as const,
       sortable: true,
       render: (value: any, row: User) => 
-        row.last_login ? new Date(row.last_login).toLocaleDateString() : 'Jamais'
+        row.metadata?.last_login ? new Date(row.metadata.last_login).toLocaleDateString() : 'Jamais'
     },
     {
       key: 'created_at',
@@ -514,19 +361,19 @@ const Users = () => {
     },
     {
       title: "Actifs",
-      value: users.filter(u => u.status === 'active').length.toString(),
+      value: users.filter(u => u.metadata?.status === 'active').length.toString(),
       icon: CheckCircle,
       color: "text-green-500"
     },
     {
       title: "En attente",
-      value: users.filter(u => u.status === 'pending').length.toString(),
+      value: users.filter(u => u.metadata?.status === 'pending').length.toString(),
       icon: AlertCircle,
       color: "text-yellow-500"
     },
     {
       title: "Suspendus",
-      value: users.filter(u => u.status === 'suspended').length.toString(),
+      value: users.filter(u => u.metadata?.status === 'suspended').length.toString(),
       icon: Lock,
       color: "text-red-500"
     }
@@ -577,7 +424,7 @@ const Users = () => {
         onEdit={openEditModal}
         onDelete={openDeleteModal}
         onView={openViewModal}
-        onRefresh={fetchData}
+        onRefresh={refresh}
         onExport={() => toast.info('Export en cours de développement')}
         onImport={() => toast.info('Import en cours de développement')}
         selectable={true}
@@ -601,7 +448,26 @@ const Users = () => {
         ]}
       />
 
-      {/* Utiliser les nouveaux formulaires depuis les pages dédiées */}
+      {/* Formulaires de création et modification */}
+      <UserForm
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
+        onSubmit={handleCreateUser}
+        loading={loading}
+        title="Créer un utilisateur"
+        roles={roles}
+      />
+
+      <UserForm
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        onSubmit={handleUpdateUser}
+        defaultValues={editUser}
+        loading={loading}
+        title="Modifier l'utilisateur"
+        roles={roles}
+        isEdit={true}
+      />
 
       {/* Modal de visualisation */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
@@ -617,7 +483,7 @@ const Users = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Nom complet</Label>
-                  <p className="font-medium">{`${selectedUser.first_name} ${selectedUser.last_name}`}</p>
+                  <p className="font-medium">{`${selectedUser.first_name || ''} ${selectedUser.last_name || ''}`}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Email</Label>
@@ -625,20 +491,20 @@ const Users = () => {
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Téléphone</Label>
-                  <p className="font-medium">{selectedUser.phone || '-'}</p>
+                  <p className="font-medium">{selectedUser.metadata?.phone || '-'}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Rôle</Label>
                   <Badge variant="outline">
-                    {roles.find(r => r.name === selectedUser.role)?.display_name || selectedUser.role}
+                    {roles.find(r => r.name === (selectedUser.metadata?.role || 'user'))?.display_name || selectedUser.metadata?.role || 'user'}
                   </Badge>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Statut</Label>
                   <div className="flex items-center space-x-2">
-                    {getStatusIcon(selectedUser.status)}
-                    <Badge variant={getStatusColor(selectedUser.status)}>
-                      {selectedUser.status}
+                    {getStatusIcon(selectedUser.metadata?.status || 'active')}
+                    <Badge variant={getStatusColor(selectedUser.metadata?.status || 'active')}>
+                      {selectedUser.metadata?.status || 'active'}
                     </Badge>
                   </div>
                 </div>
@@ -653,7 +519,7 @@ const Users = () => {
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Dernière connexion</Label>
                   <p className="font-medium">
-                    {selectedUser.last_login ? new Date(selectedUser.last_login).toLocaleString() : 'Jamais'}
+                    {selectedUser.metadata?.last_login ? new Date(selectedUser.metadata.last_login).toLocaleString() : 'Jamais'}
                   </p>
                 </div>
               </div>
@@ -697,7 +563,7 @@ const Users = () => {
             </Button>
             <Button 
               variant="destructive" 
-              onClick={() => selectedUser && deleteUser(selectedUser)}
+              onClick={() => selectedUser && handleDeleteUser(selectedUser)}
             >
               Supprimer
             </Button>
