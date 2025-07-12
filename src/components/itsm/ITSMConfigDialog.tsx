@@ -96,11 +96,9 @@ export const ITSMConfigDialog: React.FC<ITSMConfigDialogProps> = ({ teamId }) =>
         ];
       case 'categories':
         return [
-          { config_key: 'hardware', config_value: { label: 'Hardware', color: '#10b981' }},
-          { config_key: 'software', config_value: { label: 'Software', color: '#3b82f6' }},
-          { config_key: 'network', config_value: { label: 'Network', color: '#f59e0b' }},
-          { config_key: 'security', config_value: { label: 'Security', color: '#ef4444' }},
-          { config_key: 'access', config_value: { label: 'Access', color: '#8b5cf6' }}
+          { config_key: 'incident', config_value: { label: 'Incidents', color: '#ef4444' }},
+          { config_key: 'change', config_value: { label: 'Changements', color: '#f59e0b' }},
+          { config_key: 'request', config_value: { label: 'Demandes', color: '#3b82f6' }}
         ];
       default:
         return [];
