@@ -8,9 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, Plus, Edit, Trash2, Clock, AlertTriangle, Users } from 'lucide-react';
+import { Settings, Plus, Edit, Trash2, Clock, AlertTriangle, Users, Zap } from 'lucide-react';
 import { useITSMConfig, useCreateITSMConfig, useUpdateITSMConfig, useSLAPolicies, useCreateSLAPolicy, ITSMConfigItem, SLAPolicy } from '@/hooks/useITSMConfig';
 import { useToast } from '@/hooks/use-toast';
+import { ITSM_CONFIG } from '@/modules/itsm/config';
 
 interface ITSMConfigDialogProps {
   teamId: string;
@@ -65,6 +66,110 @@ export const ITSMConfigDialog: React.FC<ITSMConfigDialogProps> = ({ teamId }) =>
   const createSLA = useCreateSLAPolicy();
   const { toast } = useToast();
 
+  // Valeurs par défaut du module ITSM
+  const getDefaultConfigs = (configType: string) => {
+    switch (configType) {
+      case 'priorities':
+        return Object.entries(ITSM_CONFIG.incidentPriorities).map(([key, value]) => ({
+          config_key: value,
+          config_value: { 
+            label: key.charAt(0).toUpperCase() + key.slice(1), 
+            color: getPriorityColor(value) 
+          }
+        }));
+      case 'statuses':
+        return [
+          ...Object.entries(ITSM_CONFIG.incidentStatuses).map(([key, value]) => ({
+            config_key: value,
+            config_value: { 
+              label: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), 
+              color: getStatusColor(value) 
+            }
+          })),
+          ...Object.entries(ITSM_CONFIG.changeStatuses).map(([key, value]) => ({
+            config_key: value,
+            config_value: { 
+              label: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), 
+              color: getStatusColor(value) 
+            }
+          }))
+        ];
+      case 'categories':
+        return [
+          { config_key: 'hardware', config_value: { label: 'Hardware', color: '#10b981' }},
+          { config_key: 'software', config_value: { label: 'Software', color: '#3b82f6' }},
+          { config_key: 'network', config_value: { label: 'Network', color: '#f59e0b' }},
+          { config_key: 'security', config_value: { label: 'Security', color: '#ef4444' }},
+          { config_key: 'access', config_value: { label: 'Access', color: '#8b5cf6' }}
+        ];
+      default:
+        return [];
+    }
+  };
+
+  // Fonctions pour obtenir les couleurs par défaut
+  const getPriorityColor = (priority: string): string => {
+    switch (priority) {
+      case 'critical': return '#ef4444';
+      case 'high': return '#f97316';
+      case 'medium': return '#f59e0b';
+      case 'low': return '#10b981';
+      default: return '#6b7280';
+    }
+  };
+
+  const getStatusColor = (status: string): string => {
+    switch (status) {
+      case 'open': return '#ef4444';
+      case 'in_progress': return '#f59e0b';
+      case 'resolved': return '#10b981';
+      case 'closed': return '#6b7280';
+      case 'draft': return '#6b7280';
+      case 'pending_approval': return '#f59e0b';
+      case 'approved': return '#10b981';
+      case 'rejected': return '#ef4444';
+      case 'implemented': return '#10b981';
+      case 'failed': return '#ef4444';
+      default: return '#6b7280';
+    }
+  };
+
+  // Fonction pour initialiser les configurations par défaut
+  const initializeDefaultConfigs = async (configType: string) => {
+    const defaultConfigs = getDefaultConfigs(configType);
+    const existingKeys = new Set((configType === 'priorities' ? priorities : 
+                                  configType === 'statuses' ? statuses : categories)
+                                  .map(item => item.config_key));
+
+    try {
+      for (const config of defaultConfigs) {
+        if (!existingKeys.has(config.config_key)) {
+          await createConfig.mutateAsync({
+            team_id: teamId,
+            config_type: configType as any,
+            config_key: config.config_key,
+            config_value: config.config_value as any,
+            is_active: true,
+            display_order: 0,
+            created_by: '', // Will be set by RLS
+          });
+        }
+      }
+      
+      toast({
+        title: "Succès",
+        description: "Configuration par défaut initialisée"
+      });
+    } catch (error) {
+      console.error('Error initializing default configs:', error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de l'initialisation",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleCreateConfig = async (configType: string) => {
     try {
       await createConfig.mutateAsync({
@@ -78,8 +183,17 @@ export const ITSMConfigDialog: React.FC<ITSMConfigDialogProps> = ({ teamId }) =>
       });
       
       setConfigForm({ config_key: '', config_value: { label: '', color: '#6b7280' } });
+      toast({
+        title: "Succès",
+        description: "Configuration créée avec succès"
+      });
     } catch (error) {
       console.error('Error creating config:', error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la création",
+        variant: "destructive"
+      });
     }
   };
 
@@ -153,13 +267,23 @@ export const ITSMConfigDialog: React.FC<ITSMConfigDialogProps> = ({ teamId }) =>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           {title}
-          <Button
-            size="sm"
-            onClick={() => handleCreateConfig(configType)}
-            disabled={!configForm.config_key || !configForm.config_value.label}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => initializeDefaultConfigs(configType)}
+            >
+              <Zap className="h-4 w-4 mr-1" />
+              Valeurs par défaut
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => handleCreateConfig(configType)}
+              disabled={!configForm.config_key || !configForm.config_value.label}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
         </CardTitle>
         <CardDescription>
           Configurez les {title.toLowerCase()} disponibles pour vos tickets
