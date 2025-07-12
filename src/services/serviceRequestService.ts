@@ -1,17 +1,12 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { ServiceRequest } from '@/types/serviceRequest';
-
-export interface SessionContext {
-  current_team_id?: string;
-  current_organization_id?: string;
-  is_msp?: boolean;
-}
+import type { UserProfile } from '@/contexts/AuthContext';
 
 export class ServiceRequestService {
   static async fetchRequests(
     user: any, 
-    sessionContext: SessionContext | null
+    userProfile: UserProfile | null
   ): Promise<ServiceRequest[]> {
     try {
       // Vérifier l'authentification
@@ -27,8 +22,8 @@ export class ServiceRequestService {
         assigned_to_profile:assigned_to(email, first_name, last_name)
       `);
       
-      const teamId = sessionContext?.current_team_id;
-      if (teamId && !sessionContext?.is_msp) {
+      const teamId = userProfile?.default_team_id;
+      if (teamId && !userProfile?.is_msp_admin) {
         query = query.eq('team_id', teamId);
       }
       
@@ -51,7 +46,7 @@ export class ServiceRequestService {
   static async createRequest(
     requestData: Partial<ServiceRequest>, 
     user: any, 
-    sessionContext: SessionContext | null
+    userProfile: UserProfile | null
   ): Promise<boolean> {
     try {
       // Vérifier l'authentification
@@ -60,8 +55,8 @@ export class ServiceRequestService {
         return false;
       }
 
-      const teamId = sessionContext?.current_team_id;
-      if ((!teamId && !sessionContext?.is_msp) || !user) {
+      const teamId = userProfile?.default_team_id;
+      if ((!teamId && !userProfile?.is_msp_admin) || !user) {
         toast.error('Session non valide ou équipe non sélectionnée');
         return false;
       }
@@ -83,7 +78,7 @@ export class ServiceRequestService {
           service_category: requestData.service_category || 'general',
           due_date: requestData.due_date,
           requested_by: user.id,
-          team_id: teamId || sessionContext?.current_organization_id || ''
+          team_id: teamId || userProfile?.default_organization_id || ''
         })
         .select()
         .single();

@@ -28,8 +28,8 @@ export const RoleAdmin = () => {
   const [assignForm, setAssignForm] = useState({
     userId: '',
     roleId: '',
-    teamId: '',
-    organizationId: '',
+    teamId: 'none',
+    organizationId: 'none',
     expiresAt: ''
   });
 
@@ -90,8 +90,8 @@ export const RoleAdmin = () => {
     const success = await assignRole(
       assignForm.userId,
       assignForm.roleId,
-      assignForm.teamId || undefined,
-      assignForm.organizationId || undefined,
+      assignForm.teamId === 'none' ? undefined : assignForm.teamId || undefined,
+      assignForm.organizationId === 'none' ? undefined : assignForm.organizationId || undefined,
       assignForm.expiresAt || undefined
     );
 
@@ -100,8 +100,8 @@ export const RoleAdmin = () => {
       setAssignForm({
         userId: '',
         roleId: '',
-        teamId: '',
-        organizationId: '',
+        teamId: 'none',
+        organizationId: 'none',
         expiresAt: ''
       });
     }
@@ -233,7 +233,7 @@ export const RoleAdmin = () => {
                           <SelectValue placeholder="Sélectionner une organisation" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Aucune organisation</SelectItem>
+                          <SelectItem value="none">Aucune organisation</SelectItem>
                           {organizations.map((org) => (
                             <SelectItem key={org.id} value={org.id}>
                               {org.name}
@@ -250,7 +250,7 @@ export const RoleAdmin = () => {
                           <SelectValue placeholder="Sélectionner une équipe" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Aucune équipe</SelectItem>
+                          <SelectItem value="none">Aucune équipe</SelectItem>
                           {teams.map((team) => (
                             <SelectItem key={team.id} value={team.id}>
                               {team.name}

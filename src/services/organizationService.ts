@@ -3,8 +3,8 @@ import { toast } from "sonner";
 import type { Organization, OrganizationFormData } from "@/types/organization";
 
 export class OrganizationService {
-  static async loadAll(sessionContext: any): Promise<{ organizations: Organization[]; count: number }> {
-    console.log('Loading organizations with session context:', sessionContext);
+  static async loadAll(userProfile: any): Promise<{ organizations: Organization[]; count: number }> {
+    console.log('Loading organizations with user profile:', userProfile);
     
     // Récupérer toutes les organisations pour un admin MSP
     const { data: orgsData, error: orgsError, count } = await supabase
@@ -20,7 +20,7 @@ export class OrganizationService {
     // Transform data to match interface
     const transformedOrgs: Organization[] = (orgsData || []).map(org => ({
       id: org.id,
-      msp_id: org.parent_organization_id || sessionContext?.current_team_id || null,
+      msp_id: org.parent_organization_id || userProfile?.default_team_id || null,
       name: org.name,
       type: org.type,
       is_msp: org.is_msp || false,
