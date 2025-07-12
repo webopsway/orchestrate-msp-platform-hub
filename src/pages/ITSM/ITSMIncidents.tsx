@@ -99,19 +99,21 @@ const ITSMIncidents = () => {
     setSelectedIncident(null);
   }, []);
 
-  const handleCreate = useCallback(async (data: any) => {
+  const handleCreate = useCallback(async (data: any): Promise<boolean> => {
     const success = await createIncident(data);
     if (success) {
       closeAll();
     }
+    return success;
   }, [createIncident, closeAll]);
 
-  const handleUpdate = useCallback(async (data: any) => {
-    if (!selectedIncident) return;
+  const handleUpdate = useCallback(async (data: any): Promise<boolean> => {
+    if (!selectedIncident) return false;
     const success = await updateIncident(selectedIncident.id, data);
     if (success) {
       closeAll();
     }
+    return success;
   }, [selectedIncident, updateIncident, closeAll]);
 
   const handleDelete = useCallback(async () => {
@@ -487,10 +489,7 @@ const ITSMIncidents = () => {
       {/* Vue détaillée */}
       {selectedIncident && (
         <IncidentDetailView
-          incidentId={selectedIncident.id}
-          isOpen={isDetailOpen}
-          onClose={closeDetail}
-          onIncidentUpdated={() => {}}
+          incident={selectedIncident}
         />
       )}
     </div>

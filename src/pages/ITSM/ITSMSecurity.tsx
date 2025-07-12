@@ -472,44 +472,56 @@ const ITSMSecurity = () => {
 
       {/* Dialogs CRUD */}
       <CreateDialog
-        open={isCreateOpen}
-        onOpenChange={closeAll}
+        isOpen={isCreateOpen}
+        onClose={closeAll}
         title="Ajouter une vulnérabilité"
-        description="Créer une nouvelle vulnérabilité de sécurité"
-      >
-        {/* Formulaire de création */}
-      </CreateDialog>
+        sections={[]}
+        onCreate={async () => false}
+      />
 
       <EditDialog
-        open={isEditOpen}
-        onOpenChange={closeAll}
+        isOpen={isEditOpen}
+        onClose={closeAll}
         title="Modifier la vulnérabilité"
-        description="Modifier les détails de la vulnérabilité"
-      >
-        {/* Formulaire d'édition */}
-      </EditDialog>
+        sections={[]}
+        onSave={async () => false}
+        data={selectedVulnerability}
+      />
 
       <DeleteDialog
-        open={isDeleteOpen}
-        onOpenChange={closeAll}
+        isOpen={isDeleteOpen}
+        onClose={closeAll}
         title="Supprimer la vulnérabilité"
-        description="Êtes-vous sûr de vouloir supprimer cette vulnérabilité ?"
-        onConfirm={handleDelete}
+        itemName={selectedVulnerability?.title || "cette vulnérabilité"}
+        onDelete={async () => {
+          if (!selectedVulnerability) return false;
+          return await handleDelete(async () => {
+            const { error } = await supabase
+              .from('security_vulnerabilities')
+              .delete()
+              .eq('id', selectedVulnerability.id);
+            if (error) throw error;
+            return true;
+          });
+        }}
       />
 
       <DetailDialog
-        open={isDetailOpen}
-        onOpenChange={closeAll}
+        isOpen={isDetailOpen}
+        onClose={closeAll}
         title="Détails de la vulnérabilité"
         data={selectedVulnerability}
-        displayFields={[
-          { key: "title", label: "Titre" },
-          { key: "description", label: "Description" },
-          { key: "cve_id", label: "CVE ID" },
-          { key: "severity", label: "Sévérité" },
-          { key: "status", label: "Statut" },
-          { key: "discovered_at", label: "Découverte le", render: (value) => new Date(value).toLocaleDateString() },
-          { key: "remediated_at", label: "Résolue le", render: (value) => value ? new Date(value).toLocaleDateString() : "Non résolue" }
+        sections={[
+          {
+            title: "Informations générales",
+            fields: [
+              { key: "title", label: "Titre" },
+              { key: "description", label: "Description" },
+              { key: "cve_id", label: "CVE ID" },
+              { key: "severity", label: "Sévérité" },
+              { key: "status", label: "Statut" },
+            ]
+          }
         ]}
       />
     </div>

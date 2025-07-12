@@ -99,19 +99,21 @@ const ITSMChanges = () => {
     setSelectedChange(null);
   }, []);
 
-  const handleCreate = useCallback(async (data: any) => {
+  const handleCreate = useCallback(async (data: any): Promise<boolean> => {
     const success = await createChange(data);
     if (success) {
       closeAll();
     }
+    return success;
   }, [createChange, closeAll]);
 
-  const handleUpdate = useCallback(async (data: any) => {
-    if (!selectedChange) return;
+  const handleUpdate = useCallback(async (data: any): Promise<boolean> => {
+    if (!selectedChange) return false;
     const success = await updateChange(selectedChange.id, data);
     if (success) {
       closeAll();
     }
+    return success;
   }, [selectedChange, updateChange, closeAll]);
 
   const handleDelete = useCallback(async () => {
@@ -486,10 +488,7 @@ const ITSMChanges = () => {
       {/* Vue détaillée */}
       {selectedChange && (
         <ChangeDetailView
-          changeId={selectedChange.id}
-          isOpen={isDetailOpen}
-          onClose={closeDetail}
-          onChangeUpdated={() => {}}
+          change={selectedChange}
         />
       )}
     </div>
