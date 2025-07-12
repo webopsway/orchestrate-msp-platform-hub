@@ -79,30 +79,47 @@ class SessionService {
 
       this.userProfile = profile;
 
-      // Try to initialize session with edge function
-      const { data, error } = await supabase.functions.invoke('init-user-session', {
-        body: {
-          organization_id: organizationId || profile.default_organization_id,
-          team_id: teamId || profile.default_team_id
-        }
-      });
+      // Try to get existing session from database first (more reliable)
+      console.log('Loading session for user:', user.id);
+      const { data: existingSession, error: sessionError } = await supabase
+        .from('user_sessions')
+        .select('current_organization_id, current_team_id, is_msp, expires_at')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (error || !data?.session_context) {
-        // Fallback: try to get existing session from database
-        const { data: existingSession } = await supabase
-          .from('user_sessions')
-          .select('current_organization_id, current_team_id, is_msp')
-          .eq('user_id', user.id)
-          .single();
+      console.log('Existing session data:', existingSession, 'Error:', sessionError);
 
-        if (existingSession) {
-          this.sessionContext = existingSession;
-        } else {
-          this.clearSession();
-          return false;
-        }
+      if (existingSession && new Date(existingSession.expires_at) > new Date()) {
+        // Session is valid
+        this.sessionContext = existingSession;
+        console.log('Using existing valid session:', this.sessionContext);
       } else {
-        this.sessionContext = data.session_context;
+        // Try to initialize session with edge function as fallback
+        console.log('No valid session found, trying edge function...');
+        const { data, error } = await supabase.functions.invoke('init-user-session', {
+          body: {
+            organization_id: organizationId || profile.default_organization_id,
+            team_id: teamId || profile.default_team_id
+          }
+        });
+
+        if (error || !data?.session_context) {
+          console.error('Edge function failed:', error);
+          // As last resort, create a basic session context for MSP admin
+          if (profile.is_msp_admin && profile.default_organization_id && profile.default_team_id) {
+            this.sessionContext = {
+              current_organization_id: profile.default_organization_id,
+              current_team_id: profile.default_team_id,
+              is_msp: true
+            };
+            console.log('Created fallback session for MSP admin:', this.sessionContext);
+          } else {
+            this.clearSession();
+            return false;
+          }
+        } else {
+          this.sessionContext = data.session_context;
+        }
       }
 
       this.notifyListeners();
