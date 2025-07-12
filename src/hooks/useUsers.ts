@@ -46,6 +46,8 @@ export function useUsers(): UseUsersReturn {
       setError(null);
       setLoading(true);
       
+      console.log('loadUsers called with sessionContext:', sessionContext);
+      
       const { data: usersData, error: usersError, count } = await supabase
         .from('profiles')
         .select('*', { count: 'exact' })
@@ -203,10 +205,12 @@ export function useUsers(): UseUsersReturn {
   }, []);
 
   useEffect(() => {
-    if (sessionContext?.current_team_id) {
+    console.log('useUsers useEffect - sessionContext:', sessionContext);
+    // Pour les MSP admin, charger les utilisateurs même sans team sélectionnée
+    if (sessionContext?.current_team_id || sessionContext?.is_msp) {
       loadUsers();
     }
-  }, [loadUsers, sessionContext?.current_team_id]);
+  }, [loadUsers, sessionContext?.current_team_id, sessionContext?.is_msp]);
 
   return {
     users,
