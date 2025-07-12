@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle } from "lucide-react";
-import { useGlobalITSMConfig } from "@/hooks/useGlobalITSMConfig";
+import { useDynamicITSMPriorities, useDynamicITSMStatuses, formatDynamicConfigsForSelect } from "@/hooks";
 import { ITSMBadge } from "@/components/itsm/ITSMBadge";
 import type { Incident, CreateIncidentData, UpdateIncidentData } from "@/types/incident";
 
@@ -26,8 +26,11 @@ export function IncidentForm({ initialData, onSubmit, onCancel }: IncidentFormPr
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   
-  const { data: priorities = [] } = useGlobalITSMConfig('priorities');
-  const { data: statuses = [] } = useGlobalITSMConfig('statuses', 'incident');
+  const { data: priorityConfigs = [] } = useDynamicITSMPriorities();
+  const { data: statusConfigs = [] } = useDynamicITSMStatuses('incident');
+  
+  const priorities = formatDynamicConfigsForSelect(priorityConfigs);
+  const statuses = formatDynamicConfigsForSelect(statusConfigs);
 
   useEffect(() => {
     if (initialData) {
@@ -132,8 +135,14 @@ export function IncidentForm({ initialData, onSubmit, onCancel }: IncidentFormPr
                 </SelectTrigger>
                 <SelectContent>
                   {priorities.map((priority) => (
-                    <SelectItem key={priority.config_key} value={priority.config_key}>
-                      <ITSMBadge type="priority" value={priority.config_key} />
+                    <SelectItem key={priority.value} value={priority.value}>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: priority.color }}
+                        />
+                        {priority.label}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -173,8 +182,14 @@ export function IncidentForm({ initialData, onSubmit, onCancel }: IncidentFormPr
                 </SelectTrigger>
                 <SelectContent>
                   {statuses.map((status) => (
-                    <SelectItem key={status.config_key} value={status.config_key}>
-                      <ITSMBadge type="status" value={status.config_key} category="incident" />
+                    <SelectItem key={status.value} value={status.value}>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: status.color }}
+                        />
+                        {status.label}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>

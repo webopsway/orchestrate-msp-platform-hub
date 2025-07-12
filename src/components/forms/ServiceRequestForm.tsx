@@ -12,7 +12,7 @@ import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { useGlobalITSMConfig } from "@/hooks/useGlobalITSMConfig";
+import { useDynamicITSMPriorities, useDynamicITSMCategories, formatDynamicConfigsForSelect } from "@/hooks";
 import { ITSMBadge } from "@/components/itsm/ITSMBadge";
 import {
   Form,
@@ -50,7 +50,11 @@ export const ServiceRequestForm = ({
 }: ServiceRequestFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const { data: priorities = [] } = useGlobalITSMConfig('priorities');
+  const { data: priorityConfigs = [] } = useDynamicITSMPriorities();
+  const { data: categoryConfigs = [] } = useDynamicITSMCategories();
+  
+  const priorities = formatDynamicConfigsForSelect(priorityConfigs);
+  const categories = formatDynamicConfigsForSelect(categoryConfigs);
 
   const form = useForm<ServiceRequestFormData>({
     resolver: zodResolver(serviceRequestSchema),
@@ -74,15 +78,16 @@ export const ServiceRequestForm = ({
     }
   };
 
-  const serviceCategories = [
-    { value: "general", label: "Général" },
-    { value: "hardware", label: "Matériel" },
-    { value: "software", label: "Logiciel" },
-    { value: "network", label: "Réseau" },
-    { value: "access", label: "Accès / Permissions" },
-    { value: "training", label: "Formation" },
-    { value: "procurement", label: "Approvisionnement" },
-    { value: "maintenance", label: "Maintenance" }
+  // Utiliser les catégories dynamiques ou fallback vers les catégories statiques
+  const serviceCategories = categories.length > 0 ? categories : [
+    { value: "general", label: "Général", color: "#6b7280" },
+    { value: "hardware", label: "Matériel", color: "#ef4444" },
+    { value: "software", label: "Logiciel", color: "#3b82f6" },
+    { value: "network", label: "Réseau", color: "#10b981" },
+    { value: "access", label: "Accès / Permissions", color: "#f59e0b" },
+    { value: "training", label: "Formation", color: "#8b5cf6" },
+    { value: "procurement", label: "Approvisionnement", color: "#06b6d4" },
+    { value: "maintenance", label: "Maintenance", color: "#84cc16" }
   ];
 
 
@@ -154,7 +159,13 @@ export const ServiceRequestForm = ({
                     <SelectContent>
                       {serviceCategories.map((category) => (
                         <SelectItem key={category.value} value={category.value}>
-                          {category.label}
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: category.color }}
+                            />
+                            {category.label}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -230,8 +241,14 @@ export const ServiceRequestForm = ({
                     </FormControl>
                     <SelectContent>
                       {priorities.map((priority) => (
-                        <SelectItem key={priority.config_key} value={priority.config_key}>
-                          <ITSMBadge type="priority" value={priority.config_key} />
+                        <SelectItem key={priority.value} value={priority.value}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: priority.color }}
+                            />
+                            {priority.label}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -262,8 +279,14 @@ export const ServiceRequestForm = ({
                     </FormControl>
                     <SelectContent>
                       {priorities.map((priority) => (
-                        <SelectItem key={priority.config_key} value={priority.config_key}>
-                          <ITSMBadge type="priority" value={priority.config_key} />
+                        <SelectItem key={priority.value} value={priority.value}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: priority.color }}
+                            />
+                            {priority.label}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -294,8 +317,14 @@ export const ServiceRequestForm = ({
                     </FormControl>
                     <SelectContent>
                       {priorities.map((priority) => (
-                        <SelectItem key={priority.config_key} value={priority.config_key}>
-                          <ITSMBadge type="priority" value={priority.config_key} />
+                        <SelectItem key={priority.value} value={priority.value}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: priority.color }}
+                            />
+                            {priority.label}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>

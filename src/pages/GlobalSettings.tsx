@@ -18,6 +18,7 @@ import { fr } from 'date-fns/locale';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { ITSMConfigDialog } from '@/components/itsm/ITSMConfigDialog';
+import { ITSMConfigManager } from '@/components/itsm/ITSMConfigManager';
 import { useOrganizationsAndTeams } from '@/hooks/useOrganizationsAndTeams';
 
 export default function GlobalSettings() {
@@ -208,9 +209,10 @@ export default function GlobalSettings() {
       </div>
 
       <Tabs defaultValue="global" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="global">Paramètres Globaux</TabsTrigger>
           <TabsTrigger value="itsm">Configuration ITSM</TabsTrigger>
+          <TabsTrigger value="itsm-dynamic">Configuration Dynamique</TabsTrigger>
           <TabsTrigger value="namespaces">Namespaces</TabsTrigger>
           <TabsTrigger value="teams">Paramètres Équipes</TabsTrigger>
         </TabsList>
@@ -546,6 +548,10 @@ export default function GlobalSettings() {
               </DialogContent>
             </Dialog>
           )}
+        </TabsContent>
+
+        <TabsContent value="itsm-dynamic" className="space-y-6">
+          <ITSMConfigManager />
         </TabsContent>
 
         <TabsContent value="namespaces" className="space-y-6">
