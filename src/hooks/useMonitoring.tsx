@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Tables } from '@/integrations/supabase/types';
+import type { Database } from '@/integrations/supabase/types';
 
+type Tables = Database['public']['Tables'];
 type MonitoringAlert = Tables<'monitoring_alerts'>;
 type UptimeCheck = Tables<'uptime_checks'>;
 
@@ -14,7 +15,7 @@ interface MonitoringStats {
 }
 
 export const useMonitoring = () => {
-  const { sessionContext } = useAuth();
+  const { user, sessionContext } = useAuth();
   const [alerts, setAlerts] = useState<MonitoringAlert[]>([]);
   const [uptimeChecks, setUptimeChecks] = useState<UptimeCheck[]>([]);
   const [stats, setStats] = useState<MonitoringStats>({
@@ -23,17 +24,20 @@ export const useMonitoring = () => {
     uptimeChecks: 0,
     avgResponseTime: 0
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchMonitoringData = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    setError(null);
+
     try {
-      setLoading(true);
-      setError(null);
+      const teamId = sessionContext?.current_team_id;
 
       // Fetch alerts - MSP admin voit tout, autres voient par team
       let alertsQuery = supabase.from('monitoring_alerts').select('*');
-      const teamId = sessionContext?.current_team_id;
       
       if (teamId && !sessionContext?.is_msp) {
         alertsQuery = alertsQuery.eq('team_id', teamId);
@@ -88,6 +92,10 @@ export const useMonitoring = () => {
     timeout_seconds?: number;
     expected_status_codes?: number[];
   }) => {
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
     try {
       const teamId = sessionContext?.current_team_id;
       
@@ -155,13 +163,17 @@ export const useMonitoring = () => {
   };
 
   const acknowledgeAlert = async (id: string) => {
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
     try {
       const { data: result, error } = await supabase
         .from('monitoring_alerts')
         .update({
           status: 'acknowledged',
           acknowledged_at: new Date().toISOString(),
-          acknowledged_by: (await supabase.auth.getUser()).data.user?.id
+          acknowledged_by: user.id
         })
         .eq('id', id)
         .select()
@@ -196,30 +208,32 @@ export const useMonitoring = () => {
   };
 
   useEffect(() => {
-    fetchMonitoringData();
+    if (user) {
+      fetchMonitoringData();
 
-    // Set up real-time subscriptions
-    const alertsSubscription = supabase
-      .channel('monitoring_alerts_changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'monitoring_alerts' },
-        () => fetchMonitoringData()
-      )
-      .subscribe();
+      // Set up real-time subscriptions
+      const alertsSubscription = supabase
+        .channel('monitoring_alerts_changes')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'monitoring_alerts' },
+          () => fetchMonitoringData()
+        )
+        .subscribe();
 
-    const uptimeSubscription = supabase
-      .channel('uptime_checks_changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'uptime_checks' },
-        () => fetchMonitoringData()
-      )
-      .subscribe();
+      const uptimeSubscription = supabase
+        .channel('uptime_checks_changes')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'uptime_checks' },
+          () => fetchMonitoringData()
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(alertsSubscription);
-      supabase.removeChannel(uptimeSubscription);
-    };
-  }, []);
+      return () => {
+        supabase.removeChannel(alertsSubscription);
+        supabase.removeChannel(uptimeSubscription);
+      };
+    }
+  }, [user, sessionContext]);
 
   return {
     alerts,

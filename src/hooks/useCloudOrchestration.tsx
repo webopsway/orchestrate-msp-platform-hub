@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -16,6 +17,7 @@ export interface BackupExecutionWithProvider extends BackupExecution {
 }
 
 export const useCloudOrchestration = () => {
+  const { user } = useAuth();
   const [providers, setProviders] = useState<CloudProvider[]>([]);
   const [credentials, setCredentials] = useState<CloudCredentialsWithProvider[]>([]);
   const [executions, setExecutions] = useState<BackupExecutionWithProvider[]>([]);
@@ -96,6 +98,10 @@ export const useCloudOrchestration = () => {
     providerId: string,
     config: Record<string, any>
   ) => {
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
     try {
       setLoading(true);
       
@@ -105,7 +111,7 @@ export const useCloudOrchestration = () => {
           team_id: teamId,
           provider_id: providerId,
           config: config,
-          configured_by: (await supabase.auth.getUser()).data.user?.id
+          configured_by: user.id
         }, {
           onConflict: 'team_id,provider_id'
         })
@@ -270,41 +276,42 @@ export const useCloudOrchestration = () => {
 
   // Subscribe to real-time updates for executions
   useEffect(() => {
-    const channel = supabase
-      .channel('backup_executions_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'backup_executions'
-        },
-        () => {
-          fetchExecutions();
-        }
-      )
-      .subscribe();
+    if (user) {
+      const channel = supabase
+        .channel('backup_executions_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'backup_executions'
+          },
+          () => {
+            fetchExecutions();
+          }
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user]);
 
   // Initial data loading
   useEffect(() => {
-    fetchProviders();
-    fetchCredentials();
-    fetchExecutions();
-  }, []);
+    if (user) {
+      fetchProviders();
+      fetchCredentials();
+      fetchExecutions();
+    }
+  }, [user]);
 
   return {
     providers,
     credentials,
     executions,
     loading,
-    fetchProviders,
-    fetchCredentials,
-    fetchExecutions,
     saveCredentials,
     deleteCredentials,
     triggerInventory,
