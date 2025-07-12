@@ -190,11 +190,6 @@ const ITSMRequests = () => {
     }
   ], [requests]);
 
-  // Vérifier les permissions d'accès
-  const canManageRequests = useMemo(() => {
-    return sessionContext?.is_msp || sessionContext?.current_team_id;
-  }, [sessionContext]);
-
   // Si l'utilisateur n'est pas connecté
   if (!user) {
     return (
@@ -208,14 +203,16 @@ const ITSMRequests = () => {
     );
   }
 
-  // Si l'utilisateur n'a pas les permissions
-  if (!canManageRequests) {
+  // Si le contexte de session n'est pas encore chargé, afficher le loading
+  if (!sessionContext) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold">Permissions insuffisantes</h3>
-          <p className="text-muted-foreground">Vous n'avez pas les permissions nécessaires pour gérer les demandes de service.</p>
+      <div className="space-y-6">
+        <PageHeader
+          title="Demandes de service"
+          description="Gestion des demandes de service utilisateur"
+        />
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       </div>
     );

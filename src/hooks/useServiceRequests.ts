@@ -69,7 +69,7 @@ export const useServiceRequests = () => {
         return;
       }
       
-      setRequests(data as ServiceRequest[] || []);
+      setRequests((data || []) as unknown as ServiceRequest[]);
     } catch (error) {
       console.error('Erreur lors de la récupération des demandes:', error);
       toast.error('Erreur lors du chargement des demandes');
