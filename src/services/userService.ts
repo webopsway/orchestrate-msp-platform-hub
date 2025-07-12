@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { User, UserCreateData, UserUpdateData } from "@/types/user";
-import { SessionContext } from "@/services/sessionService";
+import { UserProfile } from "@/contexts/AuthContext";
 
 export class UserService {
   private static transformUser(userData: any): User {
@@ -17,19 +17,19 @@ export class UserService {
     };
   }
 
-  static async loadUsers(sessionContext: SessionContext): Promise<{ users: User[], count: number }> {
-    console.log('UserService.loadUsers called with sessionContext:', sessionContext);
+  static async loadUsers(userProfile: UserProfile | null): Promise<{ users: User[], count: number }> {
+    console.log('UserService.loadUsers called with userProfile:', userProfile);
     
-    if (!sessionContext) {
-      throw new Error('Session context is required to load users');
+    if (!userProfile) {
+      throw new Error('User profile is required to load users');
     }
     
     // MSP admins can see all users
     let query = supabase.from('profiles').select('*', { count: 'exact' });
     
     // If user is not MSP admin, filter by team membership
-    if (!sessionContext.is_msp) {
-      const currentTeamId = sessionContext.current_team_id;
+    if (!userProfile.is_msp_admin) {
+      const currentTeamId = userProfile.default_team_id;
       
       if (!currentTeamId) {
         console.log('No team context for non-MSP user');
@@ -178,22 +178,22 @@ export class UserService {
   }
 
   // Méthode utilitaire pour vérifier les permissions
-  static async checkUserPermissions(userId: string, sessionContext: SessionContext): Promise<boolean> {
-    if (!sessionContext) {
+  static async checkUserPermissions(userId: string, userProfile: UserProfile | null): Promise<boolean> {
+    if (!userProfile) {
       return false;
     }
 
     // MSP admins can manage all users
-    if (sessionContext.is_msp) {
+    if (userProfile.is_msp_admin) {
       return true;
     }
 
     // Check if user is in the same team
-    if (sessionContext.current_team_id) {
+    if (userProfile.default_team_id) {
       const { data: membership } = await supabase
         .from('team_memberships')
         .select('id')
-        .eq('team_id', sessionContext.current_team_id)
+        .eq('team_id', userProfile.default_team_id)
         .eq('user_id', userId)
         .single();
 

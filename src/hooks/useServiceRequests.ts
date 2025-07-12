@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 export type { ServiceRequest } from '@/types/serviceRequest';
 
 export const useServiceRequests = () => {
-  const { user, sessionContext } = useAuth();
+  const { user, userProfile } = useAuth();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -22,68 +22,118 @@ export const useServiceRequests = () => {
 
     setLoading(true);
     try {
-      // Check if user is MSP admin directly from auth context
-      const { data: profile } = await supabase.from('profiles')
-        .select('is_msp_admin, default_organization_id, default_team_id')
-        .eq('id', user.id)
-        .single();
-      
-      // For MSP admins, create a minimal session context if none exists
-      let workingSessionContext = sessionContext;
-      if (!workingSessionContext && profile?.is_msp_admin) {
-        console.log('Creating temporary MSP session context for service requests loading');
-        workingSessionContext = {
-          current_organization_id: profile.default_organization_id,
-          current_team_id: profile.default_team_id,
-          is_msp: true
-        };
+      let query = supabase
+        .from('itsm_service_requests')
+        .select(`
+          *,
+          profiles!itsm_service_requests_requested_by_fkey(first_name, last_name, email),
+          assigned_profiles:profiles!itsm_service_requests_assigned_to_fkey(first_name, last_name, email)
+        `);
+
+      // Filter by team if not MSP admin
+      if (!userProfile?.is_msp_admin && userProfile?.default_team_id) {
+        query = query.eq('team_id', userProfile.default_team_id);
       }
 
-      const data = await ServiceRequestService.fetchRequests(user, workingSessionContext);
-      setRequests(data);
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching service requests:', error);
+        return;
+      }
+
+      setRequests((data || []) as ServiceRequest[]);
     } finally {
       setLoading(false);
     }
-  }, [user, sessionContext?.current_team_id, sessionContext?.is_msp]);
+  }, [user, userProfile]);
 
   const createRequest = useCallback(async (requestData: Partial<ServiceRequest>) => {
-    const success = await ServiceRequestService.createRequest(requestData, user, sessionContext);
-    if (success) {
-      await fetchRequests();
+    if (!user || !userProfile?.default_team_id) return false;
+    
+    const { data, error } = await supabase
+      .from('itsm_service_requests')
+      .insert({
+        ...requestData,
+        requested_by: user.id,
+        team_id: userProfile.default_team_id
+      } as any);
+
+    if (error) {
+      console.error('Error creating service request:', error);
+      return false;
     }
-    return success;
-  }, [user, sessionContext, fetchRequests]);
+    
+    await fetchRequests();
+    return true;
+  }, [user, userProfile, fetchRequests]);
 
   const updateRequest = useCallback(async (id: string, updates: Partial<ServiceRequest>) => {
-    const success = await ServiceRequestService.updateRequest(id, updates, user);
-    if (success) {
-      await fetchRequests();
+    if (!user) return false;
+    
+    const { error } = await supabase
+      .from('itsm_service_requests')
+      .update(updates)
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error updating service request:', error);
+      return false;
     }
-    return success;
+    
+    await fetchRequests();
+    return true;
   }, [user, fetchRequests]);
 
   const deleteRequest = useCallback(async (id: string) => {
-    const success = await ServiceRequestService.deleteRequest(id, user);
-    if (success) {
-      await fetchRequests();
+    if (!user) return false;
+    
+    const { error } = await supabase
+      .from('itsm_service_requests')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting service request:', error);
+      return false;
     }
-    return success;
+    
+    await fetchRequests();
+    return true;
   }, [user, fetchRequests]);
 
   const assignRequest = useCallback(async (id: string, assigneeId: string | null) => {
-    const success = await ServiceRequestService.assignRequest(id, assigneeId, user);
-    if (success) {
-      await fetchRequests();
+    if (!user) return false;
+    
+    const { error } = await supabase
+      .from('itsm_service_requests')
+      .update({ assigned_to: assigneeId })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error assigning service request:', error);
+      return false;
     }
-    return success;
+    
+    await fetchRequests();
+    return true;
   }, [user, fetchRequests]);
 
   const updateStatus = useCallback(async (id: string, status: ServiceRequest['status']) => {
-    const success = await ServiceRequestService.updateStatus(id, status, user);
-    if (success) {
-      await fetchRequests();
+    if (!user) return false;
+    
+    const { error } = await supabase
+      .from('itsm_service_requests')
+      .update({ status })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error updating service request status:', error);
+      return false;
     }
-    return success;
+    
+    await fetchRequests();
+    return true;
   }, [user, fetchRequests]);
 
   useEffect(() => {
@@ -93,7 +143,7 @@ export const useServiceRequests = () => {
       setRequests([]);
       setLoading(false);
     }
-  }, [user, sessionContext?.current_team_id, sessionContext?.is_msp, fetchRequests]);
+  }, [user, userProfile, fetchRequests]);
 
   return {
     requests,

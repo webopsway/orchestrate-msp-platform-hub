@@ -1,15 +1,23 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { sessionService, SessionContext } from '@/services/sessionService';
 import { toast } from 'sonner';
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  is_msp_admin?: boolean;
+  default_organization_id?: string;
+  default_team_id?: string;
+}
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  sessionContext: SessionContext | null;
+  userProfile: UserProfile | null;
   loading: boolean;
-  initializeSession: (organizationId?: string, teamId?: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -30,38 +38,33 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [sessionContext, setSessionContext] = useState<SessionContext | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const initializeSession = async (organizationId?: string, teamId?: string) => {
-    if (!session?.user) {
-      console.log('No valid session or user available for initialization');
-      setSessionContext(null);
-      sessionService.clearSession();
-      return;
-    }
-
+  const loadUserProfile = async (userId: string) => {
     try {
-      const success = await sessionService.initializeSession(organizationId, teamId);
-      if (success) {
-        setSessionContext(sessionService.getSessionContext());
-        toast.success('Session initialisée avec succès');
-      } else {
-        setSessionContext(null);
-        toast.error('Erreur lors de l\'initialisation de la session');
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Failed to load user profile:', error);
+        return;
       }
+
+      setUserProfile(profile);
+      console.log('User profile loaded:', profile);
     } catch (error) {
-      console.error('Failed to initialize session:', error);
-      setSessionContext(null);
-      toast.error('Échec de l\'initialisation de la session');
+      console.error('Error loading user profile:', error);
     }
   };
 
   const signOut = async () => {
     try {
-      // Clear session context
-      setSessionContext(null);
-      sessionService.clearSession();
+      // Clear user profile
+      setUserProfile(null);
       
       // Clean up auth state
       Object.keys(localStorage).forEach((key) => {
@@ -88,61 +91,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    let initializationAttempted = false;
-
-    const handleSessionInitialization = async (userId: string) => {
-      if (initializationAttempted) return;
-      initializationAttempted = true;
-      
-      console.log('Attempting session initialization for user:', userId);
-      try {
-        await initializeSession();
-        console.log('Session initialization completed');
-        
-        // Check if session context was successfully set
-        if (sessionContext) {
-          // Check if this is a first-time MSP admin setup
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('is_msp_admin, default_organization_id, default_team_id')
-            .eq('id', userId)
-            .single();
-            
-          if (profile?.is_msp_admin && profile.default_organization_id && profile.default_team_id) {
-            // Check if organization still has default name
-            const { data: org } = await supabase
-              .from('organizations')
-              .select('name')
-              .eq('id', profile.default_organization_id)
-              .single();
-              
-            if (org?.name === 'Mon Organisation MSP') {
-              // Redirect to setup page for customization
-              window.location.href = '/setup';
-              return;
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Session initialization failed:', error);
-        // For MSP admins, force a minimal context if initialization fails
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('is_msp_admin, default_organization_id, default_team_id')
-          .eq('id', userId)
-          .single();
-          
-        if (profile?.is_msp_admin) {
-          console.log('Creating fallback MSP context');
-          setSessionContext({
-            current_organization_id: profile.default_organization_id,
-            current_team_id: profile.default_team_id,
-            is_msp: true
-          });
-        }
-      }
-    };
-
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -152,16 +100,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(session?.user ?? null);
         
         if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
-          console.log('User authenticated, initializing session...');
-          await handleSessionInitialization(session.user.id);
+          await loadUserProfile(session.user.id);
         } else if (event === 'SIGNED_OUT') {
-          console.log('User signed out, clearing session context');
-          setSessionContext(null);
-          initializationAttempted = false;
+          setUserProfile(null);
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-          console.log('Token refreshed, ensuring session is maintained');
-          if (!sessionContext) {
-            await handleSessionInitialization(session.user.id);
+          if (!userProfile) {
+            await loadUserProfile(session.user.id);
           }
         }
         
@@ -176,10 +120,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        console.log('Existing session found, initializing context...');
-        await handleSessionInitialization(session.user.id);
-      } else {
-        console.log('No existing session found');
+        await loadUserProfile(session.user.id);
       }
       
       setLoading(false);
@@ -191,9 +132,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value = {
     user,
     session,
-    sessionContext,
+    userProfile,
     loading,
-    initializeSession,
     signOut,
   };
 

@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
-import { sessionService } from './sessionService';
 import type { Database } from '@/integrations/supabase/types';
+import { UserProfile } from '@/contexts/AuthContext';
 
 type CloudAsset = Database['public']['Tables']['cloud_asset']['Row'];
 type CloudProvider = Database['public']['Tables']['cloud_providers']['Row'];
@@ -21,8 +21,8 @@ class CloudService {
   }
 
   // Get cloud assets for current team
-  async getAssets(): Promise<CloudAssetWithProvider[]> {
-    const teamId = sessionService.getCurrentTeamId();
+  async getAssets(userProfile: UserProfile | null): Promise<CloudAssetWithProvider[]> {
+    const teamId = userProfile?.default_team_id;
     if (!teamId) return [];
 
     try {
@@ -61,8 +61,8 @@ class CloudService {
   }
 
   // Get credentials for current team
-  async getCredentials(): Promise<CloudCredentials[]> {
-    const teamId = sessionService.getCurrentTeamId();
+  async getCredentials(userProfile: UserProfile | null): Promise<CloudCredentials[]> {
+    const teamId = userProfile?.default_team_id;
     if (!teamId) return [];
 
     try {
@@ -80,12 +80,12 @@ class CloudService {
   }
 
   // Trigger inventory refresh
-  async refreshInventory(providerId?: string): Promise<string[]> {
-    const teamId = sessionService.getCurrentTeamId();
+  async refreshInventory(userProfile: UserProfile | null, providerId?: string): Promise<string[]> {
+    const teamId = userProfile?.default_team_id;
     if (!teamId) throw new Error('No team selected');
 
     try {
-      const credentials = await this.getCredentials();
+      const credentials = await this.getCredentials(userProfile);
       const providersToRefresh = providerId 
         ? credentials.filter(c => c.provider_id === providerId)
         : credentials;
@@ -116,12 +116,11 @@ class CloudService {
   }
 
   // Save or update credentials
-  async saveCredentials(providerId: string, config: Record<string, any>): Promise<CloudCredentials> {
-    const teamId = sessionService.getCurrentTeamId();
-    const userProfile = sessionService.getUserProfile();
+  async saveCredentials(userProfile: UserProfile | null, providerId: string, config: Record<string, any>): Promise<CloudCredentials> {
+    const teamId = userProfile?.default_team_id;
     
     if (!teamId || !userProfile) {
-      throw new Error('Session not properly initialized');
+      throw new Error('User profile not properly initialized');
     }
 
     try {

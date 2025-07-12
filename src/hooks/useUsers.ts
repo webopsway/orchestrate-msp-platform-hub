@@ -21,7 +21,7 @@ export interface UseUsersReturn {
 }
 
 export function useUsers(): UseUsersReturn {
-  const { user, sessionContext } = useAuth();
+  const { user, userProfile } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,35 +38,44 @@ export function useUsers(): UseUsersReturn {
     try {
       setError(null);
       setLoading(true);
-      
-      // Check if user is MSP admin directly from auth context
-      const { data: profile } = await supabase.from('profiles')
-        .select('is_msp_admin, default_organization_id, default_team_id')
-        .eq('id', user.id)
-        .single();
-      
-      // For MSP admins, create a minimal session context if none exists
-      let workingSessionContext = sessionContext;
-      if (!workingSessionContext && profile?.is_msp_admin) {
-        console.log('Creating temporary MSP session context for data loading');
-        workingSessionContext = {
-          current_organization_id: profile.default_organization_id,
-          current_team_id: profile.default_team_id,
-          is_msp: true
-        };
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          organization_memberships(
+            organization_id,
+            role,
+            organizations(name, type)
+          ),
+          team_memberships(
+            team_id,
+            role,
+            teams(name, organization_id)
+          )
+        `);
+
+      if (error) {
+        console.error('Error fetching users:', error);
+        throw error;
       }
+
+      // Filter users based on MSP admin status
+      let filteredUsers = data || [];
       
-      // Wait for session context to be loaded (unless MSP admin)
-      if (!workingSessionContext) {
-        console.log('No session context available, waiting...');
-        setUsers([]);
-        setTotalCount(0);
-        return;
+      if (!userProfile?.is_msp_admin) {
+        const currentTeamId = userProfile?.default_team_id;
+        if (currentTeamId) {
+          filteredUsers = data?.filter(user => 
+            user.team_memberships?.some(membership => 
+              membership.team_id === currentTeamId
+            )
+          ) || [];
+        }
       }
-      
-      const { users: loadedUsers, count } = await UserService.loadUsers(workingSessionContext);
-      setUsers(loadedUsers);
-      setTotalCount(count);
+
+      setUsers(filteredUsers as User[]);
+      setTotalCount(filteredUsers.length);
       
     } catch (err: any) {
       const errorMessage = err.message || 'Erreur lors du chargement des utilisateurs';
@@ -76,7 +85,7 @@ export function useUsers(): UseUsersReturn {
     } finally {
       setLoading(false);
     }
-  }, [user, sessionContext?.current_team_id, sessionContext?.is_msp]);
+  }, [user, userProfile]);
 
   const createUser = useCallback(async (data: UserCreateData): Promise<boolean> => {
     if (!user) {
@@ -144,19 +153,14 @@ export function useUsers(): UseUsersReturn {
   }, []);
 
   useEffect(() => {
-    console.log('useUsers useEffect - user:', user?.id, 'sessionContext:', sessionContext);
-    
-    // Load users if user is connected
     if (user) {
-      // Try to load users (the loadUsers function will handle MSP admin case)
       loadUsers();
     } else {
-      // No user connected
       setUsers([]);
       setTotalCount(0);
       setLoading(false);
     }
-  }, [user, sessionContext, loadUsers]);
+  }, [user, userProfile, loadUsers]);
 
   return {
     users,
