@@ -1,26 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { User, UserCreateData, UserUpdateData } from "@/types/user";
+import { UserService } from "@/services/userService";
 
-export interface User {
-  id: string;
-  email: string;
-  first_name?: string;
-  last_name?: string;
-  avatar_url?: string;
-  is_msp_admin?: boolean;
-  metadata?: {
-    phone?: string;
-    role?: string;
-    department?: string;
-    position?: string;
-    status?: string;
-    [key: string]: any;
-  };
-  created_at: string;
-  updated_at?: string;
-}
+// Re-export types for backward compatibility
+export type { User, UserCreateData, UserUpdateData };
 
 export interface UseUsersReturn {
   users: User[];
@@ -28,8 +13,8 @@ export interface UseUsersReturn {
   error: string | null;
   totalCount: number;
   refresh: () => Promise<void>;
-  createUser: (data: any) => Promise<boolean>;
-  updateUser: (id: string, data: any) => Promise<boolean>;
+  createUser: (data: UserCreateData) => Promise<boolean>;
+  updateUser: (id: string, data: UserUpdateData) => Promise<boolean>;
   deleteUser: (id: string) => Promise<boolean>;
   clearError: () => void;
 }
@@ -46,8 +31,6 @@ export function useUsers(): UseUsersReturn {
       setError(null);
       setLoading(true);
       
-      console.log('loadUsers called with sessionContext:', sessionContext);
-      
       // Wait for session context to be loaded
       if (!sessionContext) {
         console.log('No session context available, waiting...');
@@ -57,64 +40,9 @@ export function useUsers(): UseUsersReturn {
         return;
       }
       
-      // MSP admins can see all users
-      let query = supabase.from('profiles').select('*', { count: 'exact' });
-      
-      // If user is not MSP admin, filter by team membership
-      if (!sessionContext.is_msp) {
-        const currentTeamId = sessionContext.current_team_id;
-        
-        if (!currentTeamId) {
-          console.log('No team context for non-MSP user');
-          setUsers([]);
-          setTotalCount(0);
-          setLoading(false);
-          return;
-        }
-        
-        // Get users who are members of the current team
-        const { data: teamMembers, error: teamError } = await supabase
-          .from('team_memberships')
-          .select('user_id')
-          .eq('team_id', currentTeamId);
-          
-        if (teamError) {
-          console.error('Error fetching team members:', teamError);
-          throw teamError;
-        }
-          
-        if (teamMembers && teamMembers.length > 0) {
-          const userIds = teamMembers.map(tm => tm.user_id);
-          query = query.in('id', userIds);
-        } else {
-          // No team members found, return empty result
-          setUsers([]);
-          setTotalCount(0);
-          setLoading(false);
-          return;
-        }
-      }
-
-      const { data: usersData, error: usersError, count } = await query
-        .order('created_at', { ascending: false });
-
-      if (usersError) throw usersError;
-      
-      // Transform data to match interface
-      const transformedUsers: User[] = (usersData || []).map(user => ({
-        id: user.id,
-        email: user.email,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        avatar_url: user.avatar_url,
-        is_msp_admin: user.is_msp_admin,
-        created_at: user.created_at,
-        updated_at: user.updated_at,
-        metadata: (user.metadata as any) || {}
-      }));
-      
-      setUsers(transformedUsers);
-      setTotalCount(count || 0);
+      const { users: loadedUsers, count } = await UserService.loadUsers(sessionContext);
+      setUsers(loadedUsers);
+      setTotalCount(count);
       
     } catch (err: any) {
       const errorMessage = err.message || 'Erreur lors du chargement des utilisateurs';
@@ -126,28 +54,9 @@ export function useUsers(): UseUsersReturn {
     }
   }, [sessionContext?.current_team_id, sessionContext?.is_msp]);
 
-  const createUser = useCallback(async (data: any): Promise<boolean> => {
+  const createUser = useCallback(async (data: UserCreateData): Promise<boolean> => {
     try {
-      const userData = {
-        id: data.id || crypto.randomUUID(),
-        email: data.email,
-        first_name: data.first_name,
-        last_name: data.last_name,
-        metadata: {
-          phone: data.phone,
-          role: data.role,
-          department: data.department,
-          position: data.position,
-          status: data.status || 'active'
-        }
-      };
-      
-      const { error } = await supabase
-        .from('profiles')
-        .insert([userData]);
-
-      if (error) throw error;
-
+      await UserService.createUser(data);
       toast.success('Utilisateur créé avec succès');
       await loadUsers();
       return true;
@@ -159,57 +68,9 @@ export function useUsers(): UseUsersReturn {
     }
   }, [loadUsers]);
 
-  const updateUser = useCallback(async (id: string, data: any): Promise<boolean> => {
-    console.log('updateUser called with:', { id, data });
+  const updateUser = useCallback(async (id: string, data: UserUpdateData): Promise<boolean> => {
     try {
-      // Récupérer l'utilisateur existant pour préserver les métadonnées
-      const { data: existingUser, error: fetchError } = await supabase
-        .from('profiles')
-        .select('metadata')
-        .eq('id', id)
-        .single();
-        
-      if (fetchError) throw fetchError;
-      
-      // Fusionner les métadonnées existantes avec les nouvelles
-      const existingMetadata = (existingUser?.metadata as any) || {};
-      
-      // Construire les nouvelles métadonnées en gérant les deux formats possibles
-      const newMetadata = {
-        ...existingMetadata,
-        // Si les données viennent directement (depuis UserForm)
-        ...(data.phone !== undefined && { phone: data.phone }),
-        ...(data.role !== undefined && { role: data.role }),
-        ...(data.department !== undefined && { department: data.department }),
-        ...(data.position !== undefined && { position: data.position }),
-        ...(data.status !== undefined && { status: data.status }),
-        // Si les données viennent via metadata (format alternatif)
-        ...(data.metadata?.phone !== undefined && { phone: data.metadata.phone }),
-        ...(data.metadata?.role !== undefined && { role: data.metadata.role }),
-        ...(data.metadata?.department !== undefined && { department: data.metadata.department }),
-        ...(data.metadata?.position !== undefined && { position: data.metadata.position }),
-        ...(data.metadata?.status !== undefined && { status: data.metadata.status }),
-      };
-      
-      console.log('Metadata merge result:', { existingMetadata, newMetadata });
-      
-      const updateData = {
-        email: data.email,
-        first_name: data.first_name,
-        last_name: data.last_name,
-        updated_at: new Date().toISOString(),
-        metadata: newMetadata
-      };
-      
-      console.log('Final updateData:', updateData);
-
-      const { error } = await supabase
-        .from('profiles')
-        .update(updateData)
-        .eq('id', id);
-
-      if (error) throw error;
-
+      await UserService.updateUser(id, data);
       toast.success('Utilisateur mis à jour avec succès');
       await loadUsers();
       return true;
@@ -223,13 +84,7 @@ export function useUsers(): UseUsersReturn {
 
   const deleteUser = useCallback(async (id: string): Promise<boolean> => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
+      await UserService.deleteUser(id);
       toast.success('Utilisateur supprimé');
       await loadUsers();
       return true;
