@@ -48,16 +48,40 @@ export function useUsers(): UseUsersReturn {
       
       console.log('loadUsers called with sessionContext:', sessionContext);
       
-      // MSP admins can see all users, regular users see users from their team/organization
+      // Wait for session context to be loaded
+      if (!sessionContext) {
+        console.log('No session context available, waiting...');
+        setUsers([]);
+        setTotalCount(0);
+        setLoading(false);
+        return;
+      }
+      
+      // MSP admins can see all users
       let query = supabase.from('profiles').select('*', { count: 'exact' });
       
-      // If user is not MSP admin and has a team context, filter by team membership
-      if (!sessionContext?.is_msp && sessionContext?.current_team_id) {
+      // If user is not MSP admin, filter by team membership
+      if (!sessionContext.is_msp) {
+        const currentTeamId = sessionContext.current_team_id;
+        
+        if (!currentTeamId) {
+          console.log('No team context for non-MSP user');
+          setUsers([]);
+          setTotalCount(0);
+          setLoading(false);
+          return;
+        }
+        
         // Get users who are members of the current team
-        const { data: teamMembers } = await supabase
+        const { data: teamMembers, error: teamError } = await supabase
           .from('team_memberships')
           .select('user_id')
-          .eq('team_id', sessionContext.current_team_id);
+          .eq('team_id', currentTeamId);
+          
+        if (teamError) {
+          console.error('Error fetching team members:', teamError);
+          throw teamError;
+        }
           
         if (teamMembers && teamMembers.length > 0) {
           const userIds = teamMembers.map(tm => tm.user_id);
@@ -66,6 +90,7 @@ export function useUsers(): UseUsersReturn {
           // No team members found, return empty result
           setUsers([]);
           setTotalCount(0);
+          setLoading(false);
           return;
         }
       }
