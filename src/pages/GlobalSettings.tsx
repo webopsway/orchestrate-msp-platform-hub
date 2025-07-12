@@ -18,6 +18,7 @@ import { fr } from 'date-fns/locale';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { ITSMConfigDialog } from '@/components/itsm/ITSMConfigDialog';
+import { useOrganizationsAndTeams } from '@/hooks/useOrganizationsAndTeams';
 
 export default function GlobalSettings() {
   const { user } = useAuth();
@@ -35,6 +36,8 @@ export default function GlobalSettings() {
     deleteSetting
   } = useAppSettings();
 
+  const { data: orgData, isLoading: orgLoading } = useOrganizationsAndTeams();
+
   const [selectedNamespace, setSelectedNamespace] = useState<string>('');
   const [selectedKey, setSelectedKey] = useState<string>('');
   const [newNamespace, setNewNamespace] = useState<string>('');
@@ -43,6 +46,12 @@ export default function GlobalSettings() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingSetting, setEditingSetting] = useState<any>(null);
   const [editingValue, setEditingValue] = useState<string>('');
+
+  // Configuration ITSM states
+  const [selectedOrganization, setSelectedOrganization] = useState<string>('');
+  const [selectedTeam, setSelectedTeam] = useState<string>('');
+  const [configLevel, setConfigLevel] = useState<'organization' | 'team'>('organization');
+  const [showITSMConfig, setShowITSMConfig] = useState(false);
 
   // Check if user is MSP admin
   useEffect(() => {
@@ -357,7 +366,7 @@ export default function GlobalSettings() {
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-2xl font-semibold">Configuration ITSM</h2>
-              <p className="text-muted-foreground">Gérez les priorités, statuts, catégories et politiques SLA pour tous les teams</p>
+              <p className="text-muted-foreground">Gérez les priorités, statuts, catégories et politiques SLA</p>
             </div>
           </div>
           
@@ -365,63 +374,178 @@ export default function GlobalSettings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Settings className="h-5 w-5" />
-                Configuration du système ITSM
+                Niveaux de Configuration ITSM
               </CardTitle>
               <CardDescription>
-                Configurez les paramètres ITSM pour toutes les équipes. Seuls les administrateurs MSP peuvent modifier ces paramètres.
+                Configurez les paramètres ITSM à différents niveaux : global, par organisation ou par équipe.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Fonctionnalités disponibles :</h4>
-                    <ul className="text-sm text-muted-foreground space-y-1">
-                      <li>• Configuration des priorités et couleurs</li>
-                      <li>• Définition des statuts et workflows</li>
-                      <li>• Gestion des catégories de tickets</li>
-                      <li>• Politiques SLA par priorité</li>
-                      <li>• Escalade automatique</li>
-                    </ul>
-                  </div>
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Équipes configurables :</h4>
-                    <p className="text-sm text-muted-foreground">
-                      En tant qu'administrateur MSP, vous pouvez configurer les paramètres ITSM pour chaque équipe individuellement. 
-                      Chaque équipe peut avoir sa propre configuration de priorités, statuts et SLA.
-                    </p>
-                  </div>
+              <div className="space-y-6">
+                {/* Niveaux de configuration */}
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Card className="p-4 border-dashed">
+                    <div className="text-center">
+                      <Globe className="h-8 w-8 mx-auto text-blue-500 mb-2" />
+                      <h4 className="font-medium">Configuration Globale</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Appliquée par défaut à toutes les organisations et équipes
+                      </p>
+                    </div>
+                  </Card>
+                  <Card className="p-4 border-dashed">
+                    <div className="text-center">
+                      <Users className="h-8 w-8 mx-auto text-green-500 mb-2" />
+                      <h4 className="font-medium">Par Organisation</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Appliquée à toutes les équipes de l'organisation
+                      </p>
+                    </div>
+                  </Card>
+                  <Card className="p-4 border-dashed">
+                    <div className="text-center">
+                      <Users className="h-8 w-8 mx-auto text-orange-500 mb-2" />
+                      <h4 className="font-medium">Par Équipe</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Configuration spécifique à une équipe
+                      </p>
+                    </div>
+                  </Card>
                 </div>
-                
-                <div className="pt-4 border-t">
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Pour configurer une équipe spécifique, utilisez le bouton ci-dessous. 
-                    Vous devrez spécifier l'ID de l'équipe à configurer.
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Input 
-                      placeholder="ID de l'équipe à configurer"
-                      className="max-w-xs"
-                      id="team-id-input"
-                    />
-                    <Button 
-                      onClick={() => {
-                        const input = document.getElementById('team-id-input') as HTMLInputElement;
-                        if (input?.value) {
-                          // Créer une instance du dialog avec l'ID de l'équipe
-                          const dialog = document.createElement('div');
-                          document.body.appendChild(dialog);
-                          // Le composant ITSMConfigDialog sera rendu ici
-                        }
-                      }}
-                    >
-                      Configurer cette équipe
-                    </Button>
+
+                {/* Sélection du niveau de configuration */}
+                <div className="border-t pt-6">
+                  <h4 className="font-medium mb-4">Configurer les paramètres ITSM</h4>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Niveau de configuration</Label>
+                      <Select value={configLevel} onValueChange={(value: 'organization' | 'team') => setConfigLevel(value)}>
+                        <SelectTrigger className="w-full bg-background border border-input z-50">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border border-input shadow-lg z-50">
+                          <SelectItem value="organization">Configuration par organisation</SelectItem>
+                          <SelectItem value="team">Configuration par équipe</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {orgLoading ? (
+                      <div className="flex items-center justify-center py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <Label>Organisation cliente</Label>
+                          <Select 
+                            value={selectedOrganization} 
+                            onValueChange={(value) => {
+                              setSelectedOrganization(value);
+                              setSelectedTeam(''); // Reset team selection
+                            }}
+                          >
+                            <SelectTrigger className="w-full bg-background border border-input z-40">
+                              <SelectValue placeholder="Sélectionner une organisation cliente" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background border border-input shadow-lg z-40">
+                              {orgData?.organizations.map((org) => (
+                                <SelectItem key={org.id} value={org.id}>
+                                  {org.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {configLevel === 'team' && selectedOrganization && (
+                          <div>
+                            <Label>Équipe</Label>
+                            <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                              <SelectTrigger className="w-full bg-background border border-input z-30">
+                                <SelectValue placeholder="Sélectionner une équipe" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background border border-input shadow-lg z-30">
+                                {orgData?.teams
+                                  .filter(team => team.organization_id === selectedOrganization)
+                                  .map((team) => (
+                                    <SelectItem key={team.id} value={team.id}>
+                                      {team.name}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        <div className="pt-4">
+                          <Button
+                            onClick={() => setShowITSMConfig(true)}
+                            disabled={!selectedOrganization || (configLevel === 'team' && !selectedTeam)}
+                            className="w-full"
+                          >
+                            <Settings className="mr-2 h-4 w-4" />
+                            {configLevel === 'organization' 
+                              ? 'Configurer toutes les équipes de cette organisation' 
+                              : 'Configurer cette équipe'
+                            }
+                          </Button>
+                        </div>
+
+                        {selectedOrganization && (
+                          <div className="bg-muted p-4 rounded-lg">
+                            <h5 className="font-medium mb-2">Configuration sélectionnée :</h5>
+                            <div className="space-y-1 text-sm">
+                              <p>
+                                <span className="font-medium">Organisation :</span>{' '}
+                                {orgData?.organizations.find(org => org.id === selectedOrganization)?.name}
+                              </p>
+                              {configLevel === 'team' && selectedTeam && (
+                                <p>
+                                  <span className="font-medium">Équipe :</span>{' '}
+                                  {orgData?.teams.find(team => team.id === selectedTeam)?.name}
+                                </p>
+                              )}
+                              <p>
+                                <span className="font-medium">Portée :</span>{' '}
+                                {configLevel === 'organization' 
+                                  ? `Toutes les équipes de l'organisation (${orgData?.teams.filter(t => t.organization_id === selectedOrganization).length} équipes)`
+                                  : 'Équipe spécifique uniquement'
+                                }
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          {/* Dialog de configuration ITSM */}
+          {showITSMConfig && selectedOrganization && (configLevel === 'organization' || selectedTeam) && (
+            <Dialog open={showITSMConfig} onOpenChange={setShowITSMConfig}>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>
+                    Configuration ITSM - {configLevel === 'organization' ? 'Organisation' : 'Équipe'}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {configLevel === 'organization' 
+                      ? `Configuration pour toutes les équipes de ${orgData?.organizations.find(org => org.id === selectedOrganization)?.name}`
+                      : `Configuration pour l'équipe ${orgData?.teams.find(team => team.id === selectedTeam)?.name}`
+                    }
+                  </DialogDescription>
+                </DialogHeader>
+                <ITSMConfigDialog 
+                  teamId={configLevel === 'team' ? selectedTeam : selectedOrganization} 
+                />
+              </DialogContent>
+            </Dialog>
+          )}
         </TabsContent>
 
         <TabsContent value="namespaces" className="space-y-6">
