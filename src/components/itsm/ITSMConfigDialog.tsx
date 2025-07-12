@@ -51,7 +51,7 @@ export const ITSMConfigDialog: React.FC<ITSMConfigDialogProps> = ({ teamId }) =>
     name: '',
     description: '',
     priority: '',
-    ticket_category: '',
+    ticket_category: 'all',
     response_time_hours: 4,
     resolution_time_hours: 24
   });
@@ -223,7 +223,7 @@ export const ITSMConfigDialog: React.FC<ITSMConfigDialogProps> = ({ teamId }) =>
         name: slaForm.name,
         description: slaForm.description,
         priority: slaForm.priority,
-        ticket_category: slaForm.ticket_category || undefined,
+        ticket_category: slaForm.ticket_category === 'all' ? undefined : slaForm.ticket_category,
         response_time_hours: slaForm.response_time_hours,
         resolution_time_hours: slaForm.resolution_time_hours,
         escalation_time_hours: slaForm.escalation_time_hours || undefined,
@@ -236,7 +236,7 @@ export const ITSMConfigDialog: React.FC<ITSMConfigDialogProps> = ({ teamId }) =>
         name: '',
         description: '',
         priority: '',
-        ticket_category: '',
+        ticket_category: 'all',
         response_time_hours: 4,
         resolution_time_hours: 24
       });
@@ -451,7 +451,7 @@ export const ITSMConfigDialog: React.FC<ITSMConfigDialogProps> = ({ teamId }) =>
                         <SelectValue placeholder="Toutes les catégories" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Toutes les catégories</SelectItem>
+                        <SelectItem value="all">Toutes les catégories</SelectItem>
                         {categories.map((category) => (
                           <SelectItem key={category.id} value={category.config_key}>
                             <div className="flex items-center gap-2">
@@ -520,7 +520,7 @@ export const ITSMConfigDialog: React.FC<ITSMConfigDialogProps> = ({ teamId }) =>
                               <span className="flex items-center gap-1">
                                 <strong>Priorité:</strong> {sla.priority}
                               </span>
-                              {sla.ticket_category && (
+                              {sla.ticket_category && sla.ticket_category !== 'all' && (
                                 <span className="flex items-center gap-1">
                                   <strong>Catégorie:</strong> {sla.ticket_category}
                                 </span>
