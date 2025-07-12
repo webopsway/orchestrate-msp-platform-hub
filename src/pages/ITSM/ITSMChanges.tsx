@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
-  FileText, 
+  Settings,
   Plus, 
   Search,
   User,
@@ -66,6 +66,45 @@ const ITSMChanges = () => {
       return `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
     }
     return profile.email;
+  }, []);
+
+  const getStatusColor = useCallback((status: string) => {
+    switch (status) {
+      case "approved":
+      case "implemented":
+        return "default";
+      case "pending_approval":
+        return "secondary";
+      case "draft":
+        return "outline";
+      case "rejected":
+      case "failed":
+        return "destructive";
+      default:
+        return "outline";
+    }
+  }, []);
+
+  const getStatusIcon = useCallback((status: string) => {
+    switch (status) {
+      case "approved":
+      case "implemented":
+        return <CheckCircle className="h-4 w-4" />;
+      case "pending_approval":
+        return <AlertCircle className="h-4 w-4" />;
+      default:
+        return <Info className="h-4 w-4" />;
+    }
+  }, []);
+
+  const getTypeColor = useCallback((type: string) => {
+    switch (type) {
+      case "emergency": return "destructive";
+      case "urgent": return "secondary";
+      case "normal": return "default";
+      case "standard": return "outline";
+      default: return "outline";
+    }
   }, []);
 
   const openDetail = useCallback((change: Change) => {
@@ -124,39 +163,6 @@ const ITSMChanges = () => {
     }
   }, [selectedChange, deleteChange, closeAll]);
 
-  const getStatusColor = useCallback((status: string) => {
-    switch (status) {
-      case "implemented":
-        return "default";
-      case "approved":
-        return "secondary";
-      case "pending_approval":
-        return "outline";
-      case "draft":
-        return "outline";
-      case "failed":
-      case "rejected":
-        return "destructive";
-      default:
-        return "outline";
-    }
-  }, []);
-
-  const getStatusIcon = useCallback((status: string) => {
-    switch (status) {
-      case "implemented":
-        return <CheckCircle className="h-4 w-4" />;
-      case "failed":
-      case "rejected":
-        return <AlertCircle className="h-4 w-4" />;
-      case "approved":
-        return <CheckCircle className="h-4 w-4" />;
-      case "pending_approval":
-        return <AlertCircle className="h-4 w-4" />;
-      default:
-        return <Info className="h-4 w-4" />;
-    }
-  }, []);
 
   const filteredChanges = useMemo(() => {
     return changes.filter(change => {
@@ -171,22 +177,22 @@ const ITSMChanges = () => {
 
   const stats = useMemo(() => [
     {
-      title: "Changements en attente",
+      title: "En attente",
       value: changes.filter(c => c.status === 'pending_approval').length.toString(),
-      icon: AlertCircle,
-      color: "text-yellow-500"
+      icon: Settings,
+      color: "text-blue-500"
     },
     {
       title: "Approuvés",
       value: changes.filter(c => c.status === 'approved').length.toString(),
-      icon: CheckCircle,
-      color: "text-green-500"
+      icon: AlertCircle,
+      color: "text-yellow-500"
     },
     {
       title: "Implémentés",
       value: changes.filter(c => c.status === 'implemented').length.toString(),
-      icon: FileText,
-      color: "text-blue-500"
+      icon: CheckCircle,
+      color: "text-green-500"
     }
   ], [changes]);
 

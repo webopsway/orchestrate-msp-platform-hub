@@ -176,7 +176,7 @@ const ITSMIncidents = () => {
       title: "Incidents ouverts",
       value: incidents.filter(i => i.status === 'open').length.toString(),
       icon: AlertTriangle,
-      color: "text-red-500"
+      color: "text-blue-500"
     },
     {
       title: "En cours",
