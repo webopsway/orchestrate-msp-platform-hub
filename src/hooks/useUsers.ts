@@ -126,14 +126,15 @@ export function useUsers(): UseUsersReturn {
       
       // Fusionner les métadonnées existantes avec les nouvelles
       const existingMetadata = (existingUser?.metadata as any) || {};
+      const incomingMetadata = data.metadata || {};
       const newMetadata = {
         ...existingMetadata,
         // Ne mettre à jour que les champs fournis et non vides
-        ...(data.phone !== undefined && { phone: data.phone }),
-        ...(data.role !== undefined && { role: data.role }),
-        ...(data.department !== undefined && { department: data.department }),
-        ...(data.position !== undefined && { position: data.position }),
-        ...(data.status !== undefined && { status: data.status }),
+        ...(incomingMetadata.phone !== undefined && { phone: incomingMetadata.phone }),
+        ...(incomingMetadata.role !== undefined && { role: incomingMetadata.role }),
+        ...(incomingMetadata.department !== undefined && { department: incomingMetadata.department }),
+        ...(incomingMetadata.position !== undefined && { position: incomingMetadata.position }),
+        ...(incomingMetadata.status !== undefined && { status: incomingMetadata.status }),
       };
       
       console.log('Metadata merge result:', { existingMetadata, newMetadata });
