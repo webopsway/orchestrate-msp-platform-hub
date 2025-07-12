@@ -65,7 +65,23 @@ export const ITSMConfigManager: React.FC = () => {
     description: ''
   });
 
-  const { data: configs = [], isLoading } = useITSMDynamicConfig(activeTab);
+  // Charger les configurations pour tous les types
+  const { data: priorities = [], isLoading: prioritiesLoading } = useITSMDynamicConfig('priorities');
+  const { data: statuses = [], isLoading: statusesLoading } = useITSMDynamicConfig('statuses');
+  const { data: categories = [], isLoading: categoriesLoading } = useITSMDynamicConfig('categories');
+
+  // Déterminer les données actuelles en fonction de l'onglet actif
+  const getCurrentConfigs = () => {
+    switch (activeTab) {
+      case 'priorities': return priorities;
+      case 'statuses': return statuses;
+      case 'categories': return categories;
+      default: return [];
+    }
+  };
+
+  const isLoading = prioritiesLoading || statusesLoading || categoriesLoading;
+  const configs = getCurrentConfigs();
   const createConfig = useCreateITSMDynamicConfig();
   const updateConfig = useUpdateITSMDynamicConfig();
   const deleteConfig = useDeleteITSMDynamicConfig();
