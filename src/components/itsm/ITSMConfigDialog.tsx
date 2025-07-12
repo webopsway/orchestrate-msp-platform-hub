@@ -408,9 +408,9 @@ export const ITSMConfigDialog: React.FC<ITSMConfigDialogProps> = ({ teamId }) =>
                     <Plus className="h-4 w-4" />
                   </Button>
                 </CardTitle>
-                <CardDescription>
-                  Définissez les accords de niveau de service pour vos tickets
-                </CardDescription>
+              <CardDescription>
+                Définissez les accords de niveau de service selon la priorité et la catégorie des tickets
+              </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -424,7 +424,7 @@ export const ITSMConfigDialog: React.FC<ITSMConfigDialogProps> = ({ teamId }) =>
                     />
                   </div>
                   <div>
-                    <Label htmlFor="sla-priority">Priorité</Label>
+                    <Label htmlFor="sla-priority">Priorité *</Label>
                     <Select value={slaForm.priority} onValueChange={(value) => setSLAForm(prev => ({ ...prev, priority: value }))}>
                       <SelectTrigger>
                         <SelectValue placeholder="Sélectionner une priorité" />
@@ -432,7 +432,35 @@ export const ITSMConfigDialog: React.FC<ITSMConfigDialogProps> = ({ teamId }) =>
                       <SelectContent>
                         {priorities.map((priority) => (
                           <SelectItem key={priority.id} value={priority.config_key}>
-                            {getConfigLabel(priority)}
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-3 h-3 rounded-full" 
+                                style={{ backgroundColor: getConfigColor(priority) }}
+                              />
+                              {getConfigLabel(priority)}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="sla-category">Catégorie de ticket (optionnel)</Label>
+                    <Select value={slaForm.ticket_category} onValueChange={(value) => setSLAForm(prev => ({ ...prev, ticket_category: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Toutes les catégories" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Toutes les catégories</SelectItem>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.config_key}>
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-3 h-3 rounded-full" 
+                                style={{ backgroundColor: getConfigColor(category) }}
+                              />
+                              {getConfigLabel(category)}
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -446,7 +474,7 @@ export const ITSMConfigDialog: React.FC<ITSMConfigDialogProps> = ({ teamId }) =>
                     id="sla-description"
                     value={slaForm.description}
                     onChange={(e) => setSLAForm(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Description de la politique SLA"
+                    placeholder="Ex: SLA pour les incidents critiques de sécurité"
                   />
                 </div>
 
@@ -488,12 +516,21 @@ export const ITSMConfigDialog: React.FC<ITSMConfigDialogProps> = ({ teamId }) =>
                         <div className="flex items-center justify-between">
                           <div>
                             <h5 className="font-medium">{sla.name}</h5>
-                            <p className="text-sm text-muted-foreground">
-                              Priorité: {sla.priority} | 
-                              Réponse: {sla.response_time_hours}h | 
-                              Résolution: {sla.resolution_time_hours}h
-                              {sla.escalation_time_hours && ` | Escalade: ${sla.escalation_time_hours}h`}
-                            </p>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <strong>Priorité:</strong> {sla.priority}
+                              </span>
+                              {sla.ticket_category && (
+                                <span className="flex items-center gap-1">
+                                  <strong>Catégorie:</strong> {sla.ticket_category}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                              <span>Réponse: {sla.response_time_hours}h</span>
+                              <span>Résolution: {sla.resolution_time_hours}h</span>
+                              {sla.escalation_time_hours && <span>Escalade: {sla.escalation_time_hours}h</span>}
+                            </div>
                           </div>
                           <div className="flex items-center gap-2">
                             {sla.escalation_time_hours && (
