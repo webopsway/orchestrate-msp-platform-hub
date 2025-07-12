@@ -65,12 +65,44 @@ const ITSMSecurity = () => {
   const [severityFilter, setSeverityFilter] = useState<string>("all");
 
   const fetchVulnerabilities = async () => {
+    if (!user) {
+      console.log('No user available, skipping vulnerabilities load');
+      setVulnerabilities([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Check if user is MSP admin directly from auth context
+      const { data: profile } = await supabase.from('profiles')
+        .select('is_msp_admin, default_organization_id, default_team_id')
+        .eq('id', user.id)
+        .single();
+      
+      // For MSP admins, create a minimal session context if none exists
+      let workingSessionContext = sessionContext;
+      if (!workingSessionContext && profile?.is_msp_admin) {
+        console.log('Creating temporary MSP session context for vulnerabilities loading');
+        workingSessionContext = {
+          current_organization_id: profile.default_organization_id,
+          current_team_id: profile.default_team_id,
+          is_msp: true
+        };
+      }
+
+      let query = supabase
         .from('security_vulnerabilities')
-        .select('*')
-        .order('discovered_at', { ascending: false });
+        .select('*');
+
+      // Filter by team if not MSP admin
+      const teamId = workingSessionContext?.current_team_id;
+      if (teamId && !workingSessionContext?.is_msp) {
+        query = query.eq('team_id', teamId);
+      }
+
+      const { data, error } = await query.order('discovered_at', { ascending: false });
 
       if (error) throw error;
       setVulnerabilities((data || []) as SecurityVulnerability[]);
@@ -99,8 +131,10 @@ const ITSMSecurity = () => {
   } = useITSMCrud<SecurityVulnerability>({ onRefresh: fetchVulnerabilities });
 
   useEffect(() => {
-    fetchVulnerabilities();
-  }, [sessionContext]);
+    if (user) {
+      fetchVulnerabilities();
+    }
+  }, [user, sessionContext]);
 
   const updateVulnerabilityStatus = async (vulnId: string, newStatus: string) => {
     try {

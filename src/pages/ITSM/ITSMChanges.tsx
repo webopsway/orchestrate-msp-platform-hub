@@ -75,9 +75,34 @@ const ITSMChanges = () => {
   const [typeFilter, setTypeFilter] = useState<string>("all");
 
   const fetchChanges = async () => {
+    if (!user) {
+      console.log('No user available, skipping changes load');
+      setChanges([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Check if user is MSP admin directly from auth context
+      const { data: profile } = await supabase.from('profiles')
+        .select('is_msp_admin, default_organization_id, default_team_id')
+        .eq('id', user.id)
+        .single();
+      
+      // For MSP admins, create a minimal session context if none exists
+      let workingSessionContext = sessionContext;
+      if (!workingSessionContext && profile?.is_msp_admin) {
+        console.log('Creating temporary MSP session context for changes loading');
+        workingSessionContext = {
+          current_organization_id: profile.default_organization_id,
+          current_team_id: profile.default_team_id,
+          is_msp: true
+        };
+      }
+
+      let query = supabase
         .from('itsm_change_requests')
         .select(`
           *,
@@ -87,8 +112,15 @@ const ITSMChanges = () => {
             first_name,
             last_name
           )
-        `)
-        .order('created_at', { ascending: false });
+        `);
+
+      // Filter by team if not MSP admin
+      const teamId = workingSessionContext?.current_team_id;
+      if (teamId && !workingSessionContext?.is_msp) {
+        query = query.eq('team_id', teamId);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
       setChanges((data || []) as ITSMChange[]);
@@ -118,8 +150,10 @@ const ITSMChanges = () => {
   } = useITSMCrud<ITSMChange>({ onRefresh: fetchChanges });
 
   useEffect(() => {
-    fetchChanges();
-  }, [sessionContext]);
+    if (user) {
+      fetchChanges();
+    }
+  }, [user, sessionContext]);
 
   const updateChangeStatus = async (changeId: string, newStatus: string) => {
     try {

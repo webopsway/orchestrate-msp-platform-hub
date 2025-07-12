@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ServiceRequestService } from '@/services/serviceRequestService';
 import type { ServiceRequest } from '@/types/serviceRequest';
+import { supabase } from '@/integrations/supabase/client';
 
 // Re-export types for backward compatibility
 export type { ServiceRequest } from '@/types/serviceRequest';
@@ -12,9 +13,33 @@ export const useServiceRequests = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchRequests = useCallback(async () => {
+    if (!user) {
+      console.log('No user available, skipping service requests load');
+      setRequests([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
-      const data = await ServiceRequestService.fetchRequests(user, sessionContext);
+      // Check if user is MSP admin directly from auth context
+      const { data: profile } = await supabase.from('profiles')
+        .select('is_msp_admin, default_organization_id, default_team_id')
+        .eq('id', user.id)
+        .single();
+      
+      // For MSP admins, create a minimal session context if none exists
+      let workingSessionContext = sessionContext;
+      if (!workingSessionContext && profile?.is_msp_admin) {
+        console.log('Creating temporary MSP session context for service requests loading');
+        workingSessionContext = {
+          current_organization_id: profile.default_organization_id,
+          current_team_id: profile.default_team_id,
+          is_msp: true
+        };
+      }
+
+      const data = await ServiceRequestService.fetchRequests(user, workingSessionContext);
       setRequests(data);
     } finally {
       setLoading(false);
@@ -62,9 +87,9 @@ export const useServiceRequests = () => {
   }, [user, fetchRequests]);
 
   useEffect(() => {
-    if (user && (sessionContext?.current_team_id || sessionContext?.is_msp)) {
+    if (user) {
       fetchRequests();
-    } else if (!user) {
+    } else {
       setRequests([]);
       setLoading(false);
     }
