@@ -49,7 +49,7 @@ interface Team {
 }
 
 const Organizations = () => {
-  const { sessionContext } = useAuth();
+  const { userProfile } = useAuth();
   const {
     organizations,
     loading,

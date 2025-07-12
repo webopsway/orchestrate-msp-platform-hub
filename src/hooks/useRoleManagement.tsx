@@ -47,7 +47,7 @@ interface UserRole {
 }
 
 export const useRoleManagement = () => {
-  const { sessionContext } = useAuth();
+  const { userProfile } = useAuth();
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Record<string, Permission[]>>({});
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);

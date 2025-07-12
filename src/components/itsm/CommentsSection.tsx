@@ -24,7 +24,7 @@ interface CommentsSectionProps {
 }
 
 export function CommentsSection({ ticketId, ticketType, readonly = false }: CommentsSectionProps) {
-  const { user, sessionContext } = useAuth();
+  const { user, userProfile } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
@@ -71,9 +71,9 @@ export function CommentsSection({ ticketId, ticketType, readonly = false }: Comm
   };
 
   const addComment = async () => {
-    const teamId = sessionContext?.current_team_id;
-    if (!newComment.trim() || !user || (!teamId && !sessionContext?.is_msp)) {
-      if (!teamId && !sessionContext?.is_msp) {
+    const teamId = userProfile?.default_team_id;
+    if (!newComment.trim() || !user || (!teamId && !userProfile?.is_msp_admin)) {
+      if (!teamId && !userProfile?.is_msp_admin) {
         toast.error('Aucune équipe sélectionnée');
       }
       return;
@@ -86,7 +86,7 @@ export function CommentsSection({ ticketId, ticketType, readonly = false }: Comm
       const insertData: any = {
         content: newComment.trim(),
         created_by: user.id,
-        team_id: teamId || sessionContext?.current_organization_id || '',
+        team_id: teamId || userProfile?.default_organization_id || '',
       };
       insertData[columnName] = ticketId;
       

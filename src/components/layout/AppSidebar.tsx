@@ -125,7 +125,7 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
-  const { sessionContext } = useAuth();
+  const { userProfile } = useAuth();
   const { getSetting } = useAppSettings();
   
   const [sidebarConfig, setSidebarConfig] = useState<SidebarConfig>({
@@ -138,7 +138,7 @@ export function AppSidebar() {
     const loadSidebarConfig = async () => {
       try {
         // Récupérer la configuration depuis app_settings
-        const teamId = sessionContext?.current_team_id || sessionContext?.current_organization_id || null;
+        const teamId = userProfile?.default_team_id || userProfile?.default_organization_id || null;
         const config = await getSetting(teamId, 'ui', 'sidebar_config');
         
         if (config) {
@@ -149,10 +149,10 @@ export function AppSidebar() {
       }
     };
 
-    if (sessionContext?.is_msp || sessionContext?.current_team_id) {
+    if (userProfile?.is_msp_admin || userProfile?.default_team_id) {
       loadSidebarConfig();
     }
-  }, [sessionContext?.is_msp, sessionContext?.current_team_id, sessionContext?.current_organization_id, getSetting]);
+  }, [userProfile?.is_msp_admin, userProfile?.default_team_id, userProfile?.default_organization_id, getSetting]);
 
   const isActive = (path: string) => currentPath === path;
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
@@ -161,10 +161,10 @@ export function AppSidebar() {
   // Filtrer les éléments selon les permissions
   const filteredItems = sidebarConfig.items.filter(item => {
     // MSP peut voir tout
-    if (sessionContext?.is_msp) return true;
+    if (userProfile?.is_msp_admin) return true;
     
     // Masquer les paramètres pour les non-MSP
-    if (item.group === "admin" && !sessionContext?.is_msp) return false;
+    if (item.group === "admin" && !userProfile?.is_msp_admin) return false;
     
     // Filtrer par recherche
     if (searchTerm && !item.title.toLowerCase().includes(searchTerm.toLowerCase())) {
@@ -240,20 +240,20 @@ export function AppSidebar() {
         ))}
 
         {/* Indicateur de contexte utilisateur */}
-        {!collapsed && sessionContext && (
+        {!collapsed && userProfile && (
           <div className="p-4 border-t mt-auto">
             <div className="space-y-2">
               <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                <div className={`w-2 h-2 rounded-full ${sessionContext.is_msp ? 'bg-blue-500' : 'bg-green-500'}`} />
+                <div className={`w-2 h-2 rounded-full ${userProfile.is_msp_admin ? 'bg-blue-500' : 'bg-green-500'}`} />
                 <span>
-                  {sessionContext.is_msp ? 'Mode MSP' : 'Mode Équipe'}
+                  {userProfile.is_msp_admin ? 'Mode MSP' : 'Mode Équipe'}
                 </span>
               </div>
-              {(sessionContext.current_team_id || sessionContext.current_organization_id) && (
+              {(userProfile.default_team_id || userProfile.default_organization_id) && (
                 <div className="text-xs text-muted-foreground truncate">
-                  {sessionContext.current_team_id 
-                    ? `Équipe: ${sessionContext.current_team_id.slice(0, 8)}...` 
-                    : `Org: ${sessionContext.current_organization_id?.slice(0, 8)}...`
+                  {userProfile.default_team_id 
+                    ? `Équipe: ${userProfile.default_team_id.slice(0, 8)}...` 
+                    : `Org: ${userProfile.default_organization_id?.slice(0, 8)}...`
                   }
                 </div>
               )}

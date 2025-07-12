@@ -45,7 +45,7 @@ interface Role {
 }
 
 const Users = () => {
-  const { user, sessionContext } = useAuth();
+  const { user, userProfile } = useAuth();
   const { 
     users, 
     loading, 
@@ -334,8 +334,8 @@ const Users = () => {
 
   // Vérifier les permissions d'accès
   const canManageUsers = useMemo(() => {
-    return sessionContext?.is_msp || sessionContext?.current_team_id;
-  }, [sessionContext]);
+    return userProfile?.is_msp_admin || userProfile?.default_team_id;
+  }, [userProfile]);
 
   if (!user) {
     return (

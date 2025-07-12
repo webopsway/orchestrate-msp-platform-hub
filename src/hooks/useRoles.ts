@@ -92,7 +92,7 @@ export interface UseRolesReturn {
 
 export const useRoles = (options: UseRolesOptions = {}): UseRolesReturn => {
   const { autoLoad = true } = options;
-  const { sessionContext } = useAuth();
+  const { userProfile } = useAuth();
 
   // State
   const [roles, setRoles] = useState<Role[]>([]);
@@ -328,8 +328,8 @@ export const useRoles = (options: UseRolesOptions = {}): UseRolesReturn => {
       const userRoleData = {
         user_id: userId,
         role_id: roleId,
-        team_id: options?.teamId || sessionContext?.current_team_id,
-        organization_id: options?.organizationId || sessionContext?.current_organization_id,
+        team_id: options?.teamId || userProfile?.default_team_id,
+        organization_id: options?.organizationId || userProfile?.default_organization_id,
         expires_at: options?.expiresAt,
         is_active: true,
         granted_at: new Date().toISOString()
@@ -351,7 +351,7 @@ export const useRoles = (options: UseRolesOptions = {}): UseRolesReturn => {
     } finally {
       setLoading(false);
     }
-  }, [sessionContext, loadData]);
+  }, [userProfile, loadData]);
 
   const revokeRole = useCallback(async (userRoleId: string): Promise<boolean> => {
     try {

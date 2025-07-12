@@ -34,7 +34,7 @@ interface UserProfile {
 }
 
 export function UserProfile() {
-  const { user, sessionContext } = useAuth();
+  const { user, userProfile } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -162,13 +162,13 @@ export function UserProfile() {
                 </p>
               </div>
               <div className="flex gap-2">
-                {sessionContext?.is_msp && (
+                {userProfile?.is_msp_admin && (
                   <Badge variant="default" className="flex items-center gap-1">
                     <Shield className="h-3 w-3" />
                     Administrateur MSP
                   </Badge>
                 )}
-                {(sessionContext?.current_team_id || sessionContext?.current_organization_id) && (
+                {(userProfile?.default_team_id || userProfile?.default_organization_id) && (
                   <Badge variant="outline">Équipe Active</Badge>
                 )}
               </div>

@@ -17,7 +17,7 @@ import { UserPlus, Shield, Users, Settings, Trash2, Calendar, Building, Users2 }
 import { toast } from 'sonner';
 
 export const RoleAdmin = () => {
-  const { sessionContext } = useAuth();
+  const { userProfile } = useAuth();
   const { roles, permissions, userRoles, rolePermissions, loading, error, assignRole, revokeRole, refreshData } = useRoleManagement();
   
   const [users, setUsers] = useState<any[]>([]);
@@ -34,7 +34,7 @@ export const RoleAdmin = () => {
   });
 
   // Check if user is MSP admin
-  const isMspAdmin = sessionContext?.is_msp || false;
+  const isMspAdmin = userProfile?.is_msp_admin || false;
 
   useEffect(() => {
     fetchUsers();

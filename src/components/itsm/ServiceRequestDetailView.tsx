@@ -71,7 +71,7 @@ export const ServiceRequestDetailView = ({
   onClose,
   onRequestUpdated
 }: ServiceRequestDetailViewProps) => {
-  const { sessionContext } = useAuth();
+  const { userProfile } = useAuth();
   const [request, setRequest] = useState<ServiceRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingField, setEditingField] = useState<string | null>(null);

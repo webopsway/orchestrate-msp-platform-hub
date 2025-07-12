@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function UserMenu() {
-  const { user, sessionContext, signOut } = useAuth();
+  const { user, userProfile, signOut } = useAuth();
 
   if (!user) return null;
 
@@ -46,10 +46,10 @@ export function UserMenu() {
           <div className="flex flex-col space-y-2">
             <p className="text-sm font-medium leading-none">{user.email}</p>
             <div className="flex gap-2">
-              {sessionContext?.is_msp && (
+              {userProfile?.is_msp_admin && (
                 <Badge variant="default" className="text-xs">MSP Admin</Badge>
               )}
-              {(sessionContext?.current_team_id || sessionContext?.current_organization_id) && (
+              {(userProfile?.default_team_id || userProfile?.default_organization_id) && (
                 <Badge variant="outline" className="text-xs">Équipe Active</Badge>
               )}
             </div>

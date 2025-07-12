@@ -7,7 +7,7 @@ import { Tables } from "@/integrations/supabase/types";
 export type Documentation = Tables<'documentation'>;
 
 export const useDocumentation = () => {
-  const { user, sessionContext } = useAuth();
+  const { user, userProfile } = useAuth();
   const [documents, setDocuments] = useState<Documentation[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -18,28 +18,11 @@ export const useDocumentation = () => {
     try {
       setLoading(true);
       
-      // Check if user is MSP admin directly from auth context
-      const { data: profile } = await supabase.from('profiles')
-        .select('is_msp_admin, default_organization_id, default_team_id')
-        .eq('id', user.id)
-        .single();
-      
-      // For MSP admins, create a minimal session context if none exists
-      let workingSessionContext = sessionContext;
-      if (!workingSessionContext && profile?.is_msp_admin) {
-        console.log('Creating temporary MSP session context for documentation loading');
-        workingSessionContext = {
-          current_organization_id: profile.default_organization_id,
-          current_team_id: profile.default_team_id,
-          is_msp: true
-        };
-      }
-      
       // MSP admin peut voir tous les documents, autres voient par team
       let query = supabase.from('documentation').select('*');
-      const teamId = workingSessionContext?.current_team_id;
+      const teamId = userProfile?.default_team_id;
       
-      if (teamId && !workingSessionContext?.is_msp) {
+      if (teamId && !userProfile?.is_msp_admin) {
         query = query.eq('team_id', teamId);
       }
       
@@ -70,7 +53,7 @@ export const useDocumentation = () => {
       
       if (!targetTeamId) {
         // Utiliser l'équipe courante ou l'organisation par défaut pour MSP admin
-        targetTeamId = sessionContext?.current_team_id || sessionContext?.current_organization_id;
+        targetTeamId = userProfile?.default_team_id || userProfile?.default_organization_id;
       }
 
       if (!targetTeamId) {
@@ -213,7 +196,7 @@ export const useDocumentation = () => {
     try {
       setLoading(true);
 
-      const currentTeamId = sessionContext?.current_team_id;
+      const currentTeamId = userProfile?.default_team_id;
 
       const { data, error } = await supabase.functions.invoke('generate-document', {
         body: {

@@ -29,7 +29,7 @@ interface NotificationHistory {
 }
 
 export const useNotifications = () => {
-  const { sessionContext, user } = useAuth();
+  const { userProfile, user } = useAuth();
   const [transports, setTransports] = useState<NotificationTransport[]>([]);
   const [notifications, setNotifications] = useState<NotificationHistory[]>([]);
   const [loading, setLoading] = useState(false);
@@ -43,25 +43,8 @@ export const useNotifications = () => {
     try {
       setLoading(true);
       
-      // Check if user is MSP admin directly from auth context
-      const { data: profile } = await supabase.from('profiles')
-        .select('is_msp_admin, default_organization_id, default_team_id')
-        .eq('id', user.id)
-        .single();
-      
-      // For MSP admins, create a minimal session context if none exists
-      let workingSessionContext = sessionContext;
-      if (!workingSessionContext && profile?.is_msp_admin) {
-        console.log('Creating temporary MSP session context for notifications loading');
-        workingSessionContext = {
-          current_organization_id: profile.default_organization_id,
-          current_team_id: profile.default_team_id,
-          is_msp: true
-        };
-      }
-
-      const teamId = workingSessionContext?.current_team_id;
-      if (!teamId && !workingSessionContext?.is_msp) {
+      const teamId = userProfile?.default_team_id;
+      if (!teamId && !userProfile?.is_msp_admin) {
         setTransports([]);
         return;
       }
@@ -69,7 +52,7 @@ export const useNotifications = () => {
       let query = supabase.from('notification_transports').select('*');
       
       // MSP admin peut voir tous les transports, sinon filtrer par team
-      if (teamId && !workingSessionContext?.is_msp) {
+      if (teamId && !userProfile?.is_msp_admin) {
         query = query.eq('team_id', teamId);
       }
       
@@ -83,11 +66,11 @@ export const useNotifications = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, sessionContext?.current_team_id, sessionContext?.is_msp]);
+  }, [user, userProfile?.default_team_id, userProfile?.is_msp_admin]);
 
   const fetchNotifications = useCallback(async () => {
-    const teamId = sessionContext?.current_team_id;
-    if (!teamId && !sessionContext?.is_msp) {
+    const teamId = userProfile?.default_team_id;
+    if (!teamId && !userProfile?.is_msp_admin) {
       setNotifications([]);
       return;
     }
@@ -96,7 +79,7 @@ export const useNotifications = () => {
       let query = supabase.from('notifications').select('*');
       
       // MSP admin peut voir toutes les notifications, sinon filtrer par team
-      if (teamId && !sessionContext?.is_msp) {
+      if (teamId && !userProfile?.is_msp_admin) {
         query = query.eq('team_id', teamId);
       }
       
@@ -110,7 +93,7 @@ export const useNotifications = () => {
       console.error('Error fetching notifications:', error);
       toast.error('Erreur lors du chargement de l\'historique');
     }
-  }, [sessionContext?.current_team_id, sessionContext?.is_msp]);
+  }, [userProfile?.default_team_id, userProfile?.is_msp_admin]);
 
   const createTransport = useCallback(async (transportData: {
     channel: string;
@@ -118,8 +101,8 @@ export const useNotifications = () => {
     config: any;
     is_active: boolean;
   }) => {
-    const teamId = sessionContext?.current_team_id;
-    if (!teamId && !sessionContext?.is_msp) {
+    const teamId = userProfile?.default_team_id;
+    if (!teamId && !userProfile?.is_msp_admin) {
       toast.error('Aucune équipe sélectionnée');
       throw new Error('No team ID available');
     }
@@ -129,7 +112,7 @@ export const useNotifications = () => {
       const { data, error } = await supabase
         .from('notification_transports')
         .insert([{
-          team_id: teamId || sessionContext?.current_organization_id || '', 
+          team_id: teamId || userProfile?.default_organization_id || '', 
           channel: transportData.channel,
           scope: transportData.scope,
           config: transportData.config,
@@ -151,7 +134,7 @@ export const useNotifications = () => {
     } finally {
       setLoading(false);
     }
-  }, [sessionContext?.current_team_id, sessionContext?.is_msp, sessionContext?.current_organization_id, user?.id, fetchTransports]);
+  }, [userProfile?.default_team_id, userProfile?.is_msp_admin, userProfile?.default_organization_id, user?.id, fetchTransports]);
 
   const updateTransport = useCallback(async (transportId: string, updates: {
     channel?: string;

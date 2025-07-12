@@ -3,7 +3,7 @@ import { RoleAdmin } from "@/components/admin/RoleAdmin";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
-  const { sessionContext } = useAuth();
+  const { userProfile } = useAuth();
   const isMspAdmin = sessionContext?.is_msp || false;
 
   return (

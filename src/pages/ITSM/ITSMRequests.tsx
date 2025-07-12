@@ -40,7 +40,7 @@ import {
 import { toast } from "sonner";
 
 const ITSMRequests = () => {
-  const { user, sessionContext } = useAuth();
+  const { user, userProfile } = useAuth();
   const { 
     requests, 
     loading, 

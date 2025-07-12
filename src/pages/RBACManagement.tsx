@@ -30,7 +30,7 @@ import { toast } from "sonner";
 import { Role, Permission, SYSTEM_ROLES } from "@/types/rbac";
 
 const RBACManagement = () => {
-  const { sessionContext } = useAuth();
+  const { userProfile } = useAuth();
   const { 
     roles, 
     permissions, 

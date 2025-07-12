@@ -15,7 +15,7 @@ interface MonitoringStats {
 }
 
 export const useMonitoring = () => {
-  const { user, sessionContext } = useAuth();
+  const { user, userProfile } = useAuth();
   const [alerts, setAlerts] = useState<MonitoringAlert[]>([]);
   const [uptimeChecks, setUptimeChecks] = useState<UptimeCheck[]>([]);
   const [stats, setStats] = useState<MonitoringStats>({
@@ -34,29 +34,12 @@ export const useMonitoring = () => {
     setError(null);
 
     try {
-      // Check if user is MSP admin directly from auth context
-      const { data: profile } = await supabase.from('profiles')
-        .select('is_msp_admin, default_organization_id, default_team_id')
-        .eq('id', user.id)
-        .single();
-      
-      // For MSP admins, create a minimal session context if none exists
-      let workingSessionContext = sessionContext;
-      if (!workingSessionContext && profile?.is_msp_admin) {
-        console.log('Creating temporary MSP session context for monitoring loading');
-        workingSessionContext = {
-          current_organization_id: profile.default_organization_id,
-          current_team_id: profile.default_team_id,
-          is_msp: true
-        };
-      }
-
-      const teamId = workingSessionContext?.current_team_id;
+      const teamId = userProfile?.default_team_id;
 
       // Fetch alerts - MSP admin voit tout, autres voient par team
       let alertsQuery = supabase.from('monitoring_alerts').select('*');
       
-      if (teamId && !workingSessionContext?.is_msp) {
+      if (teamId && !userProfile?.is_msp_admin) {
         alertsQuery = alertsQuery.eq('team_id', teamId);
       }
       
@@ -68,7 +51,7 @@ export const useMonitoring = () => {
       // Fetch uptime checks - MSP admin voit tout, autres voient par team
       let uptimeQuery = supabase.from('uptime_checks').select('*');
       
-      if (teamId && !workingSessionContext?.is_msp) {
+      if (teamId && !userProfile?.is_msp_admin) {
         uptimeQuery = uptimeQuery.eq('team_id', teamId);
       }
       
@@ -114,9 +97,9 @@ export const useMonitoring = () => {
     }
 
     try {
-      const teamId = sessionContext?.current_team_id;
+      const teamId = userProfile?.default_team_id;
       
-      if (!teamId && !sessionContext?.is_msp) {
+      if (!teamId && !userProfile?.is_msp_admin) {
         throw new Error('No team context available');
       }
 
@@ -124,7 +107,7 @@ export const useMonitoring = () => {
         .from('uptime_checks')
         .insert([{
           ...data,
-          team_id: teamId || sessionContext?.current_organization_id || '',
+          team_id: teamId || userProfile?.default_organization_id || '',
           method: data.method || 'GET',
           check_interval: data.check_interval || 300,
           timeout_seconds: data.timeout_seconds || 30,
@@ -250,7 +233,7 @@ export const useMonitoring = () => {
         supabase.removeChannel(uptimeSubscription);
       };
     }
-  }, [user, sessionContext]);
+  }, [user, userProfile]);
 
   return {
     alerts,

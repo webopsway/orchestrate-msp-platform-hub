@@ -48,7 +48,7 @@ interface Organization {
 }
 
 const Teams = () => {
-  const { sessionContext } = useAuth();
+  const { userProfile } = useAuth();
   const [teams, setTeams] = useState<Team[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);

@@ -89,7 +89,7 @@ interface NotificationHistory {
 }
 
 const Notifications = () => {
-  const { sessionContext } = useAuth();
+  const { userProfile } = useAuth();
   const {
     transports,
     notifications,

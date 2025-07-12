@@ -30,7 +30,7 @@ export function RequestAssignment({
   onAssigned, 
   disabled = false 
 }: RequestAssignmentProps) {
-  const { sessionContext } = useAuth();
+  const { userProfile } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [assigning, setAssigning] = useState(false);
@@ -46,10 +46,10 @@ export function RequestAssignment({
     try {
       setLoading(true);
       
-      const organizationId = sessionContext?.current_organization_id;
-      const teamId = sessionContext?.current_team_id;
-      
-      if (sessionContext?.is_msp) {
+      const organizationId = userProfile?.default_organization_id;
+      const teamId = userProfile?.default_team_id;
+
+      if (userProfile?.is_msp_admin) {
         // MSP admin sees all users if organization context is available
         if (organizationId) {
           const { data: orgMembers, error: orgError } = await supabase

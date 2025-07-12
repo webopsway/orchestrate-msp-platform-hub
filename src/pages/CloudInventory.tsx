@@ -81,7 +81,7 @@ interface CloudProvider {
 }
 
 const CloudInventory = () => {
-  const { sessionContext } = useAuth();
+  const { userProfile } = useAuth();
   const hasValidContext = sessionContext?.is_msp || sessionContext?.current_team_id;
   const [assets, setAssets] = useState<CloudAssetWithProvider[]>([]);
   const [providers, setProviders] = useState<CloudProvider[]>([]);

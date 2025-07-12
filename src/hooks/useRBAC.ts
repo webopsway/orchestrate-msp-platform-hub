@@ -32,7 +32,7 @@ export interface UseRBACReturn {
 }
 
 export function useRBAC(options: UseRBACOptions = {}): UseRBACReturn {
-  const { sessionContext, user } = useAuth();
+  const { userProfile, user } = useAuth();
   const { teamId, userId, autoLoad = true } = options;
 
   const [roles, setRoles] = useState<SimpleRole[]>([]);
@@ -42,7 +42,7 @@ export function useRBAC(options: UseRBACOptions = {}): UseRBACReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const effectiveTeamId = teamId || sessionContext?.current_team_id;
+  const effectiveTeamId = teamId || userProfile?.default_team_id;
   const effectiveUserId = userId || user?.id;
 
   const userPermissions = useMemo(() => {

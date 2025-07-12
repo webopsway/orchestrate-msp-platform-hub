@@ -19,10 +19,10 @@ export const RBACGuard = ({
   const { checkPermission } = useRBAC();
   
   // Import useAuth to check MSP admin status
-  const { sessionContext } = useAuth();
+  const { userProfile } = useAuth();
   
   // Check if user is MSP admin first - MSP admins bypass all permission checks
-  const isMSPAdmin = sessionContext?.is_msp || false;
+  const isMSPAdmin = userProfile?.is_msp_admin || false;
   
   // MSP admins have access to everything
   const hasPermission = isMSPAdmin || checkPermission(resource, action);

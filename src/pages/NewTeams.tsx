@@ -22,7 +22,7 @@ interface SimpleOrganization {
 }
 
 const NewTeams = () => {
-  const { sessionContext } = useAuth();
+  const { userProfile } = useAuth();
   const [teams, setTeams] = useState<TeamWithOrg[]>([]);
   const [organizations, setOrganizations] = useState<SimpleOrganization[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);

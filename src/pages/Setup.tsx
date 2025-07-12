@@ -10,22 +10,22 @@ import { toast } from 'sonner';
 import { Loader2, Building2, Users } from 'lucide-react';
 
 export default function Setup() {
-  const { user, sessionContext } = useAuth();
+  const { user, userProfile } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [organizationName, setOrganizationName] = useState('Mon Organisation MSP');
   const [teamName, setTeamName] = useState('Équipe MSP');
 
   useEffect(() => {
-    if (!user || !sessionContext?.is_msp) {
+    if (!user || !userProfile?.is_msp_admin) {
       navigate('/');
       return;
     }
-  }, [user, sessionContext, navigate]);
+  }, [user, userProfile, navigate]);
 
   const handleSetup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!sessionContext?.current_organization_id || !sessionContext?.current_team_id) return;
+    if (!userProfile?.default_team_id || !userProfile?.default_organization_id) return;
 
     setLoading(true);
     try {
@@ -33,7 +33,7 @@ export default function Setup() {
       const { error: orgError } = await supabase
         .from('organizations')
         .update({ name: organizationName })
-        .eq('id', sessionContext.current_organization_id);
+        .eq('id', userProfile.default_organization_id);
 
       if (orgError) throw orgError;
 
@@ -41,7 +41,7 @@ export default function Setup() {
       const { error: teamError } = await supabase
         .from('teams')
         .update({ name: teamName })
-        .eq('id', sessionContext?.current_team_id);
+        .eq('id', userProfile?.default_team_id);
 
       if (teamError) throw teamError;
 
@@ -59,7 +59,7 @@ export default function Setup() {
     navigate('/');
   };
 
-  if (!user || !sessionContext?.is_msp) {
+  if (!user || !userProfile?.is_msp_admin) {
     return null;
   }
 
