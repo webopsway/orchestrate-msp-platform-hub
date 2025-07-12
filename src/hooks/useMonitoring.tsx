@@ -4,8 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import type { Database } from '@/integrations/supabase/types';
 
 type Tables = Database['public']['Tables'];
-type MonitoringAlert = Tables<'monitoring_alerts'>;
-type UptimeCheck = Tables<'uptime_checks'>;
+type MonitoringAlert = Tables['monitoring_alerts']['Row'];
+type UptimeCheck = Tables['uptime_checks']['Row'];
 
 interface MonitoringStats {
   totalAlerts: number;

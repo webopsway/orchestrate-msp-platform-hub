@@ -79,15 +79,6 @@ const Auth = () => {
     loadTeamBranding();
   }, []);
 
-  const cleanupAuthState = useCallback(() => {
-    // Nettoyer les clés d'authentification Supabase du localStorage
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        localStorage.removeItem(key);
-      }
-    });
-  }, []);
-
   const validateForm = useCallback((isSignUp: boolean = false): boolean => {
     if (!formData.email || !formData.password) {
       setError("Email et mot de passe requis");
@@ -124,8 +115,6 @@ const Auth = () => {
     setError("");
 
     try {
-      cleanupAuthState();
-      
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -141,11 +130,11 @@ const Auth = () => {
       if (error) throw error;
 
       if (data.user) {
-        toast.success("Compte créé avec succès ! Vérifiez votre email.");
+        toast.success("Compte créé avec succès !");
         
         // Si la confirmation email est désactivée, rediriger immédiatement
         if (data.session) {
-          window.location.href = '/';
+          navigate('/', { replace: true });
         } else {
           // Réinitialiser le formulaire après inscription réussie
           setFormData({
@@ -172,7 +161,7 @@ const Auth = () => {
     } finally {
       setLoading(false);
     }
-  }, [formData, validateForm, cleanupAuthState]);
+  }, [formData, validateForm, navigate]);
 
   const handleSignIn = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,16 +172,6 @@ const Auth = () => {
     setError("");
 
     try {
-      cleanupAuthState();
-      
-      // Tentative de déconnexion globale d'abord
-      try {
-        await signOut();
-      } catch (err) {
-        // Continuer même si cela échoue
-        console.warn('Global signout failed:', err);
-      }
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
@@ -202,8 +181,7 @@ const Auth = () => {
 
       if (data.user) {
         toast.success("Connexion réussie !");
-        // Redirection avec remplacement pour éviter le retour en arrière
-        window.location.href = '/';
+        navigate('/', { replace: true });
       }
     } catch (error: any) {
       console.error("Login error:", error);
@@ -221,7 +199,7 @@ const Auth = () => {
     } finally {
       setLoading(false);
     }
-  }, [formData, validateForm, cleanupAuthState, signOut]);
+  }, [formData, validateForm, navigate]);
 
   const handleInputChange = useCallback((field: keyof AuthFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
