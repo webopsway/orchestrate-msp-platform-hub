@@ -17,24 +17,8 @@ export class ChangeService {
         .from('itsm_change_requests')
         .select(`
           *,
-          requested_by_profile:profiles!requested_by (
-            id,
-            email,
-            first_name,
-            last_name
-          ),
-          assigned_to_profile:profiles!assigned_to (
-            id,
-            email,
-            first_name,
-            last_name
-          ),
-          approved_by_profile:profiles!approved_by (
-            id,
-            email,
-            first_name,
-            last_name
-          )
+          requested_by_profile:requested_by(email, first_name, last_name),
+          approved_by_profile:approved_by(email, first_name, last_name)
         `);
 
       // Filter by team if not MSP admin

@@ -17,18 +17,8 @@ export class IncidentService {
         .from('itsm_incidents')
         .select(`
           *,
-          created_by_profile:profiles!created_by (
-            id,
-            email,
-            first_name,
-            last_name
-          ),
-          assigned_to_profile:profiles!assigned_to (
-            id,
-            email,
-            first_name,
-            last_name
-          )
+          created_by_profile:created_by(email, first_name, last_name),
+          assigned_to_profile:assigned_to(email, first_name, last_name)
         `);
 
       // Filter by team if not MSP admin
