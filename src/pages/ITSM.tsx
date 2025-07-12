@@ -397,12 +397,12 @@ const ITSM = () => {
                   <TableRow>
                     <TableHead>ID</TableHead>
                     <TableHead>Titre</TableHead>
-                    <TableHead>Type</TableHead>
+                    <TableHead>Créé par</TableHead>
                     <TableHead>Priorité</TableHead>
                     <TableHead>Statut</TableHead>
                     <TableHead>Assigné</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead>Date création</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -420,9 +420,12 @@ const ITSM = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">
-                          {(item.type as string) === 'incident' ? 'Incident' : 'Changement'}
-                        </Badge>
+                        <div className="flex items-center space-x-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            {item.created_by || "N/A"}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant={getPriorityColor(item.priority)}>
@@ -440,7 +443,7 @@ const ITSM = () => {
                       <TableCell>
                         {item.assigned_to ? (
                           <div className="flex items-center space-x-2">
-                            <User className="h-4 w-4" />
+                            <User className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm">{item.assigned_to}</span>
                           </div>
                         ) : (
@@ -456,7 +459,21 @@ const ITSM = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex space-x-2">
+                        <div className="flex items-center gap-1 justify-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Voir les détails"
+                          >
+                            <Info className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Modifier"
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
                           <Select
                             value={item.status}
                             onValueChange={(value) => updateItemStatus(item.id, value, item.type)}
