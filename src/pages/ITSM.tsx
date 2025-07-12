@@ -50,7 +50,6 @@ import {
   UserPlus
 } from "lucide-react";
 import { RequestAssignment } from "@/components/itsm/RequestAssignment";
-import { ITSMConfigDialog } from "@/components/itsm/ITSMConfigDialog";
 import { SLAStatusBadge } from "@/components/itsm/SLAStatusBadge";
 import { useSLATracking } from "@/hooks/useITSMConfig";
 import { toast } from "sonner";
@@ -326,18 +325,15 @@ const ITSM = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-start">
-        <PageHeader
-          title="ITSM"
-          description="Gestion des incidents, changements et demandes de service"
-          action={{
-            label: "Créer",
-            icon: Plus,
-            onClick: () => setIsCreateModalOpen(true)
-          }}
-        />
-        <ITSMConfigDialog teamId={userProfile?.default_team_id || ''} />
-      </div>
+      <PageHeader
+        title="ITSM"
+        description="Gestion des incidents, changements et demandes de service"
+        action={{
+          label: "Créer",
+          icon: Plus,
+          onClick: () => setIsCreateModalOpen(true)
+        }}
+      />
 
       {/* Statistiques */}
       <DataGrid columns={3}>

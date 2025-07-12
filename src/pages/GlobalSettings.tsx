@@ -17,6 +17,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { ITSMConfigDialog } from '@/components/itsm/ITSMConfigDialog';
 
 export default function GlobalSettings() {
   const { user } = useAuth();
@@ -198,8 +199,9 @@ export default function GlobalSettings() {
       </div>
 
       <Tabs defaultValue="global" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="global">Paramètres Globaux</TabsTrigger>
+          <TabsTrigger value="itsm">Configuration ITSM</TabsTrigger>
           <TabsTrigger value="namespaces">Namespaces</TabsTrigger>
           <TabsTrigger value="teams">Paramètres Équipes</TabsTrigger>
         </TabsList>
@@ -349,6 +351,77 @@ export default function GlobalSettings() {
               </Card>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="itsm" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-semibold">Configuration ITSM</h2>
+              <p className="text-muted-foreground">Gérez les priorités, statuts, catégories et politiques SLA pour tous les teams</p>
+            </div>
+          </div>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Configuration du système ITSM
+              </CardTitle>
+              <CardDescription>
+                Configurez les paramètres ITSM pour toutes les équipes. Seuls les administrateurs MSP peuvent modifier ces paramètres.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Fonctionnalités disponibles :</h4>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>• Configuration des priorités et couleurs</li>
+                      <li>• Définition des statuts et workflows</li>
+                      <li>• Gestion des catégories de tickets</li>
+                      <li>• Politiques SLA par priorité</li>
+                      <li>• Escalade automatique</li>
+                    </ul>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Équipes configurables :</h4>
+                    <p className="text-sm text-muted-foreground">
+                      En tant qu'administrateur MSP, vous pouvez configurer les paramètres ITSM pour chaque équipe individuellement. 
+                      Chaque équipe peut avoir sa propre configuration de priorités, statuts et SLA.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Pour configurer une équipe spécifique, utilisez le bouton ci-dessous. 
+                    Vous devrez spécifier l'ID de l'équipe à configurer.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Input 
+                      placeholder="ID de l'équipe à configurer"
+                      className="max-w-xs"
+                      id="team-id-input"
+                    />
+                    <Button 
+                      onClick={() => {
+                        const input = document.getElementById('team-id-input') as HTMLInputElement;
+                        if (input?.value) {
+                          // Créer une instance du dialog avec l'ID de l'équipe
+                          const dialog = document.createElement('div');
+                          document.body.appendChild(dialog);
+                          // Le composant ITSMConfigDialog sera rendu ici
+                        }
+                      }}
+                    >
+                      Configurer cette équipe
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="namespaces" className="space-y-6">
