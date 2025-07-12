@@ -48,9 +48,29 @@ export function useUsers(): UseUsersReturn {
       
       console.log('loadUsers called with sessionContext:', sessionContext);
       
-      const { data: usersData, error: usersError, count } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact' })
+      // MSP admins can see all users, regular users see users from their team/organization
+      let query = supabase.from('profiles').select('*', { count: 'exact' });
+      
+      // If user is not MSP admin and has a team context, filter by team membership
+      if (!sessionContext?.is_msp && sessionContext?.current_team_id) {
+        // Get users who are members of the current team
+        const { data: teamMembers } = await supabase
+          .from('team_memberships')
+          .select('user_id')
+          .eq('team_id', sessionContext.current_team_id);
+          
+        if (teamMembers && teamMembers.length > 0) {
+          const userIds = teamMembers.map(tm => tm.user_id);
+          query = query.in('id', userIds);
+        } else {
+          // No team members found, return empty result
+          setUsers([]);
+          setTotalCount(0);
+          return;
+        }
+      }
+
+      const { data: usersData, error: usersError, count } = await query
         .order('created_at', { ascending: false });
 
       if (usersError) throw usersError;
@@ -79,7 +99,7 @@ export function useUsers(): UseUsersReturn {
     } finally {
       setLoading(false);
     }
-  }, [sessionContext?.current_team_id]);
+  }, [sessionContext?.current_team_id, sessionContext?.is_msp]);
 
   const createUser = useCallback(async (data: any): Promise<boolean> => {
     try {
