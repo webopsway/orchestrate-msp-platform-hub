@@ -3,20 +3,46 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { OrganizationService } from "@/services/organizationService";
 import type { Organization, OrganizationFormData, UseOrganizationsReturn } from "@/types/organization";
+import { supabase } from "@/integrations/supabase/client";
 
 export function useOrganizations(): UseOrganizationsReturn {
-  const { sessionContext } = useAuth();
+  const { user, sessionContext } = useAuth();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
 
   const loadOrganizations = useCallback(async () => {
+    if (!user) {
+      console.log('No user available, skipping organizations load');
+      setOrganizations([]);
+      setTotalCount(0);
+      setLoading(false);
+      return;
+    }
+
     try {
       setError(null);
       setLoading(true);
       
-      const { organizations: orgs, count } = await OrganizationService.loadAll(sessionContext);
+      // Check if user is MSP admin directly from auth context
+      const { data: profile } = await supabase.from('profiles')
+        .select('is_msp_admin, default_organization_id, default_team_id')
+        .eq('id', user.id)
+        .single();
+      
+      // For MSP admins, create a minimal session context if none exists
+      let workingSessionContext = sessionContext;
+      if (!workingSessionContext && profile?.is_msp_admin) {
+        console.log('Creating temporary MSP session context for organizations loading');
+        workingSessionContext = {
+          current_organization_id: profile.default_organization_id,
+          current_team_id: profile.default_team_id,
+          is_msp: true
+        };
+      }
+      
+      const { organizations: orgs, count } = await OrganizationService.loadAll(workingSessionContext);
       
       setOrganizations(orgs);
       setTotalCount(count);
@@ -29,7 +55,7 @@ export function useOrganizations(): UseOrganizationsReturn {
     } finally {
       setLoading(false);
     }
-  }, [sessionContext?.current_team_id, sessionContext?.is_msp]);
+  }, [user, sessionContext?.current_team_id, sessionContext?.is_msp]);
 
   const createOrganization = useCallback(async (data: OrganizationFormData): Promise<boolean> => {
     try {
@@ -79,8 +105,10 @@ export function useOrganizations(): UseOrganizationsReturn {
   }, []);
 
   useEffect(() => {
-    loadOrganizations();
-  }, [loadOrganizations]);
+    if (user) {
+      loadOrganizations();
+    }
+  }, [user, loadOrganizations]);
 
   return {
     organizations,

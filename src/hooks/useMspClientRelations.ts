@@ -57,8 +57,7 @@ export const useMspClientRelations = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchRelations = async () => {
-    // MSP admin peut voir toutes les relations, sinon on n'affiche rien
-    if (!sessionContext?.is_msp) {
+    if (!user) {
       setRelations([]);
       return;
     }
@@ -67,6 +66,29 @@ export const useMspClientRelations = () => {
     setError(null);
 
     try {
+      // Check if user is MSP admin directly from auth context
+      const { data: profile } = await supabase.from('profiles')
+        .select('is_msp_admin, default_organization_id, default_team_id')
+        .eq('id', user.id)
+        .single();
+      
+      // For MSP admins, create a minimal session context if none exists
+      let workingSessionContext = sessionContext;
+      if (!workingSessionContext && profile?.is_msp_admin) {
+        console.log('Creating temporary MSP session context for MSP relations loading');
+        workingSessionContext = {
+          current_organization_id: profile.default_organization_id,
+          current_team_id: profile.default_team_id,
+          is_msp: true
+        };
+      }
+
+      // MSP admin peut voir toutes les relations, sinon on n'affiche rien
+      if (!workingSessionContext?.is_msp) {
+        setRelations([]);
+        return;
+      }
+
       const { data, error: fetchError } = await supabase
         .from('msp_client_relations')
         .select(`
@@ -223,10 +245,10 @@ export const useMspClientRelations = () => {
   };
 
   useEffect(() => {
-    if (sessionContext?.is_msp) {
+    if (user) {
       fetchRelations();
     }
-  }, [sessionContext?.is_msp]);
+  }, [user, sessionContext?.is_msp]);
 
   return {
     relations,

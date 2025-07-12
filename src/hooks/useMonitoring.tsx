@@ -34,12 +34,29 @@ export const useMonitoring = () => {
     setError(null);
 
     try {
-      const teamId = sessionContext?.current_team_id;
+      // Check if user is MSP admin directly from auth context
+      const { data: profile } = await supabase.from('profiles')
+        .select('is_msp_admin, default_organization_id, default_team_id')
+        .eq('id', user.id)
+        .single();
+      
+      // For MSP admins, create a minimal session context if none exists
+      let workingSessionContext = sessionContext;
+      if (!workingSessionContext && profile?.is_msp_admin) {
+        console.log('Creating temporary MSP session context for monitoring loading');
+        workingSessionContext = {
+          current_organization_id: profile.default_organization_id,
+          current_team_id: profile.default_team_id,
+          is_msp: true
+        };
+      }
+
+      const teamId = workingSessionContext?.current_team_id;
 
       // Fetch alerts - MSP admin voit tout, autres voient par team
       let alertsQuery = supabase.from('monitoring_alerts').select('*');
       
-      if (teamId && !sessionContext?.is_msp) {
+      if (teamId && !workingSessionContext?.is_msp) {
         alertsQuery = alertsQuery.eq('team_id', teamId);
       }
       
@@ -51,7 +68,7 @@ export const useMonitoring = () => {
       // Fetch uptime checks - MSP admin voit tout, autres voient par team
       let uptimeQuery = supabase.from('uptime_checks').select('*');
       
-      if (teamId && !sessionContext?.is_msp) {
+      if (teamId && !workingSessionContext?.is_msp) {
         uptimeQuery = uptimeQuery.eq('team_id', teamId);
       }
       

@@ -35,18 +35,41 @@ export const useNotifications = () => {
   const [loading, setLoading] = useState(false);
 
   const fetchTransports = useCallback(async () => {
-    const teamId = sessionContext?.current_team_id;
-    if (!teamId && !sessionContext?.is_msp) {
+    if (!user) {
       setTransports([]);
       return;
     }
 
     try {
       setLoading(true);
+      
+      // Check if user is MSP admin directly from auth context
+      const { data: profile } = await supabase.from('profiles')
+        .select('is_msp_admin, default_organization_id, default_team_id')
+        .eq('id', user.id)
+        .single();
+      
+      // For MSP admins, create a minimal session context if none exists
+      let workingSessionContext = sessionContext;
+      if (!workingSessionContext && profile?.is_msp_admin) {
+        console.log('Creating temporary MSP session context for notifications loading');
+        workingSessionContext = {
+          current_organization_id: profile.default_organization_id,
+          current_team_id: profile.default_team_id,
+          is_msp: true
+        };
+      }
+
+      const teamId = workingSessionContext?.current_team_id;
+      if (!teamId && !workingSessionContext?.is_msp) {
+        setTransports([]);
+        return;
+      }
+
       let query = supabase.from('notification_transports').select('*');
       
       // MSP admin peut voir tous les transports, sinon filtrer par team
-      if (teamId && !sessionContext?.is_msp) {
+      if (teamId && !workingSessionContext?.is_msp) {
         query = query.eq('team_id', teamId);
       }
       
@@ -56,11 +79,11 @@ export const useNotifications = () => {
       setTransports(data || []);
     } catch (error) {
       console.error('Error fetching transports:', error);
-      toast.error('Erreur lors du chargement des transports');
+      setTransports([]);
     } finally {
       setLoading(false);
     }
-  }, [sessionContext?.current_team_id, sessionContext?.is_msp]);
+  }, [user, sessionContext?.current_team_id, sessionContext?.is_msp]);
 
   const fetchNotifications = useCallback(async () => {
     const teamId = sessionContext?.current_team_id;

@@ -18,11 +18,28 @@ export const useDocumentation = () => {
     try {
       setLoading(true);
       
+      // Check if user is MSP admin directly from auth context
+      const { data: profile } = await supabase.from('profiles')
+        .select('is_msp_admin, default_organization_id, default_team_id')
+        .eq('id', user.id)
+        .single();
+      
+      // For MSP admins, create a minimal session context if none exists
+      let workingSessionContext = sessionContext;
+      if (!workingSessionContext && profile?.is_msp_admin) {
+        console.log('Creating temporary MSP session context for documentation loading');
+        workingSessionContext = {
+          current_organization_id: profile.default_organization_id,
+          current_team_id: profile.default_team_id,
+          is_msp: true
+        };
+      }
+      
       // MSP admin peut voir tous les documents, autres voient par team
       let query = supabase.from('documentation').select('*');
-      const teamId = sessionContext?.current_team_id;
+      const teamId = workingSessionContext?.current_team_id;
       
-      if (teamId && !sessionContext?.is_msp) {
+      if (teamId && !workingSessionContext?.is_msp) {
         query = query.eq('team_id', teamId);
       }
       
