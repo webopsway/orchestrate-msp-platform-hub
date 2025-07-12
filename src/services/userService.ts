@@ -20,6 +20,10 @@ export class UserService {
   static async loadUsers(sessionContext: SessionContext): Promise<{ users: User[], count: number }> {
     console.log('UserService.loadUsers called with sessionContext:', sessionContext);
     
+    if (!sessionContext) {
+      throw new Error('Session context is required to load users');
+    }
+    
     // MSP admins can see all users
     let query = supabase.from('profiles').select('*', { count: 'exact' });
     
@@ -40,7 +44,7 @@ export class UserService {
         
       if (teamError) {
         console.error('Error fetching team members:', teamError);
-        throw teamError;
+        throw new Error(`Erreur lors de la récupération des membres de l'équipe: ${teamError.message}`);
       }
         
       if (teamMembers && teamMembers.length > 0) {
@@ -55,7 +59,10 @@ export class UserService {
     const { data: usersData, error: usersError, count } = await query
       .order('created_at', { ascending: false });
 
-    if (usersError) throw usersError;
+    if (usersError) {
+      console.error('Error fetching users:', usersError);
+      throw new Error(`Erreur lors de la récupération des utilisateurs: ${usersError.message}`);
+    }
     
     // Transform data to match interface
     const transformedUsers: User[] = (usersData || []).map(this.transformUser);
@@ -64,16 +71,20 @@ export class UserService {
   }
 
   static async createUser(data: UserCreateData): Promise<void> {
+    if (!data.email || !data.first_name || !data.last_name) {
+      throw new Error('Email, prénom et nom sont requis pour créer un utilisateur');
+    }
+
     const userData = {
       id: data.id || crypto.randomUUID(),
       email: data.email,
       first_name: data.first_name,
       last_name: data.last_name,
       metadata: {
-        phone: data.phone,
-        role: data.role,
-        department: data.department,
-        position: data.position,
+        phone: data.phone || '',
+        role: data.role || 'user',
+        department: data.department || '',
+        position: data.position || '',
         status: data.status || 'active'
       }
     };
@@ -82,11 +93,18 @@ export class UserService {
       .from('profiles')
       .insert([userData]);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error creating user:', error);
+      throw new Error(`Erreur lors de la création de l'utilisateur: ${error.message}`);
+    }
   }
 
   static async updateUser(id: string, data: UserUpdateData): Promise<void> {
     console.log('UserService.updateUser called with:', { id, data });
+    
+    if (!id) {
+      throw new Error('ID utilisateur requis pour la mise à jour');
+    }
     
     // Récupérer l'utilisateur existant pour préserver les métadonnées
     const { data: existingUser, error: fetchError } = await supabase
@@ -95,7 +113,10 @@ export class UserService {
       .eq('id', id)
       .single();
       
-    if (fetchError) throw fetchError;
+    if (fetchError) {
+      console.error('Error fetching existing user:', fetchError);
+      throw new Error(`Erreur lors de la récupération de l'utilisateur: ${fetchError.message}`);
+    }
     
     // Fusionner les métadonnées existantes avec les nouvelles
     const existingMetadata = (existingUser?.metadata as any) || {};
@@ -134,15 +155,51 @@ export class UserService {
       .update(updateData)
       .eq('id', id);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error updating user:', error);
+      throw new Error(`Erreur lors de la mise à jour de l'utilisateur: ${error.message}`);
+    }
   }
 
   static async deleteUser(id: string): Promise<void> {
+    if (!id) {
+      throw new Error('ID utilisateur requis pour la suppression');
+    }
+
     const { error } = await supabase
       .from('profiles')
       .delete()
       .eq('id', id);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error deleting user:', error);
+      throw new Error(`Erreur lors de la suppression de l'utilisateur: ${error.message}`);
+    }
+  }
+
+  // Méthode utilitaire pour vérifier les permissions
+  static async checkUserPermissions(userId: string, sessionContext: SessionContext): Promise<boolean> {
+    if (!sessionContext) {
+      return false;
+    }
+
+    // MSP admins can manage all users
+    if (sessionContext.is_msp) {
+      return true;
+    }
+
+    // Check if user is in the same team
+    if (sessionContext.current_team_id) {
+      const { data: membership } = await supabase
+        .from('team_memberships')
+        .select('id')
+        .eq('team_id', sessionContext.current_team_id)
+        .eq('user_id', userId)
+        .single();
+
+      return !!membership;
+    }
+
+    return false;
   }
 }

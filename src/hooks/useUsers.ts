@@ -20,13 +20,20 @@ export interface UseUsersReturn {
 }
 
 export function useUsers(): UseUsersReturn {
-  const { sessionContext } = useAuth();
+  const { user, sessionContext } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
 
   const loadUsers = useCallback(async () => {
+    if (!user) {
+      console.log('No user available, skipping load');
+      setUsers([]);
+      setTotalCount(0);
+      return;
+    }
+
     try {
       setError(null);
       setLoading(true);
@@ -36,7 +43,6 @@ export function useUsers(): UseUsersReturn {
         console.log('No session context available, waiting...');
         setUsers([]);
         setTotalCount(0);
-        setLoading(false);
         return;
       }
       
@@ -52,9 +58,14 @@ export function useUsers(): UseUsersReturn {
     } finally {
       setLoading(false);
     }
-  }, [sessionContext?.current_team_id, sessionContext?.is_msp]);
+  }, [user, sessionContext?.current_team_id, sessionContext?.is_msp]);
 
   const createUser = useCallback(async (data: UserCreateData): Promise<boolean> => {
+    if (!user) {
+      toast.error('Vous devez être connecté pour créer un utilisateur');
+      return false;
+    }
+
     try {
       await UserService.createUser(data);
       toast.success('Utilisateur créé avec succès');
@@ -66,9 +77,14 @@ export function useUsers(): UseUsersReturn {
       console.error('Error creating user:', err);
       return false;
     }
-  }, [loadUsers]);
+  }, [user, loadUsers]);
 
   const updateUser = useCallback(async (id: string, data: UserUpdateData): Promise<boolean> => {
+    if (!user) {
+      toast.error('Vous devez être connecté pour modifier un utilisateur');
+      return false;
+    }
+
     try {
       await UserService.updateUser(id, data);
       toast.success('Utilisateur mis à jour avec succès');
@@ -80,9 +96,14 @@ export function useUsers(): UseUsersReturn {
       console.error('Error updating user:', err);
       return false;
     }
-  }, [loadUsers]);
+  }, [user, loadUsers]);
 
   const deleteUser = useCallback(async (id: string): Promise<boolean> => {
+    if (!user) {
+      toast.error('Vous devez être connecté pour supprimer un utilisateur');
+      return false;
+    }
+
     try {
       await UserService.deleteUser(id);
       toast.success('Utilisateur supprimé');
@@ -94,7 +115,7 @@ export function useUsers(): UseUsersReturn {
       console.error('Error deleting user:', err);
       return false;
     }
-  }, [loadUsers]);
+  }, [user, loadUsers]);
 
   const refresh = useCallback(async () => {
     await loadUsers();
@@ -105,12 +126,21 @@ export function useUsers(): UseUsersReturn {
   }, []);
 
   useEffect(() => {
-    console.log('useUsers useEffect - sessionContext:', sessionContext);
-    // Charger les utilisateurs si l'utilisateur est MSP admin ou a une session valide
-    if (sessionContext?.is_msp || sessionContext?.current_team_id) {
+    console.log('useUsers useEffect - user:', user?.id, 'sessionContext:', sessionContext);
+    
+    // Charger les utilisateurs si l'utilisateur est connecté et a une session valide
+    if (user && (sessionContext?.is_msp || sessionContext?.current_team_id)) {
       loadUsers();
+    } else if (user && !sessionContext) {
+      // Utilisateur connecté mais pas de contexte de session encore
+      console.log('User connected but no session context yet, waiting...');
+    } else if (!user) {
+      // Pas d'utilisateur connecté
+      setUsers([]);
+      setTotalCount(0);
+      setLoading(false);
     }
-  }, [loadUsers, sessionContext?.is_msp, sessionContext?.current_team_id]);
+  }, [user, sessionContext, loadUsers]);
 
   return {
     users,

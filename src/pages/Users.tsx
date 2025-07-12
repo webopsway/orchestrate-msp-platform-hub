@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useUsers } from "@/hooks/useUsers";
+import { useAuth } from "@/contexts/AuthContext";
 import { CRUDTable } from "@/components/common/CRUDTable";
 import { 
   Dialog, 
@@ -44,6 +45,7 @@ interface Role {
 }
 
 const Users = () => {
+  const { user, sessionContext } = useAuth();
   const { 
     users, 
     loading, 
@@ -57,35 +59,42 @@ const Users = () => {
   } = useUsers();
 
   const [roles, setRoles] = useState<Role[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
   
   // Charger les rôles depuis la base de données
-  useEffect(() => {
-    const loadRoles = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('roles')
-          .select('id, name, display_name')
-          .order('display_name');
-          
-        if (error) throw error;
-        
-        setRoles(data || []);
-      } catch (err) {
-        console.error('Error loading roles:', err);
-        // Fallback vers les rôles par défaut
-        setRoles([
-          { id: '1', name: 'admin', display_name: 'Administrateur' },
-          { id: '2', name: 'manager', display_name: 'Manager' },
-          { id: '3', name: 'user', display_name: 'Utilisateur' },
-          { id: '4', name: 'msp', display_name: 'MSP Admin' },
-          { id: '5', name: 'editor', display_name: 'Éditeur' },
-          { id: '6', name: 'viewer', display_name: 'Visualiseur' }
-        ]);
-      }
-    };
+  const loadRoles = useCallback(async () => {
+    if (!user) return;
     
+    try {
+      setRolesLoading(true);
+      const { data, error } = await supabase
+        .from('roles')
+        .select('id, name, display_name')
+        .order('display_name');
+        
+      if (error) throw error;
+      
+      setRoles(data || []);
+    } catch (err) {
+      console.error('Error loading roles:', err);
+      toast.error('Erreur lors du chargement des rôles');
+      // Fallback vers les rôles par défaut
+      setRoles([
+        { id: '1', name: 'admin', display_name: 'Administrateur' },
+        { id: '2', name: 'manager', display_name: 'Manager' },
+        { id: '3', name: 'user', display_name: 'Utilisateur' },
+        { id: '4', name: 'msp', display_name: 'MSP Admin' },
+        { id: '5', name: 'editor', display_name: 'Éditeur' },
+        { id: '6', name: 'viewer', display_name: 'Visualiseur' }
+      ]);
+    } finally {
+      setRolesLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
     loadRoles();
-  }, []);
+  }, [loadRoles]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -122,15 +131,15 @@ const Users = () => {
     position: ""
   });
 
-  const handleCreateUser = async (data: any) => {
+  const handleCreateUser = useCallback(async (data: any) => {
     console.log('handleCreateUser called with:', data);
     const success = await createUser(data);
     if (success) {
       setIsCreateModalOpen(false);
     }
-  };
+  }, [createUser]);
 
-  const handleUpdateUser = async (data: any) => {
+  const handleUpdateUser = useCallback(async (data: any) => {
     if (!selectedUser) return;
     
     console.log('handleUpdateUser called with:', data);
@@ -140,17 +149,17 @@ const Users = () => {
       setSelectedUser(null);
       resetEditUserForm();
     }
-  };
+  }, [selectedUser, updateUser]);
 
-  const handleDeleteUser = async (user: User) => {
+  const handleDeleteUser = useCallback(async (user: User) => {
     const success = await deleteUser(user.id);
     if (success) {
       setIsDeleteModalOpen(false);
       setSelectedUser(null);
     }
-  };
+  }, [deleteUser]);
 
-  const bulkDeleteUsers = async () => {
+  const bulkDeleteUsers = useCallback(async () => {
     try {
       for (const userId of selectedUsers) {
         await deleteUser(userId);
@@ -162,9 +171,9 @@ const Users = () => {
       console.error('Error bulk deleting users:', error);
       toast.error('Erreur lors de la suppression en masse');
     }
-  };
+  }, [selectedUsers, deleteUser]);
 
-  const resetEditUserForm = () => {
+  const resetEditUserForm = useCallback(() => {
     setEditUser({
       email: "",
       first_name: "",
@@ -176,9 +185,9 @@ const Users = () => {
       position: ""
     });
     setSelectedUser(null);
-  };
+  }, []);
 
-  const openEditModal = (user: User) => {
+  const openEditModal = useCallback((user: User) => {
     setSelectedUser(user);
     setEditUser({
       email: user.email,
@@ -191,19 +200,19 @@ const Users = () => {
       position: user.metadata?.position || ""
     });
     setIsEditModalOpen(true);
-  };
+  }, []);
 
-  const openViewModal = (user: User) => {
+  const openViewModal = useCallback((user: User) => {
     setSelectedUser(user);
     setIsViewModalOpen(true);
-  };
+  }, []);
 
-  const openDeleteModal = (user: User) => {
+  const openDeleteModal = useCallback((user: User) => {
     setSelectedUser(user);
     setIsDeleteModalOpen(true);
-  };
+  }, []);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = useCallback((status: string) => {
     switch (status) {
       case "active": return "default";
       case "inactive": return "secondary";
@@ -211,9 +220,9 @@ const Users = () => {
       case "suspended": return "destructive";
       default: return "outline";
     }
-  };
+  }, []);
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = useCallback((status: string) => {
     switch (status) {
       case "active": return <CheckCircle className="h-4 w-4" />;
       case "inactive": return <XCircle className="h-4 w-4" />;
@@ -221,9 +230,9 @@ const Users = () => {
       case "suspended": return <Lock className="h-4 w-4" />;
       default: return <AlertCircle className="h-4 w-4" />;
     }
-  };
+  }, []);
 
-  const columns = [
+  const columns = useMemo(() => [
     {
       key: 'name',
       label: 'Nom',
@@ -294,9 +303,9 @@ const Users = () => {
       sortable: true,
       render: (value: any, row: User) => new Date(row.created_at).toLocaleDateString()
     }
-  ];
+  ], [roles, getStatusColor, getStatusIcon]);
 
-  const stats = [
+  const stats = useMemo(() => [
     {
       title: "Utilisateurs totaux",
       value: totalCount.toString(),
@@ -321,7 +330,36 @@ const Users = () => {
       icon: Lock,
       color: "text-red-500"
     }
-  ];
+  ], [users, totalCount]);
+
+  // Vérifier les permissions d'accès
+  const canManageUsers = useMemo(() => {
+    return sessionContext?.is_msp || sessionContext?.current_team_id;
+  }, [sessionContext]);
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold">Accès non autorisé</h3>
+          <p className="text-muted-foreground">Vous devez être connecté pour accéder à cette page.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!canManageUsers) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold">Permissions insuffisantes</h3>
+          <p className="text-muted-foreground">Vous n'avez pas les permissions nécessaires pour gérer les utilisateurs.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -351,7 +389,7 @@ const Users = () => {
         description="Gérez les utilisateurs de votre équipe"
         columns={columns}
         data={users}
-        loading={loading}
+        loading={loading || rolesLoading}
         totalCount={totalCount}
         pageSize={pageSize}
         currentPage={currentPage}
