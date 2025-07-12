@@ -1,42 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AlertTriangle, Calendar, User, Clock } from "lucide-react";
 import type { Incident } from "@/types/incident";
+import { ITSMBadge } from "./ITSMBadge";
 
 interface IncidentDetailViewProps {
   incident: Incident;
 }
 
 export function IncidentDetailView({ incident }: IncidentDetailViewProps) {
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "critical":
-        return "destructive";
-      case "high":
-        return "default";
-      case "medium":
-        return "secondary";
-      case "low":
-        return "outline";
-      default:
-        return "outline";
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "resolved":
-      case "closed":
-        return "default";
-      case "in_progress":
-        return "secondary";
-      case "open":
-        return "outline";
-      default:
-        return "outline";
-    }
-  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -67,16 +39,12 @@ export function IncidentDetailView({ incident }: IncidentDetailViewProps) {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Priorité:</span>
-                <Badge variant={getPriorityColor(incident.priority)}>
-                  {incident.priority}
-                </Badge>
+                <ITSMBadge type="priority" value={incident.priority} />
               </div>
               
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Statut:</span>
-                <Badge variant={getStatusColor(incident.status)}>
-                  {incident.status}
-                </Badge>
+                <ITSMBadge type="status" value={incident.status} category="incident" />
               </div>
               
               {incident.assigned_to && (

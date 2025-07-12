@@ -7,14 +7,10 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { 
-  CheckCircle, 
-  AlertCircle, 
-  Info, 
-  ChevronDown,
-  Loader2
-} from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useGlobalITSMConfig } from "@/hooks/useGlobalITSMConfig";
+import { ITSMBadge } from "./ITSMBadge";
 
 interface RequestStatusUpdateProps {
   requestId: string;
@@ -30,44 +26,7 @@ export function RequestStatusUpdate({
   disabled = false 
 }: RequestStatusUpdateProps) {
   const [updating, setUpdating] = useState(false);
-
-  const statusOptions = [
-    { 
-      value: 'open', 
-      label: 'Ouvert', 
-      icon: Info, 
-      color: 'outline',
-      description: 'Demande soumise, en attente de traitement'
-    },
-    { 
-      value: 'in_progress', 
-      label: 'En cours', 
-      icon: AlertCircle, 
-      color: 'secondary',
-      description: 'Demande en cours de traitement'
-    },
-    { 
-      value: 'resolved', 
-      label: 'Résolu', 
-      icon: CheckCircle, 
-      color: 'default',
-      description: 'Demande traitée, en attente de validation'
-    },
-    { 
-      value: 'closed', 
-      label: 'Fermé', 
-      icon: CheckCircle, 
-      color: 'default',
-      description: 'Demande fermée définitivement'
-    },
-    { 
-      value: 'cancelled', 
-      label: 'Annulé', 
-      icon: AlertCircle, 
-      color: 'destructive',
-      description: 'Demande annulée'
-    }
-  ];
+  const { data: statuses = [] } = useGlobalITSMConfig('statuses', 'request');
 
   const updateStatus = async (newStatus: string) => {
     try {
@@ -84,9 +43,6 @@ export function RequestStatusUpdate({
     }
   };
 
-  const currentOption = statusOptions.find(option => option.value === currentStatus);
-  const CurrentIcon = currentOption?.icon || Info;
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -99,40 +55,32 @@ export function RequestStatusUpdate({
           {updating ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <CurrentIcon className="h-4 w-4" />
+            <ITSMBadge type="status" value={currentStatus} category="request" />
           )}
-          <Badge variant={currentOption?.color as any}>
-            {currentOption?.label}
-          </Badge>
           <ChevronDown className="h-3 w-3" />
         </Button>
       </DropdownMenuTrigger>
       
       <DropdownMenuContent align="start" className="w-64">
-        {statusOptions.map((option) => {
-          const OptionIcon = option.icon;
-          const isCurrentStatus = option.value === currentStatus;
+        {statuses.map((status) => {
+          const isCurrentStatus = status.config_key === currentStatus;
           
           return (
             <DropdownMenuItem
-              key={option.value}
-              onClick={() => !isCurrentStatus && updateStatus(option.value)}
+              key={status.config_key}
+              onClick={() => !isCurrentStatus && updateStatus(status.config_key)}
               disabled={isCurrentStatus || updating}
               className={`gap-2 p-3 ${isCurrentStatus ? 'bg-muted' : 'cursor-pointer'}`}
             >
-              <OptionIcon className="h-4 w-4" />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">{option.label}</span>
+                  <ITSMBadge type="status" value={status.config_key} category="request" />
                   {isCurrentStatus && (
                     <Badge variant="secondary" className="text-xs">
                       Actuel
                     </Badge>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {option.description}
-                </p>
               </div>
             </DropdownMenuItem>
           );

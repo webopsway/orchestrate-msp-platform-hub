@@ -25,6 +25,7 @@ import {
 import { CommentsSection } from "./CommentsSection";
 import { RequestAssignment } from "./RequestAssignment";
 import { RequestStatusUpdate } from "./RequestStatusUpdate";
+import { ITSMBadge } from "./ITSMBadge";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -144,31 +145,6 @@ export const ServiceRequestDetailView = ({
     return profile.email;
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "critical": return "destructive";
-      case "high": return "secondary";
-      case "medium": return "default";
-      case "low": return "outline";
-      default: return "outline";
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "resolved":
-      case "closed":
-        return "default";
-      case "in_progress":
-        return "secondary";
-      case "open":
-        return "outline";
-      case "cancelled":
-        return "destructive";
-      default:
-        return "outline";
-    }
-  };
 
   const serviceCategories = {
     general: "Général",
@@ -220,12 +196,8 @@ export const ServiceRequestDetailView = ({
                 REQ-{request.id.slice(0, 8)} - {request.title}
               </CardTitle>
               <div className="flex items-center gap-2 mt-2">
-                <Badge variant={getPriorityColor(request.priority)}>
-                  {request.priority}
-                </Badge>
-                <Badge variant={getStatusColor(request.status)}>
-                  {request.status}
-                </Badge>
+                <ITSMBadge type="priority" value={request.priority} />
+                <ITSMBadge type="status" value={request.status} category="request" />
                 <Badge variant="outline">
                   {serviceCategories[request.service_category as keyof typeof serviceCategories]}
                 </Badge>
@@ -417,21 +389,21 @@ export const ServiceRequestDetailView = ({
                     <div className="grid grid-cols-3 gap-4">
                       <div>
                         <Label className="text-sm font-medium">Priorité</Label>
-                        <Badge variant={getPriorityColor(request.priority)} className="mt-1">
-                          {request.priority}
-                        </Badge>
+                        <div className="mt-1">
+                          <ITSMBadge type="priority" value={request.priority} />
+                        </div>
                       </div>
                       <div>
                         <Label className="text-sm font-medium">Urgence</Label>
-                        <Badge variant={getPriorityColor(request.urgency)} className="mt-1">
-                          {request.urgency}
-                        </Badge>
+                        <div className="mt-1">
+                          <ITSMBadge type="priority" value={request.urgency} />
+                        </div>
                       </div>
                       <div>
                         <Label className="text-sm font-medium">Impact</Label>
-                        <Badge variant={getPriorityColor(request.impact)} className="mt-1">
-                          {request.impact}
-                        </Badge>
+                        <div className="mt-1">
+                          <ITSMBadge type="priority" value={request.impact} />
+                        </div>
                       </div>
                     </div>
                   </CardContent>
