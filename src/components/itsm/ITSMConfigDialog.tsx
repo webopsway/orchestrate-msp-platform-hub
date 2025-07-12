@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Settings, Plus, Edit, Trash2, Clock, AlertTriangle, Users, Zap } from 'lucide-react';
 import { useITSMConfig, useCreateITSMConfig, useUpdateITSMConfig, useSLAPolicies, useCreateSLAPolicy, ITSMConfigItem, SLAPolicy } from '@/hooks/useITSMConfig';
 import { useToast } from '@/hooks/use-toast';
-import { ITSM_CONFIG } from '@/modules/itsm/config';
+import { useGlobalITSMConfig } from '@/hooks/useGlobalITSMConfig';
 
 interface ITSMConfigDialogProps {
   teamId: string;
@@ -60,87 +60,39 @@ export const ITSMConfigDialog: React.FC<ITSMConfigDialogProps> = ({ teamId }) =>
   const { data: statuses = [] } = useITSMConfig(teamId, 'statuses');
   const { data: categories = [] } = useITSMConfig(teamId, 'categories');
   const { data: slaConfigs = [] } = useSLAPolicies(teamId);
+  
+  // Utiliser les configurations globales
+  const { data: globalPriorities = [] } = useGlobalITSMConfig('priorities');
+  const { data: globalStatuses = [] } = useGlobalITSMConfig('statuses');
+  const { data: globalCategories = [] } = useGlobalITSMConfig('categories');
 
   const createConfig = useCreateITSMConfig();
   const updateConfig = useUpdateITSMConfig();
   const createSLA = useCreateSLAPolicy();
   const { toast } = useToast();
 
-  // Valeurs par défaut du module ITSM
-  const getDefaultConfigs = (configType: string) => {
-    switch (configType) {
-      case 'priorities':
-        return Object.entries(ITSM_CONFIG.incidentPriorities).map(([key, value]) => ({
-          config_key: value,
-          config_value: { 
-            label: key.charAt(0).toUpperCase() + key.slice(1), 
-            color: getPriorityColor(value) 
-          }
-        }));
-      case 'statuses':
-        return [
-          ...Object.entries(ITSM_CONFIG.incidentStatuses).map(([key, value]) => ({
-            config_key: value,
-            config_value: { 
-              label: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), 
-              color: getStatusColor(value) 
-            }
-          })),
-          ...Object.entries(ITSM_CONFIG.changeStatuses).map(([key, value]) => ({
-            config_key: value,
-            config_value: { 
-              label: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), 
-              color: getStatusColor(value) 
-            }
-          }))
-        ];
-      case 'categories':
-        return [
-          { config_key: 'incident', config_value: { label: 'Incidents', color: '#ef4444' }},
-          { config_key: 'change', config_value: { label: 'Changements', color: '#f59e0b' }},
-          { config_key: 'request', config_value: { label: 'Demandes', color: '#3b82f6' }}
-        ];
-      default:
-        return [];
-    }
-  };
-
-  // Fonctions pour obtenir les couleurs par défaut
-  const getPriorityColor = (priority: string): string => {
-    switch (priority) {
-      case 'critical': return '#ef4444';
-      case 'high': return '#f97316';
-      case 'medium': return '#f59e0b';
-      case 'low': return '#10b981';
-      default: return '#6b7280';
-    }
-  };
-
-  const getStatusColor = (status: string): string => {
-    switch (status) {
-      case 'open': return '#ef4444';
-      case 'in_progress': return '#f59e0b';
-      case 'resolved': return '#10b981';
-      case 'closed': return '#6b7280';
-      case 'draft': return '#6b7280';
-      case 'pending_approval': return '#f59e0b';
-      case 'approved': return '#10b981';
-      case 'rejected': return '#ef4444';
-      case 'implemented': return '#10b981';
-      case 'failed': return '#ef4444';
-      default: return '#6b7280';
-    }
-  };
-
   // Fonction pour remplir le formulaire avec les valeurs par défaut
   const fillFormWithDefaults = (configType: string) => {
-    const defaultConfigs = getDefaultConfigs(configType);
+    let globalConfigs: any[] = [];
+    
+    switch (configType) {
+      case 'priorities':
+        globalConfigs = globalPriorities;
+        break;
+      case 'statuses':
+        globalConfigs = globalStatuses;
+        break;
+      case 'categories':
+        globalConfigs = globalCategories;
+        break;
+    }
+
     const existingKeys = new Set((configType === 'priorities' ? priorities : 
                                   configType === 'statuses' ? statuses : categories)
                                   .map(item => item.config_key));
 
     // Trouver la première valeur par défaut qui n'existe pas encore
-    const availableDefault = defaultConfigs.find(config => !existingKeys.has(config.config_key));
+    const availableDefault = globalConfigs.find(config => !existingKeys.has(config.config_key));
     
     if (availableDefault) {
       setConfigForm({
@@ -154,7 +106,7 @@ export const ITSMConfigDialog: React.FC<ITSMConfigDialogProps> = ({ teamId }) =>
       });
     } else {
       // Si toutes les valeurs par défaut existent, prendre la première pour exemple
-      const firstDefault = defaultConfigs[0];
+      const firstDefault = globalConfigs[0];
       if (firstDefault) {
         setConfigForm({
           config_key: '',

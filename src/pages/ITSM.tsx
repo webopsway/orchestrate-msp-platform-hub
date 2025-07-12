@@ -51,6 +51,7 @@ import {
 } from "lucide-react";
 import { RequestAssignment } from "@/components/itsm/RequestAssignment";
 import { SLAStatusBadge } from "@/components/itsm/SLAStatusBadge";
+import { ITSMBadge } from "@/components/itsm";
 import { useSLATracking } from "@/hooks/useITSMConfig";
 import { toast } from "sonner";
 
@@ -453,19 +454,15 @@ const ITSM = () => {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant={getPriorityColor(item.priority)}>
-                          {item.priority}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          {getStatusIcon(item.status)}
-                          <Badge variant={getStatusColor(item.status)}>
-                            {item.status}
-                          </Badge>
-                        </div>
+                       <TableCell>
+                         <ITSMBadge type="priority" value={item.priority} />
                        </TableCell>
+                       <TableCell>
+                         <div className="flex items-center space-x-2">
+                           {getStatusIcon(item.status)}
+                           <ITSMBadge type="status" value={item.status} category={item.type} />
+                         </div>
+                        </TableCell>
                        <TableCell>
                          <SLAStatusBadge 
                            tracking={slaTrackingData.find(sla => 
@@ -539,9 +536,7 @@ const ITSM = () => {
                     {(item.type as string) === 'incident' ? 'INC' : 'CHG'}-{item.id.slice(0, 8)}
                   </Badge>
                   <span className="font-medium">{item.title}</span>
-                  <Badge variant={getStatusColor(item.status)}>
-                    {item.status}
-                  </Badge>
+                   <ITSMBadge type="status" value={item.status} category={item.type} />
                 </div>
                 <Select
                   value={item.status}

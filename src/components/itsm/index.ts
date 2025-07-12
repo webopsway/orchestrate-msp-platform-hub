@@ -27,4 +27,8 @@ export {
   EditChangeDialog,
   ViewChangeDialog,
   DeleteChangeDialog
-} from "@/components/itsm/ChangeDialogs"; 
+} from "@/components/itsm/ChangeDialogs";
+
+// Composants utilitaires
+export { ITSMBadge } from "@/components/itsm/ITSMBadge";
+export { ITSMConfigDialog } from "@/components/itsm/ITSMConfigDialog";
