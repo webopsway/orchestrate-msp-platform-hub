@@ -12,6 +12,8 @@ import { IncidentForm } from "@/components/forms/IncidentForm";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { ITSMBadge } from "@/components/itsm";
+import { SLAStatusBadge } from "@/components/itsm/SLAStatusBadge";
 import { 
   Table, 
   TableBody, 
@@ -336,6 +338,7 @@ const ITSMIncidents = () => {
                   <TableHead>Créé par</TableHead>
                   <TableHead>Priorité</TableHead>
                   <TableHead>Statut</TableHead>
+                  <TableHead>SLA</TableHead>
                   <TableHead>Assigné</TableHead>
                   <TableHead>Date création</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -344,7 +347,7 @@ const ITSMIncidents = () => {
               <TableBody>
                 {filteredIncidents.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       Aucun incident trouvé
                     </TableCell>
                   </TableRow>
@@ -371,15 +374,18 @@ const ITSMIncidents = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={getPriorityColor(incident.priority)}>
-                          {incident.priority}
-                        </Badge>
+                        <ITSMBadge type="priority" value={incident.priority} />
                       </TableCell>
                       <TableCell>
-                        <IncidentStatusUpdate
-                          incidentId={incident.id}
-                          currentStatus={incident.status}
-                          onStatusUpdated={() => {}}
+                        <div className="flex items-center space-x-2">
+                          {getStatusIcon(incident.status)}
+                          <ITSMBadge type="status" value={incident.status} category="incident" />
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <SLAStatusBadge 
+                          tracking={undefined}
+                          size="sm"
                         />
                       </TableCell>
                       <TableCell>

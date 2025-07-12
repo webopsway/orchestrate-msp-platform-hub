@@ -12,6 +12,8 @@ import { ServiceRequestForm } from "@/components/forms/ServiceRequestForm";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { ITSMBadge } from "@/components/itsm";
+import { SLAStatusBadge } from "@/components/itsm/SLAStatusBadge";
 import { 
   Table, 
   TableBody, 
@@ -335,6 +337,7 @@ const ITSMRequests = () => {
                   <TableHead>Demandeur</TableHead>
                   <TableHead>Priorité</TableHead>
                   <TableHead>Statut</TableHead>
+                  <TableHead>SLA</TableHead>
                   <TableHead>Assigné</TableHead>
                   <TableHead>Date création</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -343,7 +346,7 @@ const ITSMRequests = () => {
               <TableBody>
                 {filteredRequests.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       Aucune demande de service trouvée
                     </TableCell>
                   </TableRow>
@@ -370,15 +373,18 @@ const ITSMRequests = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={getPriorityColor(request.priority)}>
-                          {request.priority}
-                        </Badge>
+                        <ITSMBadge type="priority" value={request.priority} />
                       </TableCell>
                       <TableCell>
-                        <RequestStatusUpdate
-                          requestId={request.id}
-                          currentStatus={request.status}
-                          onStatusUpdated={() => {}}
+                        <div className="flex items-center space-x-2">
+                          {getStatusIcon(request.status)}
+                          <ITSMBadge type="status" value={request.status} category="request" />
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <SLAStatusBadge 
+                          tracking={undefined}
+                          size="sm"
                         />
                       </TableCell>
                       <TableCell>

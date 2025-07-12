@@ -12,6 +12,8 @@ import { ChangeForm } from "@/components/forms/ChangeForm";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { ITSMBadge } from "@/components/itsm";
+import { SLAStatusBadge } from "@/components/itsm/SLAStatusBadge";
 import { 
   Table, 
   TableBody, 
@@ -341,6 +343,7 @@ const ITSMChanges = () => {
                   <TableHead>Demandeur</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Statut</TableHead>
+                  <TableHead>SLA</TableHead>
                   <TableHead>Assigné</TableHead>
                   <TableHead>Date création</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -349,7 +352,7 @@ const ITSMChanges = () => {
               <TableBody>
                 {filteredChanges.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       Aucun changement trouvé
                     </TableCell>
                   </TableRow>
@@ -376,15 +379,18 @@ const ITSMChanges = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">
-                          {change.change_type}
-                        </Badge>
+                        <ITSMBadge type="category" value={change.change_type} />
                       </TableCell>
                       <TableCell>
-                        <ChangeStatusUpdate
-                          changeId={change.id}
-                          currentStatus={change.status}
-                          onStatusUpdated={() => {}}
+                        <div className="flex items-center space-x-2">
+                          {getStatusIcon(change.status)}
+                          <ITSMBadge type="status" value={change.status} category="change" />
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <SLAStatusBadge 
+                          tracking={undefined}
+                          size="sm"
                         />
                       </TableCell>
                       <TableCell>
