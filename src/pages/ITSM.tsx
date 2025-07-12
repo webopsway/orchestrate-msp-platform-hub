@@ -50,6 +50,9 @@ import {
   UserPlus
 } from "lucide-react";
 import { RequestAssignment } from "@/components/itsm/RequestAssignment";
+import { ITSMConfigDialog } from "@/components/itsm/ITSMConfigDialog";
+import { SLAStatusBadge } from "@/components/itsm/SLAStatusBadge";
+import { useSLATracking } from "@/hooks/useITSMConfig";
 import { toast } from "sonner";
 
 interface ITSMItem {
@@ -78,6 +81,9 @@ const ITSM = () => {
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("incident");
+
+  // Hook pour récupérer les données SLA
+  const { data: slaTrackingData = [] } = useSLATracking(userProfile?.default_team_id || '');
 
   // État pour le modal de création
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -320,15 +326,18 @@ const ITSM = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="ITSM"
-        description="Gestion des incidents, changements et demandes de service"
-        action={{
-          label: "Créer",
-          icon: Plus,
-          onClick: () => setIsCreateModalOpen(true)
-        }}
-      />
+      <div className="flex justify-between items-start">
+        <PageHeader
+          title="ITSM"
+          description="Gestion des incidents, changements et demandes de service"
+          action={{
+            label: "Créer",
+            icon: Plus,
+            onClick: () => setIsCreateModalOpen(true)
+          }}
+        />
+        <ITSMConfigDialog teamId={userProfile?.default_team_id || ''} />
+      </div>
 
       {/* Statistiques */}
       <DataGrid columns={3}>
@@ -413,18 +422,19 @@ const ITSM = () => {
           ) : (
             <div className="rounded-md border">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Titre</TableHead>
-                    <TableHead>Créé par</TableHead>
-                    <TableHead>Priorité</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead>Assigné</TableHead>
-                    <TableHead>Date création</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
+                 <TableHeader>
+                   <TableRow>
+                     <TableHead>ID</TableHead>
+                     <TableHead>Titre</TableHead>
+                     <TableHead>Créé par</TableHead>
+                     <TableHead>Priorité</TableHead>
+                     <TableHead>Statut</TableHead>
+                     <TableHead>SLA</TableHead>
+                     <TableHead>Assigné</TableHead>
+                     <TableHead>Date création</TableHead>
+                     <TableHead className="text-right">Actions</TableHead>
+                   </TableRow>
+                 </TableHeader>
                 <TableBody>
                   {filteredItems.map((item) => (
                     <TableRow key={item.id}>
@@ -459,14 +469,24 @@ const ITSM = () => {
                             {item.status}
                           </Badge>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <RequestAssignment
-                          requestId={item.id}
-                          currentAssignee={item.assigned_to}
-                          onAssigned={() => fetchITSMItems()}
-                        />
-                      </TableCell>
+                       </TableCell>
+                       <TableCell>
+                         <SLAStatusBadge 
+                           tracking={slaTrackingData.find(sla => 
+                             (item.type === 'incident' && sla.incident_id === item.id) ||
+                             (item.type === 'change' && sla.change_request_id === item.id) ||
+                             (item.type === 'request' && sla.service_request_id === item.id)
+                           )}
+                           size="sm"
+                         />
+                       </TableCell>
+                       <TableCell>
+                         <RequestAssignment
+                           requestId={item.id}
+                           currentAssignee={item.assigned_to}
+                           onAssigned={() => fetchITSMItems()}
+                         />
+                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <Calendar className="h-4 w-4" />

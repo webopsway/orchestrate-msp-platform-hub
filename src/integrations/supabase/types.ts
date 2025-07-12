@@ -562,6 +562,60 @@ export type Database = {
           },
         ]
       }
+      itsm_configurations: {
+        Row: {
+          config_key: string
+          config_type: string
+          config_value: Json
+          created_at: string
+          created_by: string
+          display_order: number | null
+          id: string
+          is_active: boolean
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          config_key: string
+          config_type: string
+          config_value?: Json
+          created_at?: string
+          created_by: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          config_key?: string
+          config_type?: string
+          config_value?: Json
+          created_at?: string
+          created_by?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itsm_configurations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itsm_configurations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       itsm_incidents: {
         Row: {
           assigned_to: string | null
@@ -704,6 +758,175 @@ export type Database = {
           },
           {
             foreignKeyName: "itsm_service_requests_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itsm_sla_policies: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          escalation_time_hours: number | null
+          escalation_to: string | null
+          id: string
+          is_active: boolean
+          name: string
+          priority: string
+          resolution_time_hours: number
+          response_time_hours: number
+          team_id: string
+          ticket_category: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          escalation_time_hours?: number | null
+          escalation_to?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          priority: string
+          resolution_time_hours: number
+          response_time_hours: number
+          team_id: string
+          ticket_category?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          escalation_time_hours?: number | null
+          escalation_to?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          priority?: string
+          resolution_time_hours?: number
+          response_time_hours?: number
+          team_id?: string
+          ticket_category?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itsm_sla_policies_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itsm_sla_policies_escalation_to_fkey"
+            columns: ["escalation_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itsm_sla_policies_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itsm_sla_tracking: {
+        Row: {
+          change_request_id: string | null
+          created_at: string
+          escalated_at: string | null
+          escalation_due_at: string | null
+          first_response_at: string | null
+          id: string
+          incident_id: string | null
+          is_escalated: boolean
+          resolution_due_at: string
+          resolution_sla_breached: boolean
+          resolved_at: string | null
+          response_due_at: string
+          response_sla_breached: boolean
+          service_request_id: string | null
+          sla_policy_id: string
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          change_request_id?: string | null
+          created_at?: string
+          escalated_at?: string | null
+          escalation_due_at?: string | null
+          first_response_at?: string | null
+          id?: string
+          incident_id?: string | null
+          is_escalated?: boolean
+          resolution_due_at: string
+          resolution_sla_breached?: boolean
+          resolved_at?: string | null
+          response_due_at: string
+          response_sla_breached?: boolean
+          service_request_id?: string | null
+          sla_policy_id: string
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          change_request_id?: string | null
+          created_at?: string
+          escalated_at?: string | null
+          escalation_due_at?: string | null
+          first_response_at?: string | null
+          id?: string
+          incident_id?: string | null
+          is_escalated?: boolean
+          resolution_due_at?: string
+          resolution_sla_breached?: boolean
+          resolved_at?: string | null
+          response_due_at?: string
+          response_sla_breached?: boolean
+          service_request_id?: string | null
+          sla_policy_id?: string
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itsm_sla_tracking_change_request_id_fkey"
+            columns: ["change_request_id"]
+            isOneToOne: false
+            referencedRelation: "itsm_change_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itsm_sla_tracking_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "itsm_incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itsm_sla_tracking_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "itsm_service_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itsm_sla_tracking_sla_policy_id_fkey"
+            columns: ["sla_policy_id"]
+            isOneToOne: false
+            referencedRelation: "itsm_sla_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itsm_sla_tracking_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
@@ -1554,6 +1777,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_sla_violations: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       create_document_version: {
         Args: { doc_id: string; new_title?: string; new_content?: string }
         Returns: string
