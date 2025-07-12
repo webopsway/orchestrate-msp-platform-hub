@@ -61,6 +61,7 @@ interface ITSMItem {
   type: 'incident' | 'change' | 'request';
   assigned_to?: string;
   created_by: string;
+  created_by_name?: string;
   created_at: string;
   updated_at: string;
   resolved_at?: string;
@@ -100,7 +101,11 @@ const ITSM = () => {
       // Récupérer les incidents
       const { data: incidents, error: incidentsError } = await supabase
         .from('itsm_incidents')
-        .select('*');
+        .select(`
+          *,
+          created_by_profile:profiles!itsm_incidents_created_by_fkey(first_name, last_name, email),
+          assigned_to_profile:profiles!itsm_incidents_assigned_to_fkey(first_name, last_name, email)
+        `);
 
       if (incidentsError) {
         console.error('Error fetching incidents:', incidentsError);
@@ -110,7 +115,11 @@ const ITSM = () => {
       // Récupérer les changements
       const { data: changes, error: changesError } = await supabase
         .from('itsm_change_requests')
-        .select('*');
+        .select(`
+          *,
+          requested_by_profile:profiles!itsm_change_requests_requested_by_fkey(first_name, last_name, email),
+          approved_by_profile:profiles!itsm_change_requests_approved_by_fkey(first_name, last_name, email)
+        `);
 
       if (changesError) {
         console.error('Error fetching changes:', changesError);
@@ -123,12 +132,18 @@ const ITSM = () => {
       // Combiner et formater les données
       const formattedIncidents = (incidents || []).map(item => ({
         ...item,
-        type: 'incident' as const
+        type: 'incident' as const,
+        created_by_name: item.created_by_profile 
+          ? `${item.created_by_profile.first_name || ''} ${item.created_by_profile.last_name || ''}`.trim() || item.created_by_profile.email
+          : item.created_by
       }));
 
       const formattedChanges = (changes || []).map(item => ({
         ...item,
-        type: 'change' as const
+        type: 'change' as const,
+        created_by_name: item.requested_by_profile 
+          ? `${item.requested_by_profile.first_name || ''} ${item.requested_by_profile.last_name || ''}`.trim() || item.requested_by_profile.email
+          : item.requested_by
       }));
 
       const allItems = [...formattedIncidents, ...formattedChanges] as ITSMItem[];
@@ -428,7 +443,7 @@ const ITSM = () => {
                         <div className="flex items-center space-x-2">
                           <User className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm">
-                            {item.created_by || "N/A"}
+                            {item.created_by_name || "N/A"}
                           </span>
                         </div>
                       </TableCell>
