@@ -46,8 +46,10 @@ import {
   Info,
   Eye,
   Edit,
-  Trash2
+  Trash2,
+  UserPlus
 } from "lucide-react";
+import { RequestAssignment } from "@/components/itsm/RequestAssignment";
 import { toast } from "sonner";
 
 interface ITSMItem {
@@ -404,6 +406,7 @@ const ITSM = () => {
                     <TableHead>Priorité</TableHead>
                     <TableHead>Statut</TableHead>
                     <TableHead>Assigné</TableHead>
+                    <TableHead>Assignation</TableHead>
                     <TableHead>Date création</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -452,6 +455,13 @@ const ITSM = () => {
                         ) : (
                           <span className="text-sm text-muted-foreground">Non assigné</span>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <RequestAssignment
+                          requestId={item.id}
+                          currentAssignee={item.assigned_to}
+                          onAssigned={() => fetchITSMItems()}
+                        />
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
