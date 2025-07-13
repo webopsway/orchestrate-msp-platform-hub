@@ -767,6 +767,7 @@ export type Database = {
       }
       itsm_sla_policies: {
         Row: {
+          client_organization_id: string | null
           client_type: string
           created_at: string
           created_by: string
@@ -784,6 +785,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          client_organization_id?: string | null
           client_type?: string
           created_at?: string
           created_by: string
@@ -801,6 +803,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          client_organization_id?: string | null
           client_type?: string
           created_at?: string
           created_by?: string
@@ -818,6 +821,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "itsm_sla_policies_client_organization_id_fkey"
+            columns: ["client_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "itsm_sla_policies_created_by_fkey"
             columns: ["created_by"]

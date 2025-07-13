@@ -12,10 +12,13 @@ import { Switch } from '@/components/ui/switch';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, AlertTriangle, Building2, Network } from 'lucide-react';
+import { useOrganizations } from '@/hooks/useOrganizations';
+import { useITSMDynamicConfig } from '@/hooks/useITSMDynamicConfig';
 
 const slaFormSchema = z.object({
   name: z.string().min(1, 'Le nom est requis'),
   client_type: z.enum(['direct', 'via_esn', 'all']),
+  client_organization_id: z.string().optional(),
   priority: z.enum(['low', 'medium', 'high', 'critical']),
   ticket_category: z.string().optional(),
   response_time_hours: z.number().min(0.5, 'Le temps de réponse doit être d\'au moins 30 minutes'),
@@ -56,11 +59,15 @@ export const SLAPolicyForm: React.FC<SLAPolicyFormProps> = ({
   loading = false,
   mode
 }) => {
+  const { organizations } = useOrganizations();
+  const { data: categories = [] } = useITSMDynamicConfig('categories');
+  
   const form = useForm<SLAFormData>({
     resolver: zodResolver(slaFormSchema),
     defaultValues: {
       name: initialData?.name || '',
       client_type: initialData?.client_type || 'direct',
+      client_organization_id: initialData?.client_organization_id || '',
       priority: initialData?.priority || 'medium',
       ticket_category: initialData?.ticket_category || '',
       response_time_hours: initialData?.response_time_hours || 4,
@@ -193,6 +200,35 @@ export const SLAPolicyForm: React.FC<SLAPolicyFormProps> = ({
               />
             </div>
 
+            {/* Sélection du client spécifique */}
+            <FormField
+              control={form.control}
+              name="client_organization_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Client spécifique (optionnel)</FormLabel>
+                  <FormControl>
+                    <Select value={field.value || ''} onValueChange={(value) => field.onChange(value || undefined)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un client..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Tous les clients du type sélectionné</SelectItem>
+                        {organizations
+                          .filter(org => org.type === 'client')
+                          .map((org) => (
+                            <SelectItem key={org.id} value={org.id}>
+                              {org.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="ticket_category"
@@ -200,10 +236,19 @@ export const SLAPolicyForm: React.FC<SLAPolicyFormProps> = ({
                 <FormItem>
                   <FormLabel>Catégorie de ticket (optionnel)</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="ex: Incident, Demande de service..."
-                      {...field} 
-                    />
+                    <Select value={field.value || ''} onValueChange={(value) => field.onChange(value || undefined)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner une catégorie..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Toutes les catégories</SelectItem>
+                        {categories.map((category) => (
+                          <SelectItem key={category.config_key} value={category.config_key}>
+                            {(category.config_value as any)?.label || category.config_key}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

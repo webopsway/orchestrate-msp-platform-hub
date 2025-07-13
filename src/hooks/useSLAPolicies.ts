@@ -6,6 +6,7 @@ export interface SLAPolicy {
   id: string;
   name: string;
   client_type: 'direct' | 'via_esn' | 'all';
+  client_organization_id?: string;
   priority: 'low' | 'medium' | 'high' | 'critical';
   ticket_category?: string;
   response_time_hours: number;
@@ -23,6 +24,7 @@ export interface SLAPolicy {
 export interface CreateSLAPolicyData {
   name: string;
   client_type: 'direct' | 'via_esn' | 'all';
+  client_organization_id?: string;
   priority: 'low' | 'medium' | 'high' | 'critical';
   ticket_category?: string;
   response_time_hours: number;
