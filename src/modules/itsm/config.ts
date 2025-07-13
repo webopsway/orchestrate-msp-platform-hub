@@ -1,45 +1,52 @@
-// Configuration du module ITSM
+// Configuration unifiée du module ITSM
+import { useITSMDynamicConfig, useGlobalITSMConfig } from '@/hooks';
 
 export const ITSM_CONFIG = {
   // Tables de base de données
   tables: {
     incidents: 'itsm_incidents',
     changes: 'itsm_change_requests',
-    serviceRequests: 'itsm_service_requests'
+    serviceRequests: 'itsm_service_requests',
+    configurations: 'itsm_configurations'
   },
 
-  // Statuts des incidents
-  incidentStatuses: {
-    open: 'open',
-    inProgress: 'in_progress',
-    resolved: 'resolved',
-    closed: 'closed'
-  } as const,
-
-  // Priorités des incidents
-  incidentPriorities: {
-    low: 'low',
-    medium: 'medium',
-    high: 'high',
-    critical: 'critical'
-  } as const,
-
-  // Statuts des changements
-  changeStatuses: {
-    draft: 'draft',
-    pendingApproval: 'pending_approval',
-    approved: 'approved',
-    rejected: 'rejected',
-    implemented: 'implemented',
-    failed: 'failed'
-  } as const,
-
-  // Types de changement
-  changeTypes: {
-    emergency: 'emergency',
-    standard: 'standard',
-    normal: 'normal'
-  } as const,
+  // Configuration par défaut (fallback)
+  defaults: {
+    priorities: {
+      low: { label: 'Faible', color: '#10b981' },
+      medium: { label: 'Moyenne', color: '#f59e0b' },
+      high: { label: 'Élevée', color: '#f97316' },
+      critical: { label: 'Critique', color: '#ef4444' }
+    },
+    statuses: {
+      incident: {
+        open: { label: 'Ouvert', color: '#ef4444' },
+        in_progress: { label: 'En cours', color: '#f59e0b' },
+        resolved: { label: 'Résolu', color: '#10b981' },
+        closed: { label: 'Fermé', color: '#6b7280' }
+      },
+      change: {
+        draft: { label: 'Brouillon', color: '#6b7280' },
+        pending_approval: { label: 'En attente approbation', color: '#f59e0b' },
+        approved: { label: 'Approuvé', color: '#10b981' },
+        rejected: { label: 'Rejeté', color: '#ef4444' },
+        implemented: { label: 'Implémenté', color: '#10b981' },
+        failed: { label: 'Échec', color: '#ef4444' }
+      },
+      request: {
+        open: { label: 'Ouvert', color: '#ef4444' },
+        in_progress: { label: 'En cours', color: '#f59e0b' },
+        resolved: { label: 'Résolu', color: '#10b981' },
+        closed: { label: 'Fermé', color: '#6b7280' },
+        cancelled: { label: 'Annulé', color: '#6b7280' }
+      }
+    },
+    categories: {
+      incident: { label: 'Incidents', color: '#ef4444' },
+      change: { label: 'Changements', color: '#f59e0b' },
+      request: { label: 'Demandes', color: '#3b82f6' }
+    }
+  },
 
   // Pagination par défaut
   pagination: {
@@ -85,8 +92,45 @@ export const ITSM_CONFIG = {
   }
 } as const;
 
-// Types dérivés de la configuration
-export type IncidentStatus = typeof ITSM_CONFIG.incidentStatuses[keyof typeof ITSM_CONFIG.incidentStatuses];
-export type IncidentPriority = typeof ITSM_CONFIG.incidentPriorities[keyof typeof ITSM_CONFIG.incidentPriorities];
-export type ChangeStatus = typeof ITSM_CONFIG.changeStatuses[keyof typeof ITSM_CONFIG.changeStatuses];
-export type ChangeType = typeof ITSM_CONFIG.changeTypes[keyof typeof ITSM_CONFIG.changeTypes]; 
+// Hook unifié pour la configuration ITSM
+export const useITSMCONFIG = (configType: 'priorities' | 'statuses' | 'categories', category?: string) => {
+  const { data: dynamicConfigs = [], isLoading: dynamicLoading } = useITSMDynamicConfig(configType);
+  const { data: globalConfigs = [], isLoading: globalLoading } = useGlobalITSMConfig(configType, category);
+
+  // Priorité aux configurations dynamiques, fallback vers les globales
+  const configs = dynamicConfigs.length > 0 ? dynamicConfigs : globalConfigs;
+  const isLoading = dynamicLoading || globalLoading;
+
+  return {
+    data: configs,
+    isLoading,
+    isDynamic: dynamicConfigs.length > 0,
+    isGlobal: dynamicConfigs.length === 0 && globalConfigs.length > 0
+  };
+};
+
+// Fonctions utilitaires unifiées
+export const getITSMCONFIGValue = (
+  key: string, 
+  configType: 'priorities' | 'statuses' | 'categories', 
+  category?: string
+) => {
+  const { data: configs } = useITSMCONFIG(configType, category);
+  const config = configs.find(c => c.config_key === key);
+  
+  if (config) {
+    return {
+      label: config.config_value.label,
+      color: config.config_value.color,
+      category: config.config_value.category
+    };
+  }
+
+  // Fallback vers les valeurs par défaut
+  const defaults = ITSM_CONFIG.defaults[configType];
+  if (configType === 'statuses' && category && defaults[category]) {
+    return defaults[category][key] || { label: key, color: '#6b7280' };
+  }
+  
+  return defaults[key] || { label: key, color: '#6b7280' };
+}; 
