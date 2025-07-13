@@ -161,6 +161,123 @@ export type Database = {
           },
         ]
       }
+      cloud_account_profiles: {
+        Row: {
+          account_id: string
+          expires_at: string | null
+          granted_at: string
+          granted_by: string
+          id: string
+          is_active: boolean
+          metadata: Json | null
+          role: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          expires_at?: string | null
+          granted_at?: string
+          granted_by: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          role: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          expires_at?: string | null
+          granted_at?: string
+          granted_by?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_account_profiles_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cloud_accounts: {
+        Row: {
+          account_identifier: string
+          client_organization_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          environment: string | null
+          id: string
+          is_active: boolean
+          metadata: Json | null
+          name: string
+          provider_id: string
+          region: string | null
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_identifier: string
+          client_organization_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          environment?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          name: string
+          provider_id: string
+          region?: string | null
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_identifier?: string
+          client_organization_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          environment?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          name?: string
+          provider_id?: string
+          region?: string | null
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_accounts_client_organization_id_fkey"
+            columns: ["client_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cloud_accounts_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cloud_accounts_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cloud_asset: {
         Row: {
           asset_id: string
