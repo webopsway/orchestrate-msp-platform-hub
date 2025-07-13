@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -295,8 +295,8 @@ const CloudProviderManager = () => {
     };
   }, []);
 
-  // Formulaire réutilisable pour création/édition
-  const ProviderForm = () => (
+  // Formulaire réutilisable pour création/édition mémorisé
+  const ProviderForm = useMemo(() => (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -368,7 +368,7 @@ const CloudProviderManager = () => {
         <Label htmlFor="is_active">Provider actif</Label>
       </div>
     </div>
-  );
+  ), [formData, handleFieldChange, handleMetadataChange]);
 
   if (loading && providers.length === 0) {
     return (
@@ -577,7 +577,7 @@ const CloudProviderManager = () => {
               Ajouter un nouveau fournisseur cloud
             </DialogDescription>
           </DialogHeader>
-          <ProviderForm />
+          {ProviderForm}
           <div className="flex justify-end space-x-2 pt-4">
             <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
               Annuler
@@ -598,7 +598,7 @@ const CloudProviderManager = () => {
               Mettre à jour les informations du provider
             </DialogDescription>
           </DialogHeader>
-          <ProviderForm />
+          {ProviderForm}
           <div className="flex justify-end space-x-2 pt-4">
             <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
               Annuler
