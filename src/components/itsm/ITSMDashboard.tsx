@@ -2,7 +2,6 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   AlertTriangle, 
   FileText, 
@@ -10,33 +9,62 @@ import {
   CheckCircle, 
   XCircle, 
   TrendingUp,
-  Users,
-  Calendar,
   Plus
 } from 'lucide-react';
-import { useITSMItems } from '@/hooks/useITSMItems';
 import { ITSMBadge } from './ITSMBadge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
+interface ITSMItem {
+  id: string;
+  type: 'incident' | 'change' | 'request';
+  title: string;
+  description?: string;
+  priority: string;
+  status: string;
+  created_by: string;
+  assigned_to?: string;
+  created_at: string;
+  updated_at: string;
+  resolved_at?: string;
+  scheduled_date?: string;
+  team_id: string;
+  metadata?: any;
+  created_by_profile?: {
+    email: string;
+    first_name?: string;
+    last_name?: string;
+  };
+  assigned_to_profile?: {
+    email: string;
+    first_name?: string;
+    last_name?: string;
+  };
+}
+
 interface ITSMDashboardProps {
+  items: ITSMItem[];
+  loading: boolean;
   onCreateItem?: (type: 'incident' | 'change' | 'request') => void;
-  onViewItem?: (item: any) => void;
+  onViewItem?: (item: ITSMItem) => void;
   showCreateButtons?: boolean;
 }
 
 export const ITSMDashboard: React.FC<ITSMDashboardProps> = ({
+  items,
+  loading,
   onCreateItem,
   onViewItem,
   showCreateButtons = true
 }) => {
-  const { 
-    items, 
-    loading, 
-    getItemsByType, 
-    getItemsByStatus, 
-    getItemsByPriority 
-  } = useITSMItems();
+  // Fonctions utilitaires pour filtrer les données
+  const getItemsByType = (type: 'incident' | 'change' | 'request'): ITSMItem[] => {
+    return items.filter(item => item.type === type);
+  };
+
+  const getItemsByPriority = (priority: string): ITSMItem[] => {
+    return items.filter(item => item.priority === priority);
+  };
 
   // Statistiques générales
   const totalItems = items.length;
@@ -71,26 +99,6 @@ export const ITSMDashboard: React.FC<ITSMDashboardProps> = ({
     })
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'open':
-      case 'draft':
-        return <Clock className="h-4 w-4" />;
-      case 'in_progress':
-      case 'pending_approval':
-        return <AlertTriangle className="h-4 w-4" />;
-      case 'resolved':
-      case 'closed':
-      case 'implemented':
-        return <CheckCircle className="h-4 w-4" />;
-      case 'rejected':
-      case 'failed':
-        return <XCircle className="h-4 w-4" />;
-      default:
-        return <FileText className="h-4 w-4" />;
-    }
-  };
 
   const getTypeIcon = (type: string) => {
     switch (type) {

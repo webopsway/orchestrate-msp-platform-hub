@@ -14,17 +14,29 @@ export { ChangeAssignment } from "./ChangeAssignment";
 export { IncidentDetailView } from "./IncidentDetailView";
 export { ChangeDetailView } from "./ChangeDetailView";
 
-// Dialogues
-export { 
+// Dialogues CRUD
+export {
   CreateIncidentDialog,
   EditIncidentDialog,
   ViewIncidentDialog,
   DeleteIncidentDialog
-} from "./IncidentDialogs";
+} from "@/components/itsm/IncidentDialogs";
 
 export {
   CreateChangeDialog,
   EditChangeDialog,
   ViewChangeDialog,
   DeleteChangeDialog
-} from "./ChangeDialogs"; 
+} from "@/components/itsm/ChangeDialogs";
+
+// Composants utilitaires
+export { ITSMBadge } from "@/components/itsm/ITSMBadge";
+export { ITSMConfigManager } from "@/components/itsm/ITSMConfigManager";
+export { ITSMDashboard } from "@/components/itsm/ITSMDashboard";
+
+// Composants existants pour compatibilité
+export { RequestAssignment } from "./RequestAssignment";
+export { RequestStatusUpdate } from "./RequestStatusUpdate";
+export { ServiceRequestDetailView } from "./ServiceRequestDetailView";
+export { SLAStatusBadge } from "./SLAStatusBadge";
+export { CommentsSection } from "./CommentsSection"; 

@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { useITSMCONFIG } from '@/modules/itsm/config';
 
 // Schémas de validation de base
 const baseITSMItemSchema = z.object({
@@ -59,32 +58,12 @@ export const itsmItemSchema = z.discriminatedUnion('type', [
   serviceRequestSchema,
 ]);
 
-// Validation dynamique basée sur les configurations
-export const createDynamicValidation = (configType: 'priorities' | 'statuses' | 'categories') => {
-  const { data: configs } = useITSMCONFIG(configType);
-  
-  const validValues = configs.map(config => config.config_key);
-  
-  return z.enum(validValues as [string, ...string[]], {
-    errorMap: () => ({ message: `Valeur invalide. Valeurs autorisées: ${validValues.join(', ')}` })
-  });
-};
-
 // Validation avec fallback vers les valeurs par défaut
 export const validateWithFallback = (
   value: string,
   configType: 'priorities' | 'statuses' | 'categories',
   category?: string
 ) => {
-  const { data: configs } = useITSMCONFIG(configType, category);
-  
-  // Vérifier si la valeur existe dans les configurations
-  const configExists = configs.some(config => config.config_key === value);
-  
-  if (configExists) {
-    return { isValid: true, value };
-  }
-  
   // Fallback vers les valeurs par défaut
   const defaults = {
     priorities: ['low', 'medium', 'high', 'critical'],
@@ -98,9 +77,11 @@ export const validateWithFallback = (
   
   let defaultValues: string[] = [];
   if (configType === 'statuses' && category) {
-    defaultValues = defaults.statuses[category as keyof typeof defaults.statuses] || [];
+    const statusDefaults = defaults.statuses[category as keyof typeof defaults.statuses];
+    defaultValues = Array.isArray(statusDefaults) ? statusDefaults : [];
   } else {
-    defaultValues = defaults[configType] || [];
+    const typeDefaults = defaults[configType];
+    defaultValues = Array.isArray(typeDefaults) ? typeDefaults : [];
   }
   
   const isValidDefault = defaultValues.includes(value);
