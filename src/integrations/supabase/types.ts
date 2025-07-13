@@ -1798,6 +1798,20 @@ export type Database = {
         Args: { doc_id: string; new_title?: string; new_content?: string }
         Returns: string
       }
+      create_security_incident: {
+        Args: {
+          p_title: string
+          p_description: string
+          p_priority?: string
+          p_vulnerability_id?: string
+          p_patch_schedule_id?: string
+          p_remediation_plan?: string
+          p_asset_owner_team?: string
+          p_estimated_effort?: number
+          p_risk_assessment?: string
+        }
+        Returns: string
+      }
       delete_setting: {
         Args: { p_team_id: string; p_namespace: string; p_key: string }
         Returns: boolean

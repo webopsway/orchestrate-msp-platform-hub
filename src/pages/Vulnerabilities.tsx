@@ -9,6 +9,7 @@ import { VulnerabilityCard } from "@/components/security/VulnerabilityCard";
 import { VulnerabilityDetailDialog } from "@/components/security/VulnerabilityDetailDialog";
 import { VulnerabilityForm } from "@/components/forms/VulnerabilityForm";
 import { useVulnerabilities } from "@/hooks/useVulnerabilities";
+import { useSecurityIncidents } from "@/hooks/useSecurityIncidents";
 
 const Vulnerabilities = () => {
   const {
@@ -19,6 +20,8 @@ const Vulnerabilities = () => {
     deleteVulnerability,
     scanVulnerabilities,
   } = useVulnerabilities();
+  
+  const { createFromVulnerability } = useSecurityIncidents();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [severityFilter, setSeverityFilter] = useState<string>("all");
@@ -92,6 +95,10 @@ const Vulnerabilities = () => {
   const handleDelete = (vulnerability: any) => {
     setSelectedVulnerability(vulnerability);
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleCreateTicket = async (vulnerability: any) => {
+    await createFromVulnerability(vulnerability.id);
   };
 
   const exportVulnerabilities = () => {
@@ -220,6 +227,7 @@ const Vulnerabilities = () => {
               onView={handleView}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onCreateTicket={handleCreateTicket}
             />
           ))}
         </DataGrid>

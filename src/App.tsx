@@ -16,6 +16,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import ITSM from "./pages/ITSM";
 import ITSMIncidents from "./pages/ITSM/ITSMIncidents";
+import ITSMSecurityIncidents from "./pages/ITSM/ITSMSecurityIncidents";
 import ITSMChanges from "./pages/ITSM/ITSMChanges";
 import ITSMRequests from "./pages/ITSM/ITSMRequests";
 
@@ -142,6 +143,11 @@ function AppRoutes() {
       <Route path="/itsm/incidents" element={
         <ProtectedRoute>
           <ITSMIncidents />
+        </ProtectedRoute>
+      } />
+      <Route path="/itsm/security" element={
+        <ProtectedRoute>
+          <ITSMSecurityIncidents />
         </ProtectedRoute>
       } />
       <Route path="/itsm/changes" element={

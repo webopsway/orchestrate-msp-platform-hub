@@ -37,8 +37,9 @@ export const defaultNavigationItems: NavigationItem[] = [
   
   { id: "tickets", title: "Tickets", url: "/itsm", icon: "FileText", order: 1, group: "itsm" },
   { id: "incidents", title: "Incidents", url: "/itsm/incidents", icon: "AlertTriangle", order: 2, group: "itsm" },
-  { id: "changes", title: "Changements", url: "/itsm/changes", icon: "FileText", order: 3, group: "itsm" },
-  { id: "requests", title: "Demandes de service", url: "/itsm/requests", icon: "FileText", order: 4, group: "itsm" },
+  { id: "security-incidents", title: "Incidents Sécurité", url: "/itsm/security", icon: "Shield", order: 3, group: "itsm" },
+  { id: "changes", title: "Changements", url: "/itsm/changes", icon: "FileText", order: 4, group: "itsm" },
+  { id: "requests", title: "Demandes de service", url: "/itsm/requests", icon: "FileText", order: 5, group: "itsm" },
   
   { id: "security", title: "Sécurité", url: "/security", icon: "Shield", order: 1, group: "security" },
   { id: "vulnerabilities", title: "Vulnérabilités", url: "/security/vulnerabilities", icon: "Bug", order: 2, group: "security" },
