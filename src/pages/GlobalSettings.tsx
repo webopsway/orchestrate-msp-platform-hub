@@ -18,6 +18,7 @@ import { fr } from 'date-fns/locale';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationsAndTeams } from '@/hooks/useOrganizationsAndTeams';
+import { ITSMConfigManager } from '@/components/itsm/ITSMConfigManager';
 
 export default function GlobalSettings() {
   const { user } = useAuth();
@@ -549,10 +550,7 @@ export default function GlobalSettings() {
         </TabsContent>
 
         <TabsContent value="itsm-dynamic" className="space-y-6">
-          <div className="p-8 text-center text-muted-foreground">
-            <h3 className="text-lg font-medium mb-2">Module Configuration ITSM supprimé</h3>
-            <p>Ce module a été complètement supprimé du système.</p>
-          </div>
+          <ITSMConfigManager />
         </TabsContent>
 
         <TabsContent value="namespaces" className="space-y-6">

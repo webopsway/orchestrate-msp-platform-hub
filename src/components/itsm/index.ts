@@ -31,3 +31,4 @@ export {
 
 // Composants utilitaires
 export { ITSMBadge } from "@/components/itsm/ITSMBadge";
+export { ITSMConfigManager } from "@/components/itsm/ITSMConfigManager";

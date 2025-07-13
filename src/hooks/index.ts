@@ -3,7 +3,6 @@ export { useChanges } from "./useChanges";
 export * from "./useGlobalITSMConfig";
 export * from "./useITSMColors";
 
-
 // Export du nouveau système de configuration dynamique avec préfixes pour éviter les conflits
 export {
   useITSMDynamicConfig,
