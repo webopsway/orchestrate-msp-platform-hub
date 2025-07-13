@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -279,6 +279,22 @@ const CloudProviderManager = () => {
     }
   ];
 
+  // Gestionnaires de champs optimisés
+  const handleFieldChange = useCallback((field: keyof CloudProviderFormData) => {
+    return (value: string | boolean) => {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    };
+  }, []);
+
+  const handleMetadataChange = useCallback((field: string) => {
+    return (value: string) => {
+      setFormData(prev => ({
+        ...prev,
+        metadata: { ...prev.metadata, [field]: value }
+      }));
+    };
+  }, []);
+
   // Formulaire réutilisable pour création/édition
   const ProviderForm = () => (
     <div className="space-y-4">
@@ -288,7 +304,7 @@ const CloudProviderManager = () => {
           <Input
             id="name"
             value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            onChange={(e) => handleFieldChange('name')(e.target.value)}
             placeholder="aws, azure, gcp..."
           />
         </div>
@@ -297,7 +313,7 @@ const CloudProviderManager = () => {
           <Input
             id="display_name"
             value={formData.display_name}
-            onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
+            onChange={(e) => handleFieldChange('display_name')(e.target.value)}
             placeholder="Amazon Web Services"
           />
         </div>
@@ -308,7 +324,7 @@ const CloudProviderManager = () => {
         <Input
           id="api_endpoint"
           value={formData.api_endpoint}
-          onChange={(e) => setFormData({ ...formData, api_endpoint: e.target.value })}
+          onChange={(e) => handleFieldChange('api_endpoint')(e.target.value)}
           placeholder="https://api.provider.com/v1"
         />
       </div>
@@ -318,10 +334,7 @@ const CloudProviderManager = () => {
         <Textarea
           id="description"
           value={formData.metadata.description}
-          onChange={(e) => setFormData({ 
-            ...formData, 
-            metadata: { ...formData.metadata, description: e.target.value }
-          })}
+          onChange={(e) => handleMetadataChange('description')(e.target.value)}
           placeholder="Description du provider..."
         />
       </div>
@@ -331,10 +344,7 @@ const CloudProviderManager = () => {
         <Input
           id="icon_url"
           value={formData.metadata.icon_url}
-          onChange={(e) => setFormData({ 
-            ...formData, 
-            metadata: { ...formData.metadata, icon_url: e.target.value }
-          })}
+          onChange={(e) => handleMetadataChange('icon_url')(e.target.value)}
           placeholder="https://example.com/icon.png"
         />
       </div>
@@ -344,10 +354,7 @@ const CloudProviderManager = () => {
         <Input
           id="documentation_url"
           value={formData.metadata.documentation_url}
-          onChange={(e) => setFormData({ 
-            ...formData, 
-            metadata: { ...formData.metadata, documentation_url: e.target.value }
-          })}
+          onChange={(e) => handleMetadataChange('documentation_url')(e.target.value)}
           placeholder="https://docs.provider.com"
         />
       </div>
@@ -356,7 +363,7 @@ const CloudProviderManager = () => {
         <Switch
           id="is_active"
           checked={formData.is_active}
-          onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+          onCheckedChange={handleFieldChange('is_active')}
         />
         <Label htmlFor="is_active">Provider actif</Label>
       </div>
