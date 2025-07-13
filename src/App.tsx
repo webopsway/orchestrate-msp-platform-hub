@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import NewOrganizations from "./pages/NewOrganizations";
 import NewTeams from "./pages/NewTeams";
 import Security from "./pages/Security";
+import Vulnerabilities from "./pages/Vulnerabilities";
 import Documentation from "./pages/Documentation";
 import CloudOrchestration from "./pages/CloudOrchestration";
 import GlobalSettings from "./pages/GlobalSettings";
@@ -156,6 +157,11 @@ function AppRoutes() {
       <Route path="/security" element={
         <ProtectedRoute>
           <Security />
+        </ProtectedRoute>
+      } />
+      <Route path="/security/vulnerabilities" element={
+        <ProtectedRoute>
+          <Vulnerabilities />
         </ProtectedRoute>
       } />
       

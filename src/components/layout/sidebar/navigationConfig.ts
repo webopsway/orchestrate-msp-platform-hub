@@ -20,7 +20,8 @@ import {
   Calendar,
   Search,
   Network,
-  Clock
+  Clock,
+  Bug
 } from "lucide-react";
 
 import { NavigationItem, NavigationGroup } from "./types";
@@ -40,6 +41,7 @@ export const defaultNavigationItems: NavigationItem[] = [
   { id: "requests", title: "Demandes de service", url: "/itsm/requests", icon: "FileText", order: 4, group: "itsm" },
   
   { id: "security", title: "Sécurité", url: "/security", icon: "Shield", order: 1, group: "security" },
+  { id: "vulnerabilities", title: "Vulnérabilités", url: "/security/vulnerabilities", icon: "Bug", order: 2, group: "security" },
   
   { id: "inventory", title: "Inventaire Cloud", url: "/cloud/inventory", icon: "Cloud", order: 1, group: "cloud" },
   { id: "patches", title: "Gestion des patchs", url: "/cloud/patches", icon: "ShieldCheck", order: 2, group: "cloud" },
@@ -83,5 +85,6 @@ export const iconMap: Record<string, any> = {
   Calendar,
   Search,
   Network,
-  Clock
+  Clock,
+  Bug
 };
