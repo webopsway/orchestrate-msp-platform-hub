@@ -17,7 +17,6 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useOrganizationsAndTeams } from '@/hooks/useOrganizationsAndTeams';
 import { ITSMConfigManager } from '@/components/itsm/ITSMConfigManager';
 
 export default function GlobalSettings() {
@@ -36,8 +35,6 @@ export default function GlobalSettings() {
     deleteSetting
   } = useAppSettings();
 
-  const { data: orgData, isLoading: orgLoading } = useOrganizationsAndTeams();
-
   const [selectedNamespace, setSelectedNamespace] = useState<string>('');
   const [selectedKey, setSelectedKey] = useState<string>('');
   const [newNamespace, setNewNamespace] = useState<string>('');
@@ -46,12 +43,6 @@ export default function GlobalSettings() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingSetting, setEditingSetting] = useState<any>(null);
   const [editingValue, setEditingValue] = useState<string>('');
-
-  // Configuration ITSM states
-  const [selectedOrganization, setSelectedOrganization] = useState<string>('');
-  const [selectedTeam, setSelectedTeam] = useState<string>('');
-  const [configLevel, setConfigLevel] = useState<'organization' | 'team'>('organization');
-  const [showITSMConfig, setShowITSMConfig] = useState(false);
 
   // Check if user is MSP admin
   useEffect(() => {
@@ -208,12 +199,10 @@ export default function GlobalSettings() {
       </div>
 
       <Tabs defaultValue="global" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="global">Paramètres Globaux</TabsTrigger>
-          <TabsTrigger value="itsm">Configuration ITSM</TabsTrigger>
           <TabsTrigger value="itsm-dynamic">Configuration Dynamique</TabsTrigger>
           <TabsTrigger value="namespaces">Namespaces</TabsTrigger>
-          <TabsTrigger value="teams">Paramètres Équipes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="global" className="space-y-6">
@@ -361,192 +350,6 @@ export default function GlobalSettings() {
               </Card>
             )}
           </div>
-        </TabsContent>
-
-        <TabsContent value="itsm" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-semibold">Configuration ITSM</h2>
-              <p className="text-muted-foreground">Gérez les priorités, statuts, catégories et politiques SLA</p>
-            </div>
-          </div>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Niveaux de Configuration ITSM
-              </CardTitle>
-              <CardDescription>
-                Configurez les paramètres ITSM à différents niveaux : global, par organisation ou par équipe.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Niveaux de configuration */}
-                <div className="grid gap-4 md:grid-cols-3">
-                  <Card className="p-4 border-dashed">
-                    <div className="text-center">
-                      <Globe className="h-8 w-8 mx-auto text-blue-500 mb-2" />
-                      <h4 className="font-medium">Configuration Globale</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Appliquée par défaut à toutes les organisations et équipes
-                      </p>
-                    </div>
-                  </Card>
-                  <Card className="p-4 border-dashed">
-                    <div className="text-center">
-                      <Users className="h-8 w-8 mx-auto text-green-500 mb-2" />
-                      <h4 className="font-medium">Par Organisation</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Appliquée à toutes les équipes de l'organisation
-                      </p>
-                    </div>
-                  </Card>
-                  <Card className="p-4 border-dashed">
-                    <div className="text-center">
-                      <Users className="h-8 w-8 mx-auto text-orange-500 mb-2" />
-                      <h4 className="font-medium">Par Équipe</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Configuration spécifique à une équipe
-                      </p>
-                    </div>
-                  </Card>
-                </div>
-
-                {/* Sélection du niveau de configuration */}
-                <div className="border-t pt-6">
-                  <h4 className="font-medium mb-4">Configurer les paramètres ITSM</h4>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <Label>Niveau de configuration</Label>
-                      <Select value={configLevel} onValueChange={(value: 'organization' | 'team') => setConfigLevel(value)}>
-                        <SelectTrigger className="w-full bg-background border border-input z-50">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background border border-input shadow-lg z-50">
-                          <SelectItem value="organization">Configuration par organisation</SelectItem>
-                          <SelectItem value="team">Configuration par équipe</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {orgLoading ? (
-                      <div className="flex items-center justify-center py-4">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                      </div>
-                    ) : (
-                      <>
-                        <div>
-                          <Label>Organisation cliente</Label>
-                          <Select 
-                            value={selectedOrganization} 
-                            onValueChange={(value) => {
-                              setSelectedOrganization(value);
-                              setSelectedTeam(''); // Reset team selection
-                            }}
-                          >
-                            <SelectTrigger className="w-full bg-background border border-input z-40">
-                              <SelectValue placeholder="Sélectionner une organisation cliente" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-background border border-input shadow-lg z-40">
-                              {orgData?.organizations.map((org) => (
-                                <SelectItem key={org.id} value={org.id}>
-                                  {org.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {configLevel === 'team' && selectedOrganization && (
-                          <div>
-                            <Label>Équipe</Label>
-                            <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-                              <SelectTrigger className="w-full bg-background border border-input z-30">
-                                <SelectValue placeholder="Sélectionner une équipe" />
-                              </SelectTrigger>
-                              <SelectContent className="bg-background border border-input shadow-lg z-30">
-                                {orgData?.teams
-                                  .filter(team => team.organization_id === selectedOrganization)
-                                  .map((team) => (
-                                    <SelectItem key={team.id} value={team.id}>
-                                      {team.name}
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-
-                        <div className="pt-4">
-                          <Button
-                            onClick={() => setShowITSMConfig(true)}
-                            disabled={!selectedOrganization || (configLevel === 'team' && !selectedTeam)}
-                            className="w-full"
-                          >
-                            <Settings className="mr-2 h-4 w-4" />
-                            {configLevel === 'organization' 
-                              ? 'Configurer toutes les équipes de cette organisation' 
-                              : 'Configurer cette équipe'
-                            }
-                          </Button>
-                        </div>
-
-                        {selectedOrganization && (
-                          <div className="bg-muted p-4 rounded-lg">
-                            <h5 className="font-medium mb-2">Configuration sélectionnée :</h5>
-                            <div className="space-y-1 text-sm">
-                              <p>
-                                <span className="font-medium">Organisation :</span>{' '}
-                                {orgData?.organizations.find(org => org.id === selectedOrganization)?.name}
-                              </p>
-                              {configLevel === 'team' && selectedTeam && (
-                                <p>
-                                  <span className="font-medium">Équipe :</span>{' '}
-                                  {orgData?.teams.find(team => team.id === selectedTeam)?.name}
-                                </p>
-                              )}
-                              <p>
-                                <span className="font-medium">Portée :</span>{' '}
-                                {configLevel === 'organization' 
-                                  ? `Toutes les équipes de l'organisation (${orgData?.teams.filter(t => t.organization_id === selectedOrganization).length} équipes)`
-                                  : 'Équipe spécifique uniquement'
-                                }
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Dialog de configuration ITSM */}
-          {showITSMConfig && selectedOrganization && (configLevel === 'organization' || selectedTeam) && (
-            <Dialog open={showITSMConfig} onOpenChange={setShowITSMConfig}>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>
-                    Configuration ITSM - {configLevel === 'organization' ? 'Organisation' : 'Équipe'}
-                  </DialogTitle>
-                  <DialogDescription>
-                    {configLevel === 'organization' 
-                      ? `Configuration pour toutes les équipes de ${orgData?.organizations.find(org => org.id === selectedOrganization)?.name}`
-                      : `Configuration pour l'équipe ${orgData?.teams.find(team => team.id === selectedTeam)?.name}`
-                    }
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="p-4 text-center text-muted-foreground">
-                  Module Configuration ITSM supprimé
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
         </TabsContent>
 
         <TabsContent value="itsm-dynamic" className="space-y-6">
@@ -767,50 +570,6 @@ export default function GlobalSettings() {
           )}
         </TabsContent>
 
-        <TabsContent value="teams" className="space-y-6">
-          <h2 className="text-2xl font-semibold">Paramètres par Équipe</h2>
-          
-          <div className="grid gap-4">
-            {teamSettings.map((setting) => (
-              <Card key={`${setting.team_id}-${setting.namespace}-${setting.key}`}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Users className="h-5 w-5 text-green-500" />
-                      <CardTitle className="text-lg">
-                        {setting.namespace}.{setting.key}
-                      </CardTitle>
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                        Équipe: {setting.team_id}
-                      </Badge>
-                    </div>
-                  </div>
-                  <CardDescription>
-                    Paramètre spécifique à l'équipe {setting.team_id}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="bg-muted p-3 rounded text-sm font-mono">
-                    <pre className="whitespace-pre-wrap">{formatValue(setting.value)}</pre>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            {teamSettings.length === 0 && (
-              <Card>
-                <CardContent className="flex items-center justify-center py-8">
-                  <div className="text-center">
-                    <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <h3 className="mt-2 text-sm font-semibold">Aucun paramètre d'équipe</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Les paramètres spécifiques aux équipes apparaîtront ici.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </TabsContent>
       </Tabs>
 
       {/* Edit Dialog */}
