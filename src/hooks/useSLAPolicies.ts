@@ -1,70 +1,36 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { SLAService } from '@/services/slaService';
+import { SLAPolicy, CreateSLAPolicyData, UpdateSLAPolicyData, SLAPolicyFilters } from '@/types/sla';
 
-export interface SLAPolicy {
-  id: string;
-  name: string;
-  client_type: 'direct' | 'via_esn' | 'all';
-  client_organization_id?: string;
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  ticket_category?: string;
-  response_time_hours: number;
-  resolution_time_hours: number;
-  escalation_time_hours?: number;
-  escalation_to?: string;
-  is_active: boolean;
-  description?: string;
-  team_id: string;
-  created_at: string;
-  updated_at: string;
-  created_by: string;
+// Re-export types for backward compatibility
+export type { SLAPolicy, CreateSLAPolicyData, UpdateSLAPolicyData, SLAPolicyFilters } from '@/types/sla';
+
+interface UseSLAPoliciesReturn {
+  policies: SLAPolicy[];
+  loading: boolean;
+  error: string | null;
+  createPolicy: (data: CreateSLAPolicyData) => Promise<SLAPolicy | null>;
+  updatePolicy: (id: string, updates: UpdateSLAPolicyData) => Promise<SLAPolicy | null>;
+  deletePolicy: (id: string) => Promise<boolean>;
+  toggleActive: (id: string) => Promise<boolean>;
+  refetch: () => Promise<void>;
+  clearError: () => void;
 }
 
-export interface CreateSLAPolicyData {
-  name: string;
-  client_type: 'direct' | 'via_esn' | 'all';
-  client_organization_id?: string;
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  ticket_category?: string;
-  response_time_hours: number;
-  resolution_time_hours: number;
-  escalation_time_hours?: number;
-  escalation_to?: string;
-  is_active: boolean;
-  description?: string;
-}
-
-export interface UpdateSLAPolicyData extends Partial<CreateSLAPolicyData> {}
-
-export const useSLAPolicies = (teamId?: string) => {
+export const useSLAPolicies = (teamId?: string): UseSLAPoliciesReturn => {
   const [policies, setPolicies] = useState<SLAPolicy[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Fonction pour récupérer les politiques SLA
-  const fetchPolicies = async () => {
+  const fetchPolicies = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-
-      let query = supabase
-        .from('itsm_sla_policies')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (teamId) {
-        query = query.eq('team_id', teamId);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        throw error;
-      }
-
-      setPolicies((data || []) as SLAPolicy[]);
+      
+      const data = await SLAService.getAll(teamId);
+      setPolicies(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors du chargement des politiques SLA';
       setError(errorMessage);
@@ -72,49 +38,13 @@ export const useSLAPolicies = (teamId?: string) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [teamId]);
 
-  // Fonction pour créer une nouvelle politique SLA
-  const createPolicy = async (policyData: CreateSLAPolicyData): Promise<SLAPolicy | null> => {
+  const createPolicy = useCallback(async (policyData: CreateSLAPolicyData): Promise<SLAPolicy | null> => {
     try {
       setLoading(true);
       
-      // Récupérer l'utilisateur actuel et son équipe
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('Utilisateur non authentifié');
-      }
-
-      // Récupérer le team_id de l'utilisateur si non fourni
-      let currentTeamId = teamId;
-      if (!currentTeamId) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('default_team_id')
-          .eq('id', user.id)
-          .single();
-        
-        if (!profile?.default_team_id) {
-          throw new Error('Aucune équipe définie pour cet utilisateur');
-        }
-        currentTeamId = profile.default_team_id;
-      }
-
-      const { data, error } = await supabase
-        .from('itsm_sla_policies')
-        .insert({
-          ...policyData,
-          team_id: currentTeamId,
-          created_by: user.id,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      const newPolicy = data as SLAPolicy;
+      const newPolicy = await SLAService.create(policyData, teamId);
       setPolicies(prev => [newPolicy, ...prev]);
       
       toast({
@@ -138,25 +68,13 @@ export const useSLAPolicies = (teamId?: string) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [teamId, toast]);
 
-  // Fonction pour mettre à jour une politique SLA
-  const updatePolicy = async (id: string, updates: UpdateSLAPolicyData): Promise<SLAPolicy | null> => {
+  const updatePolicy = useCallback(async (id: string, updates: UpdateSLAPolicyData): Promise<SLAPolicy | null> => {
     try {
       setLoading(true);
 
-      const { data, error } = await supabase
-        .from('itsm_sla_policies')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      const updatedPolicy = data as SLAPolicy;
+      const updatedPolicy = await SLAService.update(id, updates);
       setPolicies(prev => 
         prev.map(policy => 
           policy.id === id ? updatedPolicy : policy
@@ -184,37 +102,13 @@ export const useSLAPolicies = (teamId?: string) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  // Fonction pour supprimer une politique SLA
-  const deletePolicy = async (id: string): Promise<boolean> => {
+  const deletePolicy = useCallback(async (id: string): Promise<boolean> => {
     try {
       setLoading(true);
 
-      // Vérifier d'abord si la politique est utilisée dans des trackings SLA
-      const { data: trackings, error: trackingError } = await supabase
-        .from('itsm_sla_tracking')
-        .select('id')
-        .eq('sla_policy_id', id)
-        .limit(1);
-
-      if (trackingError) {
-        throw trackingError;
-      }
-
-      if (trackings && trackings.length > 0) {
-        throw new Error('Cette politique SLA ne peut pas être supprimée car elle est utilisée dans des suivis SLA actifs.');
-      }
-
-      const { error } = await supabase
-        .from('itsm_sla_policies')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        throw error;
-      }
-
+      await SLAService.delete(id);
       setPolicies(prev => prev.filter(policy => policy.id !== id));
 
       toast({
@@ -238,10 +132,9 @@ export const useSLAPolicies = (teamId?: string) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  // Fonction pour basculer le statut actif/inactif
-  const toggleActive = async (id: string): Promise<boolean> => {
+  const toggleActive = useCallback(async (id: string): Promise<boolean> => {
     try {
       const policy = policies.find(p => p.id === id);
       if (!policy) {
@@ -254,12 +147,15 @@ export const useSLAPolicies = (teamId?: string) => {
       console.error('Erreur lors du basculement du statut:', err);
       return false;
     }
-  };
+  }, [policies, updatePolicy]);
 
-  // Charger les politiques au montage du composant
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
   useEffect(() => {
     fetchPolicies();
-  }, [teamId]);
+  }, [fetchPolicies]);
 
   return {
     policies,
@@ -270,5 +166,6 @@ export const useSLAPolicies = (teamId?: string) => {
     deletePolicy,
     toggleActive,
     refetch: fetchPolicies,
+    clearError,
   };
 };

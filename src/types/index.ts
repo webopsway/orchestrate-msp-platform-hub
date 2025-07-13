@@ -1,6 +1,7 @@
 // Types ITSM
 export type * from "./incident";
 export type * from "./change";
+export type * from "./sla";
 
 // Types de base
 export interface BaseEntity {
