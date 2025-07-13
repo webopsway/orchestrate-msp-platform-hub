@@ -246,7 +246,6 @@ export const SLAPolicyForm: React.FC<SLAPolicyFormProps> = ({
                         <SelectItem value="incident">Incident</SelectItem>
                         <SelectItem value="change_request">Demande de changement</SelectItem>
                         <SelectItem value="service_request">Demande de service</SelectItem>
-                        <SelectItem value="security">Sécurité</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormControl>

@@ -77,7 +77,8 @@ const defaultNavigationItems: NavigationItem[] = [
   { id: "changes", title: "Changements", url: "/itsm/changes", icon: "FileText", order: 3, group: "itsm" },
   { id: "requests", title: "Demandes de service", url: "/itsm/requests", icon: "FileText", order: 4, group: "itsm" },
   { id: "backups", title: "Sauvegardes", url: "/itsm/backups", icon: "Database", order: 5, group: "itsm" },
-  { id: "security", title: "Sécurité", url: "/itsm/security", icon: "ShieldCheck", order: 6, group: "itsm" },
+  
+  { id: "security", title: "Sécurité", url: "/security", icon: "Shield", order: 1, group: "security" },
   
   { id: "inventory", title: "Inventaire Cloud", url: "/cloud/inventory", icon: "Cloud", order: 1, group: "cloud" },
   { id: "patches", title: "Gestion des patchs", url: "/cloud/patches", icon: "ShieldCheck", order: 2, group: "cloud" },
@@ -93,9 +94,10 @@ const defaultNavigationItems: NavigationItem[] = [
 const defaultGroups = [
   { id: "main", title: "Principal", order: 1 },
   { id: "itsm", title: "ITSM", order: 2 },
-  { id: "cloud", title: "Infrastructure Cloud", order: 3 },
-  { id: "monitoring", title: "Supervision", order: 4 },
-  { id: "admin", title: "Administration", order: 5 },
+  { id: "security", title: "Sécurité", order: 3 },
+  { id: "cloud", title: "Infrastructure Cloud", order: 4 },
+  { id: "monitoring", title: "Supervision", order: 5 },
+  { id: "admin", title: "Administration", order: 6 },
 ];
 
 const iconMap: Record<string, any> = {
