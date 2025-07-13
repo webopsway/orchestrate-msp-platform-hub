@@ -46,10 +46,10 @@ export function SecurityIncidentForm({
     title: "",
     description: "",
     priority: "high",
-    vulnerability_id: initialVulnerabilityId || "",
-    patch_schedule_id: initialPatchId || "",
+    vulnerability_id: initialVulnerabilityId || "none",
+    patch_schedule_id: initialPatchId || "none",
     remediation_plan: "",
-    asset_owner_team: "",
+    asset_owner_team: "none",
     estimated_effort: "",
     risk_assessment: "medium"
   });
@@ -165,7 +165,7 @@ export function SecurityIncidentForm({
       newErrors.priority = "La priorité est requise";
     }
 
-    if (!formData.vulnerability_id && !formData.patch_schedule_id) {
+    if (formData.vulnerability_id === "none" && formData.patch_schedule_id === "none") {
       newErrors.source = "Une vulnérabilité ou un patch doit être sélectionné";
     }
 
@@ -184,10 +184,10 @@ export function SecurityIncidentForm({
     try {
       const submitData = {
         ...formData,
-        vulnerability_id: formData.vulnerability_id || null,
-        patch_schedule_id: formData.patch_schedule_id || null,
+        vulnerability_id: formData.vulnerability_id === "none" ? null : formData.vulnerability_id,
+        patch_schedule_id: formData.patch_schedule_id === "none" ? null : formData.patch_schedule_id,
         estimated_effort: formData.estimated_effort ? parseInt(formData.estimated_effort) : null,
-        asset_owner_team: formData.asset_owner_team || null
+        asset_owner_team: formData.asset_owner_team === "none" ? null : formData.asset_owner_team
       };
       
       const success = await onSubmit(submitData);
@@ -225,7 +225,7 @@ export function SecurityIncidentForm({
                   <SelectValue placeholder="Sélectionner une vulnérabilité" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucune vulnérabilité</SelectItem>
+                  <SelectItem value="none">Aucune vulnérabilité</SelectItem>
                   {vulnerabilities.map((vuln) => (
                     <SelectItem key={vuln.id} value={vuln.id}>
                       <div className="flex items-center gap-2">
@@ -252,7 +252,7 @@ export function SecurityIncidentForm({
                   <SelectValue placeholder="Sélectionner un patch" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucun patch</SelectItem>
+                  <SelectItem value="none">Aucun patch</SelectItem>
                   {patches.map((patch) => (
                     <SelectItem key={patch.id} value={patch.id}>
                       <div className="flex flex-col">
@@ -444,7 +444,7 @@ export function SecurityIncidentForm({
                   <SelectValue placeholder="Sélectionner l'équipe" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucune équipe spécifique</SelectItem>
+                  <SelectItem value="none">Aucune équipe spécifique</SelectItem>
                   {teams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>
                       {team.name}
