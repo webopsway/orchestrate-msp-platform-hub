@@ -46,9 +46,10 @@ export const defaultNavigationItems: NavigationItem[] = [
   { id: "security-patches", title: "Gestion des Patches", url: "/security/patches", icon: "Wrench", order: 2, group: "security" },
   { id: "vulnerabilities", title: "Vulnérabilités", url: "/security/vulnerabilities", icon: "Bug", order: 3, group: "security" },
   
-  { id: "inventory", title: "Inventaire Cloud", url: "/cloud/inventory", icon: "Cloud", order: 1, group: "cloud" },
-  { id: "patches", title: "Gestion des patchs", url: "/cloud/patches", icon: "ShieldCheck", order: 2, group: "cloud" },
-  { id: "accounts", title: "Comptes Cloud", url: "/cloud/accounts", icon: "CreditCard", order: 3, group: "cloud" },
+  { id: "cloud-providers", title: "Cloud Providers", url: "/cloud/providers", icon: "Globe", order: 1, group: "cloud" },
+  { id: "inventory", title: "Inventaire Cloud", url: "/cloud/inventory", icon: "Cloud", order: 2, group: "cloud" },
+  { id: "patches", title: "Gestion des patchs", url: "/cloud/patches", icon: "ShieldCheck", order: 3, group: "cloud" },
+  { id: "accounts", title: "Comptes Cloud", url: "/cloud/accounts", icon: "CreditCard", order: 4, group: "cloud" },
   
   { id: "metrics", title: "Supervision", url: "/monitoring/metrics", icon: "BarChart3", order: 1, group: "monitoring" },
   { id: "notifications", title: "Notifications", url: "/monitoring/notifications", icon: "Bell", order: 2, group: "monitoring" },
