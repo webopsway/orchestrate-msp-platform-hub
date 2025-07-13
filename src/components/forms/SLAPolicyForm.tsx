@@ -12,8 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, AlertTriangle, Building2, Network } from 'lucide-react';
-import { useOrganizations } from '@/hooks/useOrganizations';
-import { useITSMDynamicConfig } from '@/hooks/useITSMDynamicConfig';
+import { useMspClientRelations } from '@/hooks/useMspClientRelations';
 
 const slaFormSchema = z.object({
   name: z.string().min(1, 'Le nom est requis'),
@@ -59,8 +58,7 @@ export const SLAPolicyForm: React.FC<SLAPolicyFormProps> = ({
   loading = false,
   mode
 }) => {
-  const { organizations } = useOrganizations();
-  const { data: categories = [] } = useITSMDynamicConfig('categories');
+  const { relations } = useMspClientRelations();
   
   const form = useForm<SLAFormData>({
     resolver: zodResolver(slaFormSchema),
@@ -214,11 +212,14 @@ export const SLAPolicyForm: React.FC<SLAPolicyFormProps> = ({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all_clients">Tous les clients du type sélectionné</SelectItem>
-                        {organizations
-                          .filter(org => org.type === 'client')
-                          .map((org) => (
-                            <SelectItem key={org.id} value={org.id}>
-                              {org.name}
+                        {relations
+                          .filter(relation => relation.is_active && relation.client_organization)
+                          .map((relation) => (
+                            <SelectItem key={relation.client_organization!.id} value={relation.client_organization!.id}>
+                              {relation.client_organization!.name}
+                              {relation.relation_type === 'via_esn' && relation.esn_organization && 
+                                ` (via ${relation.esn_organization.name})`
+                              }
                             </SelectItem>
                           ))}
                       </SelectContent>
