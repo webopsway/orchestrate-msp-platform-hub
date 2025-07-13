@@ -21,3 +21,5 @@ export {
   type CreateConfigData,
   type UpdateConfigData
 } from "./useITSMDynamicConfig";
+
+export * from './useSLAPolicies';

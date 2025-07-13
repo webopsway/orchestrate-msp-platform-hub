@@ -767,6 +767,7 @@ export type Database = {
       }
       itsm_sla_policies: {
         Row: {
+          client_type: string
           created_at: string
           created_by: string
           description: string | null
@@ -783,6 +784,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          client_type?: string
           created_at?: string
           created_by: string
           description?: string | null
@@ -799,6 +801,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          client_type?: string
           created_at?: string
           created_by?: string
           description?: string | null

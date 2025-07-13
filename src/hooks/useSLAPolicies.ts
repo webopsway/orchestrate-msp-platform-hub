@@ -62,7 +62,7 @@ export const useSLAPolicies = (teamId?: string) => {
         throw error;
       }
 
-      setPolicies(data || []);
+      setPolicies((data || []) as SLAPolicy[]);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors du chargement des politiques SLA';
       setError(errorMessage);

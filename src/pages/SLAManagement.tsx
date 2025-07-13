@@ -4,40 +4,22 @@ import { Clock, Plus, Building2, Network, Shield, AlertTriangle, CheckCircle, Ed
 import { PageHeader } from '@/components/common/PageHeader';
 import { StatsCard } from '@/components/common/StatsCard';
 import { CRUDTable } from '@/components/common/CRUDTable';
+import { SLAPolicyForm } from '@/components/forms/SLAPolicyForm';
+import { DeleteSLAPolicyDialog } from '@/components/common/DeleteSLAPolicyDialog';
+import { ViewSLAPolicyDialog } from '@/components/common/ViewSLAPolicyDialog';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-// Types pour les politiques SLA
-interface SLAPolicy {
-  id: string;
-  name: string;
-  client_type: 'direct' | 'via_esn' | 'all';
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  ticket_category?: string;
-  response_time_hours: number;
-  resolution_time_hours: number;
-  escalation_time_hours?: number;
-  escalation_to?: string;
-  is_active: boolean;
-  description?: string;
-  team_id: string;
-  created_at: string;
-  updated_at: string;
-  created_by: string;
-}
+import { useSLAPolicies, SLAPolicy, CreateSLAPolicyData, UpdateSLAPolicyData } from '@/hooks/useSLAPolicies';
 
 // Types pour les templates SLA
+
 interface SLATemplate {
   id: string;
   name: string;
@@ -166,9 +148,16 @@ const mockTemplates: SLATemplate[] = [
 ];
 
 const SLAManagement = () => {
-  const [slaList, setSlaList] = useState<SLAPolicy[]>(mockSLAPolicies);
+  const { 
+    policies: slaList, 
+    loading, 
+    createPolicy, 
+    updatePolicy, 
+    deletePolicy,
+    refetch 
+  } = useSLAPolicies();
+  
   const [templates, setTemplates] = useState<SLATemplate[]>(mockTemplates);
-  const [loading, setLoading] = useState(false);
   
   // États des modales
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -297,6 +286,34 @@ const SLAManagement = () => {
       )
     }
   ];
+
+  // Handlers pour les actions CRUD
+  const handleCreate = async (data: CreateSLAPolicyData) => {
+    const result = await createPolicy(data);
+    if (result) {
+      setIsCreateModalOpen(false);
+    }
+  };
+
+  const handleUpdate = async (data: UpdateSLAPolicyData) => {
+    if (!selectedSLA) return;
+    
+    const result = await updatePolicy(selectedSLA.id, data);
+    if (result) {
+      setIsEditModalOpen(false);
+      setSelectedSLA(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedSLA) return;
+    
+    const result = await deletePolicy(selectedSLA.id);
+    if (result) {
+      setIsDeleteModalOpen(false);
+      setSelectedSLA(null);
+    }
+  };
 
   const actions = [
     {
@@ -519,7 +536,7 @@ const SLAManagement = () => {
         onPageChange={() => {}}
         onPageSizeChange={() => {}}
         onCreate={() => setIsCreateModalOpen(true)}
-        onRefresh={() => {}}
+        onRefresh={refetch}
         actions={actions}
         emptyState={emptyState}
         selectable={false}
@@ -577,6 +594,72 @@ const SLAManagement = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de création */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Créer une nouvelle politique SLA</DialogTitle>
+            <DialogDescription>
+              Configurez les délais de service selon le type de client et la priorité.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <SLAPolicyForm
+            mode="create"
+            onSubmit={handleCreate}
+            onCancel={() => setIsCreateModalOpen(false)}
+            loading={loading}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de modification */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Modifier la politique SLA</DialogTitle>
+            <DialogDescription>
+              Modifiez les paramètres de la politique SLA.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedSLA && (
+            <SLAPolicyForm
+              mode="edit"
+              initialData={selectedSLA}
+              onSubmit={handleUpdate}
+              onCancel={() => {
+                setIsEditModalOpen(false);
+                setSelectedSLA(null);
+              }}
+              loading={loading}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de visualisation */}
+      <ViewSLAPolicyDialog
+        isOpen={isViewModalOpen}
+        onClose={() => {
+          setIsViewModalOpen(false);
+          setSelectedSLA(null);
+        }}
+        policy={selectedSLA}
+      />
+
+      {/* Modal de suppression */}
+      <DeleteSLAPolicyDialog
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setSelectedSLA(null);
+        }}
+        onConfirm={handleDelete}
+        policy={selectedSLA}
+        loading={loading}
+      />
     </div>
   );
 };
