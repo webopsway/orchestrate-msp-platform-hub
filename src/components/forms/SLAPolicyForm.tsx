@@ -208,12 +208,12 @@ export const SLAPolicyForm: React.FC<SLAPolicyFormProps> = ({
                 <FormItem>
                   <FormLabel>Client spécifique (optionnel)</FormLabel>
                   <FormControl>
-                    <Select value={field.value || ''} onValueChange={(value) => field.onChange(value || undefined)}>
+                    <Select value={field.value || 'all_clients'} onValueChange={(value) => field.onChange(value === 'all_clients' ? undefined : value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Sélectionner un client..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Tous les clients du type sélectionné</SelectItem>
+                        <SelectItem value="all_clients">Tous les clients du type sélectionné</SelectItem>
                         {organizations
                           .filter(org => org.type === 'client')
                           .map((org) => (
@@ -236,12 +236,12 @@ export const SLAPolicyForm: React.FC<SLAPolicyFormProps> = ({
                 <FormItem>
                   <FormLabel>Catégorie de ticket (optionnel)</FormLabel>
                   <FormControl>
-                    <Select value={field.value || ''} onValueChange={(value) => field.onChange(value || undefined)}>
+                    <Select value={field.value || 'all_categories'} onValueChange={(value) => field.onChange(value === 'all_categories' ? undefined : value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Sélectionner une catégorie..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Toutes les catégories</SelectItem>
+                        <SelectItem value="all_categories">Toutes les catégories</SelectItem>
                         {categories.map((category) => (
                           <SelectItem key={category.config_key} value={category.config_key}>
                             {(category.config_value as any)?.label || category.config_key}
