@@ -24,6 +24,7 @@ import ITSMRequests from "./pages/ITSM/ITSMRequests";
 import Cloud from "./pages/Cloud";
 import CloudInventory from "./pages/CloudInventory";
 import CloudAccounts from "./pages/CloudAccounts";
+import { CloudProviderManager } from "./components/cloud";
 import Monitoring from "./pages/Monitoring";
 import Notifications from "./pages/Notifications";
 import NewUsers from "./pages/NewUsers";
@@ -182,6 +183,11 @@ function AppRoutes() {
       <Route path="/cloud" element={
         <ProtectedRoute>
           <Cloud />
+        </ProtectedRoute>
+      } />
+      <Route path="/cloud/providers" element={
+        <ProtectedRoute>
+          <CloudProviderManager />
         </ProtectedRoute>
       } />
       <Route path="/cloud/inventory" element={
