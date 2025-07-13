@@ -11,22 +11,42 @@ export const useDocumentation = () => {
   const [documents, setDocuments] = useState<Documentation[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch all documents for the current team
+  // Fetch all documents for the current team and accessible client teams (for ESN)
   const fetchDocuments = async () => {
     if (!user) return;
 
     try {
       setLoading(true);
       
-      // MSP admin peut voir tous les documents, autres voient par team
-      let query = supabase.from('documentation').select('*');
-      const teamId = userProfile?.default_team_id;
-      
-      if (teamId && !userProfile?.is_msp_admin) {
-        query = query.eq('team_id', teamId);
-      }
-      
-      const { data, error } = await query.order('created_at', { ascending: false });
+      // Les politiques RLS gèrent maintenant l'accès automatiquement
+      // MSP admin voit tout, membres d'équipe voient leur équipe, ESN voient les clients
+      const { data, error } = await supabase
+        .from('documentation')
+        .select(`
+          *,
+          team:teams!inner(
+            id,
+            name,
+            organization:organizations!inner(
+              id,
+              name,
+              type
+            )
+          ),
+          created_by_profile:profiles!documentation_created_by_fkey(
+            id,
+            first_name,
+            last_name,
+            email
+          ),
+          updated_by_profile:profiles!documentation_updated_by_fkey(
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        `)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setDocuments(data || []);
