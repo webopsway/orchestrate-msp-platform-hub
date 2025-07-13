@@ -19,7 +19,8 @@ import {
   Archive,
   Calendar,
   Search,
-  Network
+  Network,
+  Clock
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -69,6 +70,7 @@ const defaultNavigationItems: NavigationItem[] = [
   { id: "roles", title: "Rôles", url: "/roles", icon: "Shield", order: 4, group: "main" },
   { id: "rbac", title: "Gestion RBAC", url: "/rbac", icon: "ShieldCheck", order: 5, group: "main" },
   { id: "msp-relations", title: "Relations MSP-Client", url: "/msp-client-relations", icon: "Network", order: 6, group: "main" },
+  { id: "sla-management", title: "Gestion des SLA", url: "/sla-management", icon: "Clock", order: 7, group: "main" },
   
   { id: "tickets", title: "Tickets", url: "/itsm", icon: "FileText", order: 1, group: "itsm" },
   { id: "incidents", title: "Incidents", url: "/itsm/incidents", icon: "AlertTriangle", order: 2, group: "itsm" },
@@ -117,7 +119,8 @@ const iconMap: Record<string, any> = {
   Archive,
   Calendar,
   Search,
-  Network
+  Network,
+  Clock
 };
 
 export function AppSidebar() {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Building2, Plus, Users, Calendar, CheckCircle, XCircle, AlertTriangle, Network, Settings, Eye, Edit, Trash2 } from 'lucide-react';
+import { Building2, Plus, Users, Calendar, CheckCircle, XCircle, AlertTriangle, Network, Settings, Eye, Edit, Trash2, Clock } from 'lucide-react';
 
 import { useMspClientRelations, MspClientRelation } from '@/hooks/useMspClientRelations';
 import { MspClientRelationForm } from '@/components/forms/MspClientRelationForm';
@@ -16,8 +16,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 
 const MspClientRelations = () => {
+  const navigate = useNavigate();
   const {
     relations,
     loading,
@@ -286,10 +288,16 @@ const MspClientRelations = () => {
         title="Relations MSP-Client"
         description="Gérez les relations entre les MSP, ESN et clients"
         action={
-          <Button onClick={() => setIsCreateModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nouvelle relation
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate('/sla-management')}>
+              <Clock className="h-4 w-4 mr-2" />
+              Gestion SLA
+            </Button>
+            <Button onClick={() => setIsCreateModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nouvelle relation
+            </Button>
+          </div>
         }
       />
 

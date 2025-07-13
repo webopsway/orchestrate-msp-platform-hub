@@ -29,6 +29,7 @@ import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Setup from "./pages/Setup";
 import MspClientRelations from "./pages/MspClientRelations";
+import SLAManagement from "./pages/SLAManagement";
 
 const queryClient = new QueryClient();
 
@@ -113,6 +114,11 @@ function AppRoutes() {
       <Route path="/msp-client-relations" element={
         <ProtectedRoute>
           <MspClientRelations />
+        </ProtectedRoute>
+      } />
+      <Route path="/sla-management" element={
+        <ProtectedRoute>
+          <SLAManagement />
         </ProtectedRoute>
       } />
       <Route path="/profile" element={
