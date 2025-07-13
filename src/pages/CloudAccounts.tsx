@@ -1,352 +1,146 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { 
   PageHeader, 
   DataGrid, 
-  SearchAndFilters,
   EmptyState 
 } from "@/components/common";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Cloud, 
   CreditCard, 
   Plus, 
-  Search, 
-  TestTube, 
-  Calendar,
+  Search,
   CheckCircle,
   XCircle,
-  AlertCircle,
-  Settings,
-  Trash2,
-  Copy,
-  Eye,
-  EyeOff,
-  RefreshCw,
-  Shield,
-  Key,
-  Globe
+  Globe,
+  Users
 } from "lucide-react";
-import { toast } from "sonner";
-
-interface CloudAccount {
-  id: string;
-  team_id: string;
-  provider_id: string;
-  name: string;
-  description?: string;
-  config: {
-    access_key?: string;
-    secret_key?: string;
-    region?: string;
-    project_id?: string;
-    subscription_id?: string;
-    tenant_id?: string;
-    [key: string]: any;
-  };
-  status: 'active' | 'inactive' | 'error' | 'testing';
-  last_test_at?: string;
-  last_test_result?: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-interface CloudProvider {
-  id: string;
-  name: string;
-  display_name: string;
-  icon_url?: string;
-  config_schema: {
-    required_fields: string[];
-    optional_fields: string[];
-    field_types: Record<string, 'text' | 'password' | 'select' | 'textarea'>;
-    field_labels: Record<string, string>;
-    field_placeholders: Record<string, string>;
-  };
-}
+import { useCloudAccounts, type CloudAccountWithDetails, type CloudAccountFormData } from "@/hooks/useCloudAccounts";
+import { CloudAccountForm } from "@/components/cloud/CloudAccountForm";
+import { CloudAccountCard } from "@/components/cloud/CloudAccountCard";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const CloudAccounts = () => {
-  const { userProfile, user } = useAuth();
-  const [accounts, setAccounts] = useState<CloudAccount[]>([]);
-  const [providers, setProviders] = useState<CloudProvider[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { userProfile } = useAuth();
+  const { 
+    accounts, 
+    providers, 
+    organizations, 
+    teams, 
+    loading,
+    createAccount,
+    updateAccount,
+    deleteAccount
+  } = useCloudAccounts();
+
+  // États locaux pour l'interface
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [providerFilter, setProviderFilter] = useState<string>("all");
-  const [selectedAccount, setSelectedAccount] = useState<CloudAccount | null>(null);
-
-  // État pour le modal de création/édition
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [environmentFilter, setEnvironmentFilter] = useState<string>("all");
+  
+  // États pour les modales
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [showSecrets, setShowSecrets] = useState(false);
-  const [testingConnection, setTestingConnection] = useState(false);
-  const [newAccount, setNewAccount] = useState({
-    name: "",
-    description: "",
-    provider_id: "",
-    config: {} as Record<string, any>
-  });
+  const [selectedAccount, setSelectedAccount] = useState<CloudAccountWithDetails | null>(null);
+  const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
 
-  useEffect(() => {
-    fetchCloudData();
-  }, [userProfile]);
-
-  const fetchCloudData = async () => {
-    if (!userProfile?.default_team_id && !userProfile?.is_msp_admin) return;
-
-    try {
-      setLoading(true);
-      
-      // Récupérer les providers
-      const { data: providersData, error: providersError } = await supabase
-        .from('cloud_providers')
-        .select('*');
-
-      if (providersError) throw providersError;
-      setProviders((providersData || []).map(p => ({
-        ...p,
-        config_schema: {
-          required_fields: [],
-          optional_fields: [],
-          field_types: {},
-          field_labels: {},
-          field_placeholders: {}
-        }
-      })));
-
-      // Récupérer les comptes
-      const { data: accountsData, error: accountsError } = await supabase
-        .from('cloud_credentials')
-        .select('*')
-        .eq('team_id', userProfile.default_team_id);
-
-      if (accountsError) throw accountsError;
-      setAccounts((accountsData || []).map(a => ({
-        ...a,
-        name: `Compte ${a.id.slice(0, 8)}`,
-        status: 'active' as const,
-        config: (a.config as any) || {}
-      })));
-    } catch (error) {
-      console.error('Error fetching cloud data:', error);
-      toast.error('Erreur lors du chargement des données');
-    } finally {
-      setLoading(false);
-    }
+  // Gestionnaires d'événements
+  const handleCreateAccount = async (data: CloudAccountFormData) => {
+    await createAccount(data);
   };
 
-  const createAccount = async () => {
-    if (!userProfile?.default_team_id && !userProfile?.is_msp_admin) return;
-
-    try {
-      setLoading(true);
-      
-      const accountData = {
-        team_id: userProfile?.default_team_id || userProfile?.default_organization_id || '',
-        provider_id: newAccount.provider_id,
-        config: newAccount.config,
-        configured_by: user?.id || ''
-      };
-      
-      const { data, error } = await supabase
-        .from('cloud_credentials')
-        .insert([accountData])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      toast.success('Compte cloud créé avec succès');
-      setIsModalOpen(false);
-      resetForm();
-      fetchCloudData();
-    } catch (error) {
-      console.error('Error creating account:', error);
-      toast.error('Erreur lors de la création du compte');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateAccount = async () => {
+  const handleUpdateAccount = async (data: CloudAccountFormData) => {
     if (!selectedAccount) return;
+    await updateAccount(selectedAccount.id, data);
+  };
 
-    try {
-      setLoading(true);
-      
-      const { error } = await supabase
-        .from('cloud_credentials')
-        .update({
-          config: newAccount.config,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedAccount.id);
+  const handleEditAccount = (account: CloudAccountWithDetails) => {
+    setSelectedAccount(account);
+    setIsEditing(true);
+    setIsFormOpen(true);
+  };
 
-      if (error) throw error;
-
-      toast.success('Compte cloud mis à jour');
-      setIsModalOpen(false);
-      resetForm();
-      fetchCloudData();
-    } catch (error) {
-      console.error('Error updating account:', error);
-      toast.error('Erreur lors de la mise à jour');
-    } finally {
-      setLoading(false);
+  const handleDeleteAccount = async (id: string) => {
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce compte ?')) {
+      await deleteAccount(id);
     }
   };
 
-  const deleteAccount = async (accountId: string) => {
-    try {
-      const { error } = await supabase
-        .from('cloud_credentials')
-        .delete()
-        .eq('id', accountId);
-
-      if (error) throw error;
-
-      toast.success('Compte cloud supprimé');
-      fetchCloudData();
-    } catch (error) {
-      console.error('Error deleting account:', error);
-      toast.error('Erreur lors de la suppression');
-    }
-  };
-
-  const testConnection = async (accountId: string) => {
-    try {
-      setTestingConnection(true);
-      
-      const { data, error } = await supabase.functions.invoke('cloud-orchestration', {
-        body: { 
-          action: 'test_connection', 
-          account_id: accountId 
-        }
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        toast.success('Connexion réussie');
-      } else {
-        toast.error('Échec de la connexion');
-      }
-
-      fetchCloudData();
-    } catch (error) {
-      console.error('Error testing connection:', error);
-      toast.error('Erreur lors du test de connexion');
-    } finally {
-      setTestingConnection(false);
-    }
+  const handleManageUsers = (account: CloudAccountWithDetails) => {
+    setSelectedAccount(account);
+    setIsUserManagementOpen(true);
   };
 
   const resetForm = () => {
-    setNewAccount({
-      name: "",
-      description: "",
-      provider_id: "",
-      config: {}
-    });
     setSelectedAccount(null);
     setIsEditing(false);
-    setShowSecrets(false);
+    setIsFormOpen(false);
   };
 
-  const openEditModal = (account: CloudAccount) => {
-    setSelectedAccount(account);
-    setNewAccount({
-      name: account.name || "",
-      description: account.description || "",
-      provider_id: account.provider_id,
-      config: { ...account.config }
-    });
-    setIsEditing(true);
-    setIsModalOpen(true);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active": return "default";
-      case "inactive": return "secondary";
-      case "error": return "destructive";
-      case "testing": return "outline";
-      default: return "outline";
-    }
-  };
-
-  const getStatusIcon = (status: string, lastTestResult?: boolean) => {
-    if (status === 'testing') return <RefreshCw className="h-4 w-4 animate-spin" />;
-    if (status === 'active' && lastTestResult) return <CheckCircle className="h-4 w-4" />;
-    if (status === 'error' || lastTestResult === false) return <XCircle className="h-4 w-4" />;
-    return <AlertCircle className="h-4 w-4" />;
-  };
-
+  // Fonctions de filtrage
   const filteredAccounts = accounts.filter(account => {
-    const matchesSearch = account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         account.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || account.status === statusFilter;
+    const matchesSearch = 
+      account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      account.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      account.cloud_providers?.display_name.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === "all" || 
+      (statusFilter === "active" && account.is_active) ||
+      (statusFilter === "inactive" && !account.is_active);
+    
     const matchesProvider = providerFilter === "all" || account.provider_id === providerFilter;
+    
+    const matchesEnvironment = environmentFilter === "all" || account.environment === environmentFilter;
 
-    return matchesSearch && matchesStatus && matchesProvider;
+    return matchesSearch && matchesStatus && matchesProvider && matchesEnvironment;
   });
+
+  // Statistiques
+  const totalAccounts = accounts.length;
+  const activeAccounts = accounts.filter(a => a.is_active).length;
+  const inactiveAccounts = totalAccounts - activeAccounts;
+  const environments = [...new Set(accounts.map(a => a.environment))].length;
 
   const stats = [
     {
-      title: "Comptes configurés",
-      value: accounts.length.toString(),
+      title: "Total des comptes",
+      value: totalAccounts.toString(),
       icon: CreditCard,
       color: "text-blue-500"
     },
     {
-      title: "Actifs",
-      value: accounts.filter(a => a.status === 'active').length.toString(),
+      title: "Comptes actifs",
+      value: activeAccounts.toString(),
       icon: CheckCircle,
       color: "text-green-500"
     },
     {
-      title: "En erreur",
-      value: accounts.filter(a => a.status === 'error').length.toString(),
+      title: "Comptes inactifs",
+      value: inactiveAccounts.toString(),
       icon: XCircle,
       color: "text-red-500"
     },
     {
-      title: "Dernier test",
-      value: accounts.length > 0 ? new Date(Math.max(...accounts.map(a => new Date(a.last_test_at || 0).getTime()))).toLocaleDateString() : "Jamais",
-      icon: Calendar,
+      title: "Environnements",
+      value: environments.toString(),
+      icon: Globe,
       color: "text-purple-500"
     }
   ];
+
+  // Gestion des permissions
+  const canManageAccounts = userProfile?.is_msp_admin || false;
 
   if (loading && accounts.length === 0) {
     return (
       <div className="space-y-6">
         <PageHeader
           title="Comptes Cloud"
-          description="Gestion des comptes et accès cloud"
+          description="Gestion centralisée des comptes cloud"
         />
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -359,15 +153,15 @@ const CloudAccounts = () => {
     <div className="space-y-6">
       <PageHeader
         title="Comptes Cloud"
-        description="Gestion des comptes et accès cloud"
-        action={{
-          label: "Ajouter un compte",
+        description="Gestion centralisée des comptes cloud par les administrateurs MSP"
+        action={canManageAccounts ? {
+          label: "Nouveau compte",
           icon: Plus,
           onClick: () => {
             resetForm();
-            setIsModalOpen(true);
+            setIsFormOpen(true);
           }
-        }}
+        } : undefined}
       />
 
       {/* Statistiques */}
@@ -389,15 +183,15 @@ const CloudAccounts = () => {
         ))}
       </DataGrid>
 
-      {/* Filtres */}
+      {/* Filtres et recherche */}
       <Card>
-        <CardHeader>
+        <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Rechercher un compte..."
+                  placeholder="Rechercher par nom, description ou provider..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
@@ -418,6 +212,17 @@ const CloudAccounts = () => {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={environmentFilter} onValueChange={setEnvironmentFilter}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Environnement" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous</SelectItem>
+                  <SelectItem value="production">Production</SelectItem>
+                  <SelectItem value="staging">Staging</SelectItem>
+                  <SelectItem value="development">Développement</SelectItem>
+                </SelectContent>
+              </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-32">
                   <SelectValue placeholder="Statut" />
@@ -426,213 +231,85 @@ const CloudAccounts = () => {
                   <SelectItem value="all">Tous</SelectItem>
                   <SelectItem value="active">Actif</SelectItem>
                   <SelectItem value="inactive">Inactif</SelectItem>
-                  <SelectItem value="error">Erreur</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          {filteredAccounts.length === 0 ? (
-            <EmptyState
-              icon={CreditCard}
-              title="Aucun compte trouvé"
-              description="Aucun compte cloud ne correspond à vos critères"
-            />
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nom</TableHead>
-                    <TableHead>Provider</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead>Dernier test</TableHead>
-                    <TableHead>Créé le</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredAccounts.map((account) => {
-                    const provider = providers.find(p => p.id === account.provider_id);
-                    
-                    return (
-                      <TableRow key={account.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{account.name || `Compte ${account.id.slice(0, 8)}`}</p>
-                            {account.description && (
-                              <p className="text-sm text-muted-foreground">{account.description}</p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <img 
-                              src={provider?.icon_url} 
-                              alt={provider?.name}
-                              className="h-4 w-4"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
-                            />
-                            <span className="text-sm">{provider?.display_name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            {getStatusIcon(account.status, account.last_test_result)}
-                            <Badge variant={getStatusColor(account.status)}>
-                              {account.status}
-                            </Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <Calendar className="h-4 w-4" />
-                            <span className="text-sm">
-                              {account.last_test_at ? new Date(account.last_test_at).toLocaleDateString() : "Jamais"}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">
-                            {new Date(account.created_at).toLocaleDateString()}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => testConnection(account.id)}
-                              disabled={testingConnection}
-                            >
-                              <TestTube className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEditModal(account)}
-                            >
-                              <Settings className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteAccount(account.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
         </CardContent>
       </Card>
 
+      {/* Liste des comptes */}
+      {filteredAccounts.length === 0 ? (
+        <EmptyState
+          icon={Cloud}
+          title={searchTerm || statusFilter !== "all" || providerFilter !== "all" || environmentFilter !== "all" 
+            ? "Aucun compte trouvé" 
+            : "Aucun compte cloud"}
+          description={searchTerm || statusFilter !== "all" || providerFilter !== "all" || environmentFilter !== "all"
+            ? "Aucun compte ne correspond à vos critères de recherche"
+            : canManageAccounts 
+              ? "Commencez par créer votre premier compte cloud"
+              : "Aucun compte cloud n'a été configuré pour le moment"}
+        />
+      ) : (
+        <DataGrid columns={1} className="sm:grid-cols-2 lg:grid-cols-3">
+          {filteredAccounts.map((account) => (
+            <CloudAccountCard
+              key={account.id}
+              account={account}
+              onEdit={handleEditAccount}
+              onDelete={handleDeleteAccount}
+              onManageUsers={handleManageUsers}
+              canManage={canManageAccounts}
+            />
+          ))}
+        </DataGrid>
+      )}
+
       {/* Modal de création/édition */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+      <CloudAccountForm
+        open={isFormOpen}
+        onOpenChange={(open) => {
+          setIsFormOpen(open);
+          if (!open) resetForm();
+        }}
+        onSubmit={isEditing ? handleUpdateAccount : handleCreateAccount}
+        providers={providers}
+        organizations={organizations}
+        teams={teams}
+        initialData={selectedAccount ? {
+          name: selectedAccount.name,
+          description: selectedAccount.description || '',
+          provider_id: selectedAccount.provider_id,
+          team_id: selectedAccount.team_id,
+          client_organization_id: selectedAccount.client_organization_id,
+          account_identifier: selectedAccount.account_identifier,
+          region: selectedAccount.region || '',
+          environment: (selectedAccount.environment as 'production' | 'staging' | 'development') || 'production'
+        } : undefined}
+        isEditing={isEditing}
+      />
+
+      {/* Modal de gestion des utilisateurs */}
+      <Dialog open={isUserManagementOpen} onOpenChange={setIsUserManagementOpen}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              {isEditing ? 'Modifier le compte' : 'Ajouter un compte cloud'}
+              Gestion des accès - {selectedAccount?.name}
             </DialogTitle>
-            <DialogDescription>
-              Configurez les accès à votre compte cloud
-            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nom du compte</Label>
-                <Input
-                  id="name"
-                  value={newAccount.name}
-                  onChange={(e) => setNewAccount({...newAccount, name: e.target.value})}
-                  placeholder="Mon compte AWS"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="provider">Provider</Label>
-                <Select 
-                  value={newAccount.provider_id} 
-                  onValueChange={(value) => setNewAccount({...newAccount, provider_id: value, config: {}})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un provider" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {providers.map(provider => (
-                      <SelectItem key={provider.id} value={provider.id}>
-                        {provider.display_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+              <Users className="h-4 w-4" />
+              <span>Fonctionnalité de gestion des utilisateurs à venir</span>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={newAccount.description}
-                onChange={(e) => setNewAccount({...newAccount, description: e.target.value})}
-                placeholder="Description optionnelle..."
-                rows={2}
-              />
-            </div>
-
-            {newAccount.provider_id && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>Configuration</Label>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowSecrets(!showSecrets)}
-                  >
-                    {showSecrets ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                </div>
-                
-                {providers.find(p => p.id === newAccount.provider_id)?.config_schema.required_fields.map(field => (
-                  <div key={field} className="space-y-2">
-                    <Label htmlFor={field}>
-                      {providers.find(p => p.id === newAccount.provider_id)?.config_schema.field_labels[field] || field}
-                    </Label>
-                    <Input
-                      id={field}
-                      type={showSecrets && field.includes('key') ? 'text' : 'password'}
-                      value={newAccount.config[field] || ''}
-                      onChange={(e) => setNewAccount({
-                        ...newAccount, 
-                        config: {...newAccount.config, [field]: e.target.value}
-                      })}
-                      placeholder={providers.find(p => p.id === newAccount.provider_id)?.config_schema.field_placeholders[field] || field}
-                    />
-                  </div>
-                ))}
+            {selectedAccount?.profiles && selectedAccount.profiles.length > 0 && (
+              <div>
+                <p className="text-sm font-medium mb-2">
+                  Utilisateurs actuellement assignés : {selectedAccount.profiles.length}
+                </p>
               </div>
             )}
-            
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-                Annuler
-              </Button>
-              <Button 
-                onClick={isEditing ? updateAccount : createAccount}
-                disabled={!newAccount.provider_id}
-              >
-                {isEditing ? 'Mettre à jour' : 'Créer'}
-              </Button>
-            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -640,4 +317,4 @@ const CloudAccounts = () => {
   );
 };
 
-export default CloudAccounts; 
+export default CloudAccounts;
