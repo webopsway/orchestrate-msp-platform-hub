@@ -98,6 +98,47 @@ All colors MUST be HSL.
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
+  /* ReactQuill customizations */
+  .ql-editor {
+    min-height: 200px;
+    font-family: inherit;
+  }
+  
+  .ql-toolbar {
+    border-bottom: 1px solid hsl(var(--border));
+    border-top-left-radius: calc(var(--radius) - 2px);
+    border-top-right-radius: calc(var(--radius) - 2px);
+  }
+  
+  .ql-container {
+    border-bottom-left-radius: calc(var(--radius) - 2px);
+    border-bottom-right-radius: calc(var(--radius) - 2px);
+    border-top: none;
+  }
+  
+  .ql-toolbar .ql-stroke {
+    fill: none;
+    stroke: hsl(var(--foreground));
+  }
+  
+  .ql-toolbar .ql-fill {
+    fill: hsl(var(--foreground));
+    stroke: none;
+  }
+  
+  .ql-toolbar button:hover {
+    background: hsl(var(--muted));
+  }
+  
+  .ql-toolbar button.ql-active {
+    background: hsl(var(--accent));
+  }
+  
+  .ql-editor.ql-blank::before {
+    color: hsl(var(--muted-foreground));
+    font-style: normal;
+  }
 }
 
 @layer base {

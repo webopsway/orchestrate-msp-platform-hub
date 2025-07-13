@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganizationsAndTeams } from "@/hooks/useOrganizationsAndTeams";
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { 
   PageHeader, 
   DataGrid, 
@@ -103,6 +105,33 @@ const Documentation = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
+
+  // Configuration de ReactQuill
+  const quillModules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ 'script': 'sub'}, { 'script': 'super' }],
+      [{ 'indent': '-1'}, { 'indent': '+1' }],
+      [{ 'direction': 'rtl' }],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'align': [] }],
+      ['link', 'image', 'video'],
+      ['code-block'],
+      ['clean']
+    ],
+  };
+
+  const quillFormats = [
+    'header', 'font', 'size',
+    'bold', 'italic', 'underline', 'strike', 'blockquote',
+    'list', 'bullet', 'indent',
+    'link', 'image', 'video',
+    'color', 'background',
+    'align', 'direction',
+    'code-block', 'script'
+  ];
 
   // État pour les formulaires
   const [newDocument, setNewDocument] = useState({
@@ -717,19 +746,18 @@ const Documentation = () => {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="doc-content">Contenu (Markdown)</Label>
-              <Textarea
-                id="doc-content"
-                value={newDocument.content}
-                onChange={(e) => setNewDocument({...newDocument, content: e.target.value})}
-                placeholder="# Titre du document
-
-## Introduction
-
-Contenu de votre document en Markdown..."
-                rows={15}
-                className="font-mono"
-              />
+              <Label htmlFor="doc-content">Contenu</Label>
+              <div className="border rounded-md bg-background">
+                <ReactQuill
+                  theme="snow"
+                  value={newDocument.content}
+                  onChange={(content) => setNewDocument({...newDocument, content})}
+                  modules={quillModules}
+                  formats={quillFormats}
+                  placeholder="Rédigez votre document ici..."
+                  style={{ height: '300px', marginBottom: '42px' }}
+                />
+              </div>
             </div>
             
             <div className="flex justify-end space-x-2">
@@ -785,19 +813,18 @@ Contenu de votre document en Markdown..."
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="edit-content">Contenu (Markdown)</Label>
-              <Textarea
-                id="edit-content"
-                value={editDocument.content}
-                onChange={(e) => setEditDocument({...editDocument, content: e.target.value})}
-                placeholder="# Titre du document
-
-## Introduction
-
-Contenu de votre document en Markdown..."
-                rows={15}
-                className="font-mono"
-              />
+              <Label htmlFor="edit-content">Contenu</Label>
+              <div className="border rounded-md bg-background">
+                <ReactQuill
+                  theme="snow"
+                  value={editDocument.content}
+                  onChange={(content) => setEditDocument({...editDocument, content})}
+                  modules={quillModules}
+                  formats={quillFormats}
+                  placeholder="Rédigez votre document ici..."
+                  style={{ height: '300px', marginBottom: '42px' }}
+                />
+              </div>
             </div>
             
             <div className="flex justify-end space-x-2">
@@ -855,10 +882,9 @@ Contenu de votre document en Markdown..."
                 </div>
               </div>
               
-              <div className="border rounded-lg p-4 max-h-96 overflow-y-auto">
+              <div className="border rounded-lg p-4 max-h-96 overflow-y-auto bg-background">
                 <div className="prose prose-sm max-w-none">
-                  {/* Ici vous pourriez utiliser un renderer Markdown */}
-                  <pre className="whitespace-pre-wrap text-sm">{selectedDocument.content}</pre>
+                  <div dangerouslySetInnerHTML={{ __html: selectedDocument.content }} />
                 </div>
               </div>
             </div>
