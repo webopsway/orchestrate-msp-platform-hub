@@ -234,19 +234,18 @@ export const SLAPolicyForm: React.FC<SLAPolicyFormProps> = ({
               name="ticket_category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Catégorie de ticket (optionnel)</FormLabel>
+                  <FormLabel>Type de ticket (optionnel)</FormLabel>
                   <FormControl>
-                    <Select value={field.value || 'all_categories'} onValueChange={(value) => field.onChange(value === 'all_categories' ? undefined : value)}>
+                    <Select value={field.value || 'all_types'} onValueChange={(value) => field.onChange(value === 'all_types' ? undefined : value)}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner une catégorie..." />
+                        <SelectValue placeholder="Sélectionner un type..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all_categories">Toutes les catégories</SelectItem>
-                        {categories.map((category) => (
-                          <SelectItem key={category.config_key} value={category.config_key}>
-                            {(category.config_value as any)?.label || category.config_key}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="all_types">Tous les types</SelectItem>
+                        <SelectItem value="incident">Incident</SelectItem>
+                        <SelectItem value="change_request">Demande de changement</SelectItem>
+                        <SelectItem value="service_request">Demande de service</SelectItem>
+                        <SelectItem value="security">Sécurité</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormControl>
