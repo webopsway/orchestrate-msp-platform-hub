@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganizationsAndTeams } from "@/hooks/useOrganizationsAndTeams";
 import { 
   PageHeader, 
   DataGrid, 
@@ -49,7 +50,8 @@ import {
   Star,
   Clock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Building2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -85,6 +87,7 @@ interface DocumentVersion {
 
 const Documentation = () => {
   const { userProfile, user } = useAuth();
+  const { data: organizationData, isLoading: teamsLoading } = useOrganizationsAndTeams();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [versions, setVersions] = useState<DocumentVersion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,6 +109,7 @@ const Documentation = () => {
     title: "",
     content: "",
     category: "",
+    team_id: "", // Nouvelle propriété pour l'équipe cliente
     tags: [] as string[],
     status: "draft" as const
   });
@@ -156,13 +160,16 @@ const Documentation = () => {
   };
 
   const createDocument = async () => {
-    if (!userProfile?.default_team_id && !userProfile?.is_msp_admin) return;
+    if (!newDocument.team_id) {
+      toast.error('Veuillez sélectionner une équipe cliente');
+      return;
+    }
 
     try {
       setLoading(true);
       
       const docData = {
-        team_id: userProfile?.default_team_id || userProfile?.default_organization_id || '',
+        team_id: newDocument.team_id,
         title: newDocument.title,
         content: newDocument.content,
         version: "1.0",
@@ -285,6 +292,7 @@ const Documentation = () => {
       title: "",
       content: "",
       category: "",
+      team_id: "",
       tags: [],
       status: "draft"
     });
@@ -685,6 +693,28 @@ const Documentation = () => {
                 </Select>
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="team-select">
+                <Building2 className="h-4 w-4 inline mr-2" />
+                Équipe cliente
+              </Label>
+              <Select value={newDocument.team_id} onValueChange={(value) => setNewDocument({...newDocument, team_id: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une équipe cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {organizationData?.teams?.map(team => {
+                    const organization = organizationData.organizations.find(org => org.id === team.organization_id);
+                    return (
+                      <SelectItem key={team.id} value={team.id}>
+                        {organization?.name} - {team.name}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
             
             <div className="space-y-2">
               <Label htmlFor="doc-content">Contenu (Markdown)</Label>
@@ -706,7 +736,10 @@ Contenu de votre document en Markdown..."
               <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
                 Annuler
               </Button>
-              <Button onClick={createDocument} disabled={!newDocument.title || !newDocument.content}>
+              <Button 
+                onClick={createDocument} 
+                disabled={!newDocument.title || !newDocument.content || !newDocument.team_id || teamsLoading}
+              >
                 Créer
               </Button>
             </div>
