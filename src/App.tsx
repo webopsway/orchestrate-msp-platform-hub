@@ -21,6 +21,7 @@ import ITSMSecurityIncidents from "./pages/ITSM/ITSMSecurityIncidents";
 import ITSMChanges from "./pages/ITSM/ITSMChanges";
 import ITSMRequests from "./pages/ITSM/ITSMRequests";
 
+import Cloud from "./pages/Cloud";
 import CloudInventory from "./pages/CloudInventory";
 import CloudAccounts from "./pages/CloudAccounts";
 import Monitoring from "./pages/Monitoring";
@@ -178,6 +179,11 @@ function AppRoutes() {
       } />
       
       {/* Cloud Routes */}
+      <Route path="/cloud" element={
+        <ProtectedRoute>
+          <Cloud />
+        </ProtectedRoute>
+      } />
       <Route path="/cloud/inventory" element={
         <ProtectedRoute>
           <CloudInventory />
