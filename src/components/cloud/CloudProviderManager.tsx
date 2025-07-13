@@ -154,7 +154,13 @@ const CloudProviderManager = () => {
     try {
       setLoading(true);
       
-      const { error } = await supabase
+      console.log('Updating provider with data:', {
+        id: selectedProvider.id,
+        formData,
+        userProfile
+      });
+      
+      const { data, error } = await supabase
         .from('cloud_providers')
         .update({
           name: formData.name,
@@ -164,9 +170,15 @@ const CloudProviderManager = () => {
           metadata: formData.metadata,
           updated_at: new Date().toISOString()
         })
-        .eq('id', selectedProvider.id);
+        .eq('id', selectedProvider.id)
+        .select();
 
-      if (error) throw error;
+      console.log('Update result:', { data, error });
+
+      if (error) {
+        console.error('Supabase error details:', error);
+        throw error;
+      }
 
       toast.success('Provider mis à jour');
       setIsEditModalOpen(false);
@@ -174,7 +186,7 @@ const CloudProviderManager = () => {
       fetchProviders();
     } catch (error) {
       console.error('Error updating provider:', error);
-      toast.error('Erreur lors de la mise à jour');
+      toast.error(`Erreur lors de la mise à jour: ${error.message}`);
     } finally {
       setLoading(false);
     }
