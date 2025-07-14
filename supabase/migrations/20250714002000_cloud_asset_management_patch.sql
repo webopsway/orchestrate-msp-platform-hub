@@ -35,6 +35,30 @@ CREATE TRIGGER trg_update_security_vulnerabilities_updated_at
 BEFORE UPDATE ON public.security_vulnerabilities
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+-- Correction du nom de colonne pour éviter le mot réservé SQL
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'security_vulnerabilities' AND column_name = 'references'
+  ) THEN
+    ALTER TABLE public.security_vulnerabilities RENAME COLUMN "references" TO refs;
+  END IF;
+END $$;
+
+-- Ajout de la colonne cvss_score si elle n'existe pas
+ALTER TABLE public.security_vulnerabilities ADD COLUMN IF NOT EXISTS cvss_score numeric;
+
+-- Ajout des colonnes attendues si elles n'existent pas déjà
+ALTER TABLE public.security_vulnerabilities ADD COLUMN IF NOT EXISTS severity text;
+ALTER TABLE public.security_vulnerabilities ADD COLUMN IF NOT EXISTS description text;
+ALTER TABLE public.security_vulnerabilities ADD COLUMN IF NOT EXISTS published_at timestamp with time zone;
+ALTER TABLE public.security_vulnerabilities ADD COLUMN IF NOT EXISTS refs text[];
+ALTER TABLE public.security_vulnerabilities ADD COLUMN IF NOT EXISTS source text;
+ALTER TABLE public.security_vulnerabilities ADD COLUMN IF NOT EXISTS metadata jsonb default '{}'::jsonb;
+ALTER TABLE public.security_vulnerabilities ADD COLUMN IF NOT EXISTS created_at timestamp with time zone default now();
+ALTER TABLE public.security_vulnerabilities ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone default now();
+
 -- Indexes (création si absent)
 CREATE INDEX IF NOT EXISTS idx_cloud_asset_configurations_asset_id ON public.cloud_asset_configurations(asset_id);
 CREATE INDEX IF NOT EXISTS idx_cloud_asset_configurations_team_id ON public.cloud_asset_configurations(team_id);

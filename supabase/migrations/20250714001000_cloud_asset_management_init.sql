@@ -93,25 +93,4 @@ create index on public.cloud_patch_status (collected_at);
 create trigger trg_update_cloud_patch_status_updated_at
 before update on public.cloud_patch_status
 for each row
-execute function public.update_updated_at_column();
-
--- 5. security_vulnerabilities
-create table public.security_vulnerabilities (
-  cve_id text primary key,
-  severity text,
-  cvss_score numeric,
-  description text,
-  published_at timestamp with time zone,
-  references text[],
-  source text,
-  metadata jsonb default '{}'::jsonb,
-  created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now()
-);
-create index on public.security_vulnerabilities (severity);
-create index on public.security_vulnerabilities (cvss_score);
-create index on public.security_vulnerabilities (published_at);
-create trigger trg_update_security_vulnerabilities_updated_at
-before update on public.security_vulnerabilities
-for each row
 execute function public.update_updated_at_column(); 
