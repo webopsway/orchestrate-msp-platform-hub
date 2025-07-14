@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ServiceRequestService } from '@/services/serviceRequestService';
 import type { ServiceRequest } from '@/types/serviceRequest';
+import { supabase } from '@/integrations/supabase/client';
+import type { CloudAssetConfiguration } from '@/integrations/supabase/types';
 
 // Re-export types for backward compatibility
 export type { ServiceRequest } from '@/types/serviceRequest';
@@ -91,3 +93,45 @@ export const useServiceRequests = () => {
     updateStatus
   };
 };
+
+export class CloudAssetConfigurationService {
+  static async list(teamId: string): Promise<CloudAssetConfiguration[]> {
+    const { data, error } = await supabase
+      .from('cloud_asset_configurations')
+      .select('*')
+      .eq('team_id', teamId)
+      .order('collected_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  }
+
+  static async create(payload: Partial<CloudAssetConfiguration>) {
+    const { data, error } = await supabase
+      .from('cloud_asset_configurations')
+      .insert([payload])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  static async update(id: string, payload: Partial<CloudAssetConfiguration>) {
+    const { data, error } = await supabase
+      .from('cloud_asset_configurations')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  static async remove(id: string) {
+    const { error } = await supabase
+      .from('cloud_asset_configurations')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
+  }
+}

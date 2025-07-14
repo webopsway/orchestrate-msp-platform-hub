@@ -2173,3 +2173,71 @@ export const Constants = {
     },
   },
 } as const
+
+// Types pour la gestion des assets cloud
+
+export interface CloudAssetConfiguration {
+  id: string;
+  asset_id: string;
+  team_id: string;
+  os?: string;
+  cpu?: string;
+  ram?: string;
+  ip?: string;
+  metadata?: any;
+  collected_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CloudInstalledPackage {
+  id: string;
+  asset_id: string;
+  team_id: string;
+  package_name: string;
+  version?: string;
+  source?: string;
+  metadata?: any;
+  collected_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CloudRunningProcess {
+  id: string;
+  asset_id: string;
+  team_id: string;
+  process_name: string;
+  pid?: number;
+  path?: string;
+  metadata?: any;
+  collected_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CloudPatchStatus {
+  id: string;
+  asset_id: string;
+  team_id: string;
+  patch_name?: string;
+  cve_id?: string;
+  status: 'applied' | 'pending' | 'not_available' | 'unknown';
+  metadata?: any;
+  collected_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SecurityVulnerability {
+  cve_id: string;
+  severity?: string;
+  cvss_score?: number;
+  description?: string;
+  published_at?: string;
+  refs?: string[];
+  source?: string;
+  metadata?: any;
+  created_at?: string;
+  updated_at?: string;
+}
