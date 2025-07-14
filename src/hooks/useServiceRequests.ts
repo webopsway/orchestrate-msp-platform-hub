@@ -4,6 +4,8 @@ import { ServiceRequestService } from '@/services/serviceRequestService';
 import type { ServiceRequest } from '@/types/serviceRequest';
 import { supabase } from '@/integrations/supabase/client';
 import type { CloudAssetConfiguration } from '@/integrations/supabase/types';
+import { useRBAC } from '@/hooks/useRBAC';
+import { RoleService } from '@/services/roleService';
 
 // Re-export types for backward compatibility
 export type { ServiceRequest } from '@/types/serviceRequest';
@@ -135,3 +137,73 @@ export class CloudAssetConfigurationService {
     return true;
   }
 }
+
+import { supabase } from '@/integrations/supabase/client';
+import type { Role } from '@/integrations/supabase/types';
+
+export class RoleService {
+  static async list(): Promise<Role[]> {
+    const { data, error } = await supabase
+      .from('roles')
+      .select('*')
+      .order('display_name', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  }
+
+  static async get(id: string): Promise<Role | null> {
+    const { data, error } = await supabase
+      .from('roles')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  static async create(payload: Partial<Role>) {
+    const { data, error } = await supabase
+      .from('roles')
+      .insert([payload])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  static async update(id: string, payload: Partial<Role>) {
+    const { data, error } = await supabase
+      .from('roles')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  static async remove(id: string) {
+    const { error } = await supabase
+      .from('roles')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
+  }
+}
+
+const { checkPermission } = useRBAC();
+
+if (checkPermission('roles', 'create')) {
+  // Afficher bouton "Créer un rôle"
+}
+
+// Pour créer un rôle
+const handleCreateRole = async (payload) => {
+  try {
+    await RoleService.create(payload);
+    // Rafraîchir la liste, afficher un toast, etc.
+  } catch (e) {
+    // Gérer l’erreur
+  }
+};

@@ -15,6 +15,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { UserPlus, Shield, Users, Settings, Trash2, Calendar, Building, Users2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useRBAC } from '@/hooks/useRBAC';
+import { RoleService } from '@/services/roleService';
 
 export const RoleAdmin = () => {
   const { userProfile } = useAuth();
@@ -32,6 +34,11 @@ export const RoleAdmin = () => {
     organizationId: 'none',
     expiresAt: ''
   });
+
+  const { checkPermission } = useRBAC();
+  const [showRoleDialog, setShowRoleDialog] = useState(false);
+  const [editingRole, setEditingRole] = useState<any | null>(null);
+  const [roleForm, setRoleForm] = useState({ name: '', display_name: '', description: '' });
 
   // Check if user is MSP admin
   const isMspAdmin = userProfile?.is_msp_admin || false;
@@ -370,36 +377,68 @@ export const RoleAdmin = () => {
 
         <TabsContent value="roles">
           <Card>
-            <CardHeader>
-              <CardTitle>Rôles Système</CardTitle>
-              <CardDescription>
-                Liste des rôles disponibles dans le système
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Rôles Système</CardTitle>
+                <CardDescription>Gérez les rôles système (CRUD réservé aux MSP Admin)</CardDescription>
+              </div>
+              {checkPermission('roles', 'create') && (
+                <Button onClick={() => { setEditingRole(null); setRoleForm({ name: '', display_name: '', description: '' }); setShowRoleDialog(true); }}>
+                  Créer un rôle
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nom</TableHead>
+                    <TableHead>Nom affiché</TableHead>
+                    <TableHead>Nom technique</TableHead>
                     <TableHead>Description</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Permissions</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {roles.map((role) => (
                     <TableRow key={role.id}>
-                      <TableCell className="font-medium">{role.display_name}</TableCell>
+                      <TableCell>{role.display_name}</TableCell>
+                      <TableCell>{role.name}</TableCell>
                       <TableCell>{role.description}</TableCell>
-                      <TableCell>
-                        <Badge variant={role.is_system_role ? 'default' : 'secondary'}>
-                          {role.is_system_role ? 'Système' : 'Personnalisé'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {getRolePermissionCount(role.id)} permissions
-                        </Badge>
+                      <TableCell className="flex gap-2">
+                        {checkPermission('roles', 'update') && (
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setEditingRole(role);
+                              setRoleForm({
+                                name: role.name,
+                                display_name: role.display_name,
+                                description: role.description || ''
+                              });
+                              setShowRoleDialog(true);
+                            }}
+                          >
+                            Modifier
+                          </Button>
+                        )}
+                        {checkPermission('roles', 'delete') && (
+                          <Button
+                            variant="destructive"
+                            onClick={async () => {
+                              if (window.confirm('Supprimer ce rôle ?')) {
+                                try {
+                                  await RoleService.remove(role.id);
+                                  toast.success('Rôle supprimé');
+                                  refreshData();
+                                } catch (e: any) {
+                                  toast.error(e.message || 'Erreur');
+                                }
+                              }
+                            }}
+                          >
+                            Supprimer
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -407,6 +446,49 @@ export const RoleAdmin = () => {
               </Table>
             </CardContent>
           </Card>
+          <Dialog open={showRoleDialog} onOpenChange={setShowRoleDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingRole ? 'Modifier le rôle' : 'Créer un rôle'}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <Input
+                  placeholder="Nom technique"
+                  value={roleForm.name}
+                  onChange={e => setRoleForm({ ...roleForm, name: e.target.value })}
+                />
+                <Input
+                  placeholder="Nom affiché"
+                  value={roleForm.display_name}
+                  onChange={e => setRoleForm({ ...roleForm, display_name: e.target.value })}
+                />
+                <Input
+                  placeholder="Description"
+                  value={roleForm.description}
+                  onChange={e => setRoleForm({ ...roleForm, description: e.target.value })}
+                />
+                <Button
+                  onClick={async () => {
+                    try {
+                      if (editingRole) {
+                        await RoleService.update(editingRole.id, roleForm);
+                        toast.success('Rôle modifié');
+                      } else {
+                        await RoleService.create(roleForm);
+                        toast.success('Rôle créé');
+                      }
+                      setShowRoleDialog(false);
+                      refreshData();
+                    } catch (e: any) {
+                      toast.error(e.message || 'Erreur');
+                    }
+                  }}
+                >
+                  {editingRole ? 'Enregistrer' : 'Créer'}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="permissions">
