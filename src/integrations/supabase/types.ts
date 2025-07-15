@@ -2254,3 +2254,21 @@ export interface Documentation {
   updated_at: string;
   metadata?: any;
 }
+
+export interface UserRoleCatalog {
+  id: string;
+  name: string;
+  display_name: string;
+  description?: string;
+  is_default?: boolean;
+  created_at: string;
+}
+
+export interface OrganizationType {
+  id: string;
+  name: string;
+  display_name: string;
+  description?: string;
+  is_default?: boolean;
+  created_at: string;
+}
