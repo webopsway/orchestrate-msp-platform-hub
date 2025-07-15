@@ -1324,21 +1324,21 @@ export type Database = {
           created_at: string | null
           id: string
           organization_id: string
-          role: Database["public"]["Enums"]["user_role"]
+          role_id: string
           user_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
           organization_id: string
-          role?: Database["public"]["Enums"]["user_role"]
+          role_id: string
           user_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
           organization_id?: string
-          role?: Database["public"]["Enums"]["user_role"]
+          role_id?: string
           user_id?: string
         }
         Relationships: [
@@ -1366,7 +1366,7 @@ export type Database = {
           metadata: Json | null
           name: string
           parent_organization_id: string | null
-          type: Database["public"]["Enums"]["organization_type"]
+          type: string
           updated_at: string | null
         }
         Insert: {
@@ -1376,7 +1376,7 @@ export type Database = {
           metadata?: Json | null
           name: string
           parent_organization_id?: string | null
-          type: Database["public"]["Enums"]["organization_type"]
+          type: string
           updated_at?: string | null
         }
         Update: {
@@ -1386,7 +1386,7 @@ export type Database = {
           metadata?: Json | null
           name?: string
           parent_organization_id?: string | null
-          type?: Database["public"]["Enums"]["organization_type"]
+          type?: string
           updated_at?: string | null
         }
         Relationships: [
@@ -1711,21 +1711,21 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
-          role: Database["public"]["Enums"]["team_role"]
+          role: string
           team_id: string
           user_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
-          role?: Database["public"]["Enums"]["team_role"]
+          role: string
           team_id: string
           user_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
-          role?: Database["public"]["Enums"]["team_role"]
+          role?: string
           team_id?: string
           user_id?: string
         }
@@ -2036,11 +2036,6 @@ export type Database = {
         Returns: boolean
       }
     }
-    Enums: {
-      organization_type: "client" | "esn" | "msp"
-      team_role: "owner" | "admin" | "member" | "viewer"
-      user_role: "admin" | "manager" | "technician" | "user"
-    }
     CompositeTypes: {
       [_ in never]: never
     }
@@ -2163,16 +2158,6 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
-
-export const Constants = {
-  public: {
-    Enums: {
-      organization_type: ["client", "esn", "msp"],
-      team_role: ["owner", "admin", "member", "viewer"],
-      user_role: ["admin", "manager", "technician", "user"],
-    },
-  },
-} as const
 
 // Types pour la gestion des assets cloud
 

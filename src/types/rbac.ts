@@ -505,52 +505,5 @@ export const SYSTEM_PERMISSIONS: Permission[] = [
   }
 ];
 
-// Rôles système par défaut
-export const SYSTEM_ROLES = {
-  SUPER_ADMIN: 'super_admin',
-  MSP_ADMIN: 'msp_admin',
-  TEAM_ADMIN: 'team_admin',
-  TEAM_MEMBER: 'team_member',
-  READ_ONLY: 'read_only'
-};
-
-// Permissions par défaut pour chaque rôle
-export const DEFAULT_ROLE_PERMISSIONS = {
-  [SYSTEM_ROLES.SUPER_ADMIN]: SYSTEM_PERMISSIONS.map(p => p.name),
-  [SYSTEM_ROLES.MSP_ADMIN]: [
-    'users.create', 'users.read', 'users.update', 'users.list',
-    'roles.create', 'roles.read', 'roles.update', 'roles.manage',
-    'organizations.create', 'organizations.read', 'organizations.update', 'organizations.delete',
-    'itsm.create', 'itsm.read', 'itsm.update', 'itsm.approve',
-    'cloud.read', 'cloud.manage',
-    'monitoring.read', 'monitoring.manage',
-    'documentation.read', 'documentation.manage',
-    'settings.read', 'settings.manage'
-  ],
-  [SYSTEM_ROLES.TEAM_ADMIN]: [
-    'users.read', 'users.update', 'users.list',
-    'roles.read',
-    'organizations.read', 'organizations.update',
-    'itsm.create', 'itsm.read', 'itsm.update',
-    'cloud.read',
-    'monitoring.read',
-    'documentation.read', 'documentation.manage',
-    'settings.read'
-  ],
-  [SYSTEM_ROLES.TEAM_MEMBER]: [
-    'users.read',
-    'organizations.read',
-    'itsm.create', 'itsm.read', 'itsm.update',
-    'cloud.read',
-    'monitoring.read',
-    'documentation.read'
-  ],
-  [SYSTEM_ROLES.READ_ONLY]: [
-    'users.read',
-    'organizations.read',
-    'itsm.read',
-    'cloud.read',
-    'monitoring.read',
-    'documentation.read'
-  ]
-}; 
+// Supprimer SYSTEM_ROLES et DEFAULT_ROLE_PERMISSIONS (remplacés par la table 'roles' et 'permissions')
+// Adapter les types pour qu'ils correspondent à la nouvelle structure dynamique 
