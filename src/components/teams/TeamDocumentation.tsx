@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TeamDocumentService } from '@/services/teamDocumentService';
+import { DocumentationService } from '@/services/documentationService';
 import { useRBAC } from '@/hooks/useRBAC';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,10 +15,10 @@ export const TeamDocumentation = ({ teamId, currentUserId }) => {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingDoc, setEditingDoc] = useState(null);
-  const [form, setForm] = useState({ title: '', content: '' });
+  const [form, setForm] = useState({ title: '', content: '', version: '1.0' });
 
   useEffect(() => {
-    TeamDocumentService.list(teamId).then(setDocs);
+    DocumentationService.list(teamId).then(setDocs);
   }, [teamId]);
 
   const filteredDocs = docs.filter(doc =>
@@ -27,14 +27,14 @@ export const TeamDocumentation = ({ teamId, currentUserId }) => {
 
   const handleEdit = (doc) => {
     setEditingDoc(doc);
-    setForm({ title: doc.title, content: doc.content });
+    setForm({ title: doc.title, content: doc.content || '', version: doc.version || '1.0' });
     setShowModal(true);
   };
 
   const handleDelete = async (id) => {
     if (window.confirm('Supprimer ce document ?')) {
       try {
-        await TeamDocumentService.remove(id);
+        await DocumentationService.remove(id);
         setDocs(docs.filter(d => d.id !== id));
         toast.success('Document supprimé');
       } catch (e) {
@@ -46,17 +46,17 @@ export const TeamDocumentation = ({ teamId, currentUserId }) => {
   const handleSave = async () => {
     try {
       if (editingDoc) {
-        const updated = await TeamDocumentService.update(editingDoc.id, { ...form });
+        const updated = await DocumentationService.update(editingDoc.id, { ...form, updated_by: currentUserId });
         setDocs(docs.map(d => d.id === editingDoc.id ? updated : d));
         toast.success('Document modifié');
       } else {
-        const created = await TeamDocumentService.create({ ...form, team_id: teamId, author_id: currentUserId });
+        const created = await DocumentationService.create({ ...form, team_id: teamId, created_by: currentUserId });
         setDocs([created, ...docs]);
         toast.success('Document créé');
       }
       setShowModal(false);
       setEditingDoc(null);
-      setForm({ title: '', content: '' });
+      setForm({ title: '', content: '', version: '1.0' });
     } catch (e) {
       toast.error('Erreur lors de l\'enregistrement');
     }
@@ -66,14 +66,15 @@ export const TeamDocumentation = ({ teamId, currentUserId }) => {
     <div>
       <div className="flex justify-between items-center mb-4">
         <Input placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} />
-        {checkPermission('team_documents', 'create') && (
-          <Button onClick={() => { setEditingDoc(null); setForm({ title: '', content: '' }); setShowModal(true); }}>Nouveau document</Button>
+        {checkPermission('documentation', 'create') && (
+          <Button onClick={() => { setEditingDoc(null); setForm({ title: '', content: '', version: '1.0' }); setShowModal(true); }}>Nouveau document</Button>
         )}
       </div>
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Titre</TableHead>
+            <TableHead>Version</TableHead>
             <TableHead>Auteur</TableHead>
             <TableHead>Date</TableHead>
             <TableHead>Actions</TableHead>
@@ -83,11 +84,12 @@ export const TeamDocumentation = ({ teamId, currentUserId }) => {
           {filteredDocs.map(doc => (
             <TableRow key={doc.id}>
               <TableCell>{doc.title}</TableCell>
-              <TableCell>{doc.author_id}</TableCell>
+              <TableCell>{doc.version}</TableCell>
+              <TableCell>{doc.created_by}</TableCell>
               <TableCell>{new Date(doc.updated_at).toLocaleDateString('fr-FR')}</TableCell>
               <TableCell className="flex gap-2">
                 <Button variant="outline" onClick={() => handleEdit(doc)}>Voir/Éditer</Button>
-                {checkPermission('team_documents', 'delete') && (
+                {checkPermission('documentation', 'delete') && (
                   <Button variant="destructive" onClick={() => handleDelete(doc.id)}>Supprimer</Button>
                 )}
               </TableCell>
@@ -104,6 +106,12 @@ export const TeamDocumentation = ({ teamId, currentUserId }) => {
             placeholder="Titre"
             value={form.title}
             onChange={e => setForm({ ...form, title: e.target.value })}
+            className="mb-2"
+          />
+          <Input
+            placeholder="Version"
+            value={form.version}
+            onChange={e => setForm({ ...form, version: e.target.value })}
             className="mb-2"
           />
           <Textarea

@@ -1,10 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { TeamDocument } from '@/integrations/supabase/types';
+import type { Documentation } from '@/integrations/supabase/types';
 
-export class TeamDocumentService {
-  static async list(teamId: string): Promise<TeamDocument[]> {
+export class DocumentationService {
+  static async list(teamId: string): Promise<Documentation[]> {
     const { data, error } = await supabase
-      .from('team_documents')
+      .from('documentation')
       .select('*')
       .eq('team_id', teamId)
       .order('updated_at', { ascending: false });
@@ -12,9 +12,9 @@ export class TeamDocumentService {
     return data || [];
   }
 
-  static async get(id: string): Promise<TeamDocument | null> {
+  static async get(id: string): Promise<Documentation | null> {
     const { data, error } = await supabase
-      .from('team_documents')
+      .from('documentation')
       .select('*')
       .eq('id', id)
       .single();
@@ -22,9 +22,9 @@ export class TeamDocumentService {
     return data;
   }
 
-  static async create(payload: Partial<TeamDocument>) {
+  static async create(payload: Partial<Documentation>) {
     const { data, error } = await supabase
-      .from('team_documents')
+      .from('documentation')
       .insert([payload])
       .select()
       .single();
@@ -32,9 +32,9 @@ export class TeamDocumentService {
     return data;
   }
 
-  static async update(id: string, payload: Partial<TeamDocument>) {
+  static async update(id: string, payload: Partial<Documentation>) {
     const { data, error } = await supabase
-      .from('team_documents')
+      .from('documentation')
       .update(payload)
       .eq('id', id)
       .select()
@@ -45,7 +45,7 @@ export class TeamDocumentService {
 
   static async remove(id: string) {
     const { error } = await supabase
-      .from('team_documents')
+      .from('documentation')
       .delete()
       .eq('id', id);
     if (error) throw error;
