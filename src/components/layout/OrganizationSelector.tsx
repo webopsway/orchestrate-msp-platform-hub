@@ -96,25 +96,42 @@ export function OrganizationSelector() {
             <Select
               value={currentOrganization?.id || ''}
               onValueChange={(orgId) => {
-                const org = availableOrganizations.find(o => o.id === orgId);
-                setCurrentOrganization(org || null);
+                if (orgId === '__msp_context__') {
+                  // Revenir au contexte MSP par défaut
+                  const mspOrg = availableOrganizations.find(org => org.is_msp);
+                  setCurrentOrganization(mspOrg || null);
+                } else {
+                  const org = availableOrganizations.find(o => o.id === orgId);
+                  setCurrentOrganization(org || null);
+                }
               }}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Sélectionner une organisation" />
               </SelectTrigger>
-              <SelectContent>
-                {availableOrganizations.map((org) => (
-                  <SelectItem key={org.id} value={org.id}>
+                <SelectContent>
+                  {/* Option pour revenir au contexte MSP */}
+                  <SelectItem value="__msp_context__">
                     <div className="flex items-center space-x-2">
-                      <Building2 className="h-4 w-4" />
-                      <span>{org.name}</span>
-                      {org.is_msp && (
-                        <span className="text-xs bg-blue-100 text-blue-700 px-1 rounded">MSP</span>
-                      )}
+                      <Building2 className="h-4 w-4 text-blue-600" />
+                      <span className="font-medium">Mon Organisation MSP</span>
+                      <span className="text-xs bg-blue-100 text-blue-700 px-1 rounded">MSP</span>
                     </div>
                   </SelectItem>
-                ))}
+                  {availableOrganizations.length > 0 && (
+                    <div className="border-t my-1" />
+                  )}
+                  {availableOrganizations.map((org) => (
+                    <SelectItem key={org.id} value={org.id}>
+                      <div className="flex items-center space-x-2">
+                        <Building2 className="h-4 w-4" />
+                        <span>{org.name}</span>
+                        {org.is_msp && (
+                          <span className="text-xs bg-blue-100 text-blue-700 px-1 rounded">MSP</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
@@ -124,8 +141,17 @@ export function OrganizationSelector() {
             <Select
               value={currentTeam?.id || ''}
               onValueChange={(teamId) => {
-                const team = teamsForCurrentOrg.find(t => t.id === teamId);
-                setCurrentTeam(team || null);
+                if (teamId === '__msp_team__') {
+                  // Revenir à l'équipe MSP par défaut
+                  const mspTeams = teamsForCurrentOrg.filter(team => {
+                    const teamOrg = availableOrganizations.find(org => org.id === team.organization_id);
+                    return teamOrg?.is_msp;
+                  });
+                  setCurrentTeam(mspTeams[0] || null);
+                } else {
+                  const team = teamsForCurrentOrg.find(t => t.id === teamId);
+                  setCurrentTeam(team || null);
+                }
               }}
               disabled={!currentOrganization}
             >
@@ -133,6 +159,19 @@ export function OrganizationSelector() {
                 <SelectValue placeholder="Sélectionner une équipe" />
               </SelectTrigger>
               <SelectContent>
+                {/* Option pour revenir à l'équipe MSP si dans une org MSP */}
+                {currentOrganization?.is_msp && teamsForCurrentOrg.length > 0 && (
+                  <>
+                    <SelectItem value="__msp_team__">
+                      <div className="flex items-center space-x-2">
+                        <Users className="h-4 w-4 text-blue-600" />
+                        <span className="font-medium">Mon Équipe MSP</span>
+                        <span className="text-xs bg-blue-100 text-blue-700 px-1 rounded">MSP</span>
+                      </div>
+                    </SelectItem>
+                    <div className="border-t my-1" />
+                  </>
+                )}
                 {teamsForCurrentOrg.map((team) => (
                   <SelectItem key={team.id} value={team.id}>
                     <div className="flex items-center space-x-2">
@@ -151,11 +190,14 @@ export function OrganizationSelector() {
           </div>
 
           {userProfile.is_msp_admin && (
-            <div className="pt-2 border-t">
+            <div className="pt-2 border-t space-y-2">
               <div className="flex items-center space-x-2 text-xs text-blue-600">
                 <div className="h-2 w-2 rounded-full bg-blue-500"></div>
                 <span>Mode Administrateur MSP</span>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Utilisez "Mon Organisation MSP" pour revenir à votre contexte par défaut
+              </p>
             </div>
           )}
         </div>
