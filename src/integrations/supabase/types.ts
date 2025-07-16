@@ -338,6 +338,63 @@ export type Database = {
           },
         ]
       }
+      cloud_asset_configurations: {
+        Row: {
+          asset_id: string
+          collected_at: string
+          cpu: string | null
+          created_at: string
+          id: string
+          ip: string | null
+          metadata: Json | null
+          os: string | null
+          ram: string | null
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          asset_id: string
+          collected_at?: string
+          cpu?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          metadata?: Json | null
+          os?: string | null
+          ram?: string | null
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string
+          collected_at?: string
+          cpu?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          metadata?: Json | null
+          os?: string | null
+          ram?: string | null
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_asset_configurations_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cloud_asset_configurations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cloud_credentials: {
         Row: {
           config: Json
@@ -376,6 +433,114 @@ export type Database = {
           },
         ]
       }
+      cloud_installed_packages: {
+        Row: {
+          asset_id: string
+          collected_at: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          package_name: string
+          source: string | null
+          team_id: string
+          updated_at: string
+          version: string | null
+        }
+        Insert: {
+          asset_id: string
+          collected_at?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          package_name: string
+          source?: string | null
+          team_id: string
+          updated_at?: string
+          version?: string | null
+        }
+        Update: {
+          asset_id?: string
+          collected_at?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          package_name?: string
+          source?: string | null
+          team_id?: string
+          updated_at?: string
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_installed_packages_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cloud_installed_packages_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cloud_patch_status: {
+        Row: {
+          asset_id: string
+          collected_at: string
+          created_at: string
+          cve_id: string | null
+          id: string
+          metadata: Json | null
+          patch_name: string | null
+          status: string
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          asset_id: string
+          collected_at?: string
+          created_at?: string
+          cve_id?: string | null
+          id?: string
+          metadata?: Json | null
+          patch_name?: string | null
+          status: string
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string
+          collected_at?: string
+          created_at?: string
+          cve_id?: string | null
+          id?: string
+          metadata?: Json | null
+          patch_name?: string | null
+          status?: string
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_patch_status_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cloud_patch_status_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cloud_providers: {
         Row: {
           api_endpoint: string | null
@@ -408,6 +573,60 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      cloud_running_processes: {
+        Row: {
+          asset_id: string
+          collected_at: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          path: string | null
+          pid: number | null
+          process_name: string
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          asset_id: string
+          collected_at?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          path?: string | null
+          pid?: number | null
+          process_name: string
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string
+          collected_at?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          path?: string | null
+          pid?: number | null
+          process_name?: string
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_running_processes_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cloud_running_processes_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       documentation: {
         Row: {
@@ -1324,21 +1543,18 @@ export type Database = {
           created_at: string | null
           id: string
           organization_id: string
-          role_id: string
           user_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
           organization_id: string
-          role_id: string
           user_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
           organization_id?: string
-          role_id?: string
           user_id?: string
         }
         Relationships: [
@@ -1358,6 +1574,33 @@ export type Database = {
           },
         ]
       }
+      organization_types: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_name: string
+          id: string
+          is_default: boolean | null
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_name: string
+          id?: string
+          is_default?: boolean | null
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_default?: boolean | null
+          name?: string
+        }
+        Relationships: []
+      }
       organizations: {
         Row: {
           created_at: string | null
@@ -1365,8 +1608,8 @@ export type Database = {
           is_msp: boolean | null
           metadata: Json | null
           name: string
+          organization_type_id: string | null
           parent_organization_id: string | null
-          type: string
           updated_at: string | null
         }
         Insert: {
@@ -1375,8 +1618,8 @@ export type Database = {
           is_msp?: boolean | null
           metadata?: Json | null
           name: string
+          organization_type_id?: string | null
           parent_organization_id?: string | null
-          type: string
           updated_at?: string | null
         }
         Update: {
@@ -1385,11 +1628,18 @@ export type Database = {
           is_msp?: boolean | null
           metadata?: Json | null
           name?: string
+          organization_type_id?: string | null
           parent_organization_id?: string | null
-          type?: string
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "organizations_organization_type_id_fkey"
+            columns: ["organization_type_id"]
+            isOneToOne: false
+            referencedRelation: "organization_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "organizations_parent_organization_id_fkey"
             columns: ["parent_organization_id"]
@@ -1638,12 +1888,16 @@ export type Database = {
           cloud_asset_id: string | null
           created_at: string | null
           cve_id: string | null
+          cvss_score: number | null
           description: string | null
           discovered_at: string | null
           id: string
           metadata: Json | null
+          published_at: string | null
+          refs: string[] | null
           remediated_at: string | null
           severity: string
+          source: string | null
           status: string | null
           team_id: string
           title: string
@@ -1655,12 +1909,16 @@ export type Database = {
           cloud_asset_id?: string | null
           created_at?: string | null
           cve_id?: string | null
+          cvss_score?: number | null
           description?: string | null
           discovered_at?: string | null
           id?: string
           metadata?: Json | null
+          published_at?: string | null
+          refs?: string[] | null
           remediated_at?: string | null
           severity: string
+          source?: string | null
           status?: string | null
           team_id: string
           title: string
@@ -1672,12 +1930,16 @@ export type Database = {
           cloud_asset_id?: string | null
           created_at?: string | null
           cve_id?: string | null
+          cvss_score?: number | null
           description?: string | null
           discovered_at?: string | null
           id?: string
           metadata?: Json | null
+          published_at?: string | null
+          refs?: string[] | null
           remediated_at?: string | null
           severity?: string
+          source?: string | null
           status?: string | null
           team_id?: string
           title?: string
@@ -1707,25 +1969,67 @@ export type Database = {
           },
         ]
       }
+      team_documents: {
+        Row: {
+          author_id: string | null
+          content: string
+          created_at: string | null
+          id: string
+          team_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          author_id?: string | null
+          content: string
+          created_at?: string | null
+          id?: string
+          team_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          author_id?: string | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          team_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_documents_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_documents_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_memberships: {
         Row: {
           created_at: string | null
           id: string
-          role: string
           team_id: string
           user_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
-          role: string
           team_id: string
           user_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
-          role?: string
           team_id?: string
           user_id?: string
         }
@@ -1853,6 +2157,7 @@ export type Database = {
           role_id: string
           team_id: string | null
           user_id: string
+          user_role_catalog_id: string | null
         }
         Insert: {
           expires_at?: string | null
@@ -1865,6 +2170,7 @@ export type Database = {
           role_id: string
           team_id?: string | null
           user_id: string
+          user_role_catalog_id?: string | null
         }
         Update: {
           expires_at?: string | null
@@ -1877,6 +2183,7 @@ export type Database = {
           role_id?: string
           team_id?: string | null
           user_id?: string
+          user_role_catalog_id?: string | null
         }
         Relationships: [
           {
@@ -1900,7 +2207,41 @@ export type Database = {
             referencedRelation: "teams"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_roles_user_role_catalog_id_fkey"
+            columns: ["user_role_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "user_roles_catalog"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      user_roles_catalog: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_name: string
+          id: string
+          is_default: boolean | null
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_name: string
+          id?: string
+          is_default?: boolean | null
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_default?: boolean | null
+          name?: string
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -2036,6 +2377,9 @@ export type Database = {
         Returns: boolean
       }
     }
+    Enums: {
+      [_ in never]: never
+    }
     CompositeTypes: {
       [_ in never]: never
     }
@@ -2159,101 +2503,8 @@ export type CompositeTypes<
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
-// Types pour la gestion des assets cloud
-
-export interface CloudAssetConfiguration {
-  id: string;
-  asset_id: string;
-  team_id: string;
-  os?: string;
-  cpu?: string;
-  ram?: string;
-  ip?: string;
-  metadata?: any;
-  collected_at: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CloudInstalledPackage {
-  id: string;
-  asset_id: string;
-  team_id: string;
-  package_name: string;
-  version?: string;
-  source?: string;
-  metadata?: any;
-  collected_at: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CloudRunningProcess {
-  id: string;
-  asset_id: string;
-  team_id: string;
-  process_name: string;
-  pid?: number;
-  path?: string;
-  metadata?: any;
-  collected_at: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CloudPatchStatus {
-  id: string;
-  asset_id: string;
-  team_id: string;
-  patch_name?: string;
-  cve_id?: string;
-  status: 'applied' | 'pending' | 'not_available' | 'unknown';
-  metadata?: any;
-  collected_at: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface SecurityVulnerability {
-  cve_id: string;
-  severity?: string;
-  cvss_score?: number;
-  description?: string;
-  published_at?: string;
-  refs?: string[];
-  source?: string;
-  metadata?: any;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface Documentation {
-  id: string;
-  team_id: string;
-  title: string;
-  content?: string;
-  version: string;
-  created_by: string;
-  updated_by?: string;
-  created_at: string;
-  updated_at: string;
-  metadata?: any;
-}
-
-export interface UserRoleCatalog {
-  id: string;
-  name: string;
-  display_name: string;
-  description?: string;
-  is_default?: boolean;
-  created_at: string;
-}
-
-export interface OrganizationType {
-  id: string;
-  name: string;
-  display_name: string;
-  description?: string;
-  is_default?: boolean;
-  created_at: string;
-}
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

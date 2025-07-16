@@ -41,7 +41,6 @@ type RelationFormData = z.infer<typeof relationSchema>;
 interface Organization {
   id: string;
   name: string;
-  type: string;
   is_msp?: boolean;
 }
 
@@ -84,7 +83,7 @@ export const MspClientRelationForm = ({
       try {
         const { data, error } = await supabase
           .from('organizations')
-          .select('id, name, type, is_msp')
+          .select('id, name, is_msp')
           .order('name');
 
         if (error) throw error;
@@ -99,10 +98,10 @@ export const MspClientRelationForm = ({
     fetchOrganizations();
   }, []);
 
-  // Filtrer les organisations selon leur type
-  const mspOrganizations = organizations.filter(org => org.type === 'msp' || org.is_msp);
-  const clientOrganizations = organizations.filter(org => org.type === 'client');
-  const esnOrganizations = organizations.filter(org => org.type === 'esn');
+  // Filtrer les organisations selon leur type (temporaire - utiliser is_msp pour maintenant)
+  const mspOrganizations = organizations.filter(org => org.is_msp);
+  const clientOrganizations = organizations.filter(org => !org.is_msp);
+  const esnOrganizations: Organization[] = []; // Temporaire - pas de type ESN défini
 
   const handleSubmit = async (data: RelationFormData) => {
     const submitData: CreateMspClientRelationData = {
