@@ -25,7 +25,7 @@ export interface CloudAccountFormData {
   client_organization_id: string;
   account_identifier: string;
   region?: string;
-  environment: 'production' | 'staging' | 'development';
+  environment: string[];
 }
 
 export const useCloudAccounts = () => {

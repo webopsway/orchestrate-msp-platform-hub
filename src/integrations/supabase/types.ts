@@ -212,7 +212,7 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
-          environment: string | null
+          environment: string[] | null
           id: string
           is_active: boolean
           metadata: Json | null
@@ -228,7 +228,7 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
-          environment?: string | null
+          environment?: string[] | null
           id?: string
           is_active?: boolean
           metadata?: Json | null
@@ -244,7 +244,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
-          environment?: string | null
+          environment?: string[] | null
           id?: string
           is_active?: boolean
           metadata?: Json | null

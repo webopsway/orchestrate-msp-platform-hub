@@ -44,6 +44,19 @@ export const CloudAccountCard: React.FC<CloudAccountCardProps> = ({
     }
   };
 
+  const getEnvironmentLabel = (environment: string) => {
+    switch (environment) {
+      case 'production':
+        return 'Prod';
+      case 'staging':
+        return 'Staging';
+      case 'development':
+        return 'Dev';
+      default:
+        return environment;
+    }
+  };
+
   const getStatusColor = (isActive: boolean) => {
     return isActive 
       ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
@@ -78,13 +91,15 @@ export const CloudAccountCard: React.FC<CloudAccountCardProps> = ({
               </p>
             </div>
           </div>
-          <div className="flex space-x-1">
+          <div className="flex flex-wrap gap-1">
             <Badge className={getStatusColor(account.is_active)}>
               {account.is_active ? 'Actif' : 'Inactif'}
             </Badge>
-            <Badge className={getEnvironmentColor(account.environment || 'production')}>
-              {account.environment || 'production'}
-            </Badge>
+            {(account.environment as string[] || ['production']).map((env) => (
+              <Badge key={env} className={getEnvironmentColor(env)}>
+                {getEnvironmentLabel(env)}
+              </Badge>
+            ))}
           </div>
         </div>
       </CardHeader>

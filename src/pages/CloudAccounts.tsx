@@ -94,7 +94,8 @@ const CloudAccounts = () => {
     
     const matchesProvider = providerFilter === "all" || account.provider_id === providerFilter;
     
-    const matchesEnvironment = environmentFilter === "all" || account.environment === environmentFilter;
+    const matchesEnvironment = environmentFilter === "all" || 
+      (Array.isArray(account.environment) && account.environment.includes(environmentFilter));
 
     return matchesSearch && matchesStatus && matchesProvider && matchesEnvironment;
   });
@@ -103,7 +104,7 @@ const CloudAccounts = () => {
   const totalAccounts = accounts.length;
   const activeAccounts = accounts.filter(a => a.is_active).length;
   const inactiveAccounts = totalAccounts - activeAccounts;
-  const environments = [...new Set(accounts.map(a => a.environment))].length;
+  const environments = [...new Set(accounts.flatMap(a => Array.isArray(a.environment) ? a.environment : [a.environment || 'production']))].length;
 
   const stats = [
     {
@@ -285,7 +286,7 @@ const CloudAccounts = () => {
           client_organization_id: selectedAccount.client_organization_id,
           account_identifier: selectedAccount.account_identifier,
           region: selectedAccount.region || '',
-          environment: (selectedAccount.environment as 'production' | 'staging' | 'development') || 'production'
+          environment: Array.isArray(selectedAccount.environment) ? selectedAccount.environment : ['production']
         } : undefined}
         isEditing={isEditing}
       />

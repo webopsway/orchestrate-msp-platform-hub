@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2 } from 'lucide-react';
 import type { CloudAccountFormData, CloudProvider, Organization, Team } from '@/hooks/useCloudAccounts';
 
@@ -46,7 +47,7 @@ export const CloudAccountForm: React.FC<CloudAccountFormProps> = ({
       client_organization_id: '',
       account_identifier: '',
       region: '',
-      environment: 'production'
+      environment: ['production']
     }
   });
 
@@ -145,22 +146,33 @@ export const CloudAccountForm: React.FC<CloudAccountFormProps> = ({
             </div>
 
             <div>
-              <Label htmlFor="environment">Environnement</Label>
-              <Select
-                value={watch('environment')}
-                onValueChange={(value: 'production' | 'staging' | 'development') => 
-                  setValue('environment', value)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un environnement" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="production">Production</SelectItem>
-                  <SelectItem value="staging">Staging</SelectItem>
-                  <SelectItem value="development">Développement</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="environment">Environnements</Label>
+              <div className="space-y-2 mt-2">
+                {[
+                  { value: 'production', label: 'Production' },
+                  { value: 'staging', label: 'Staging' },
+                  { value: 'development', label: 'Développement' }
+                ].map((env) => (
+                  <div key={env.value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={env.value}
+                      checked={watch('environment')?.includes(env.value) || false}
+                      onCheckedChange={(checked) => {
+                        const currentEnv = watch('environment') || [];
+                        if (checked) {
+                          setValue('environment', [...currentEnv, env.value]);
+                        } else {
+                          setValue('environment', currentEnv.filter(e => e !== env.value));
+                        }
+                      }}
+                    />
+                    <Label htmlFor={env.value} className="text-sm">{env.label}</Label>
+                  </div>
+                ))}
+              </div>
+              {(!watch('environment') || watch('environment')?.length === 0) && (
+                <p className="text-sm text-destructive mt-1">Au moins un environnement est requis</p>
+              )}
             </div>
           </div>
 
