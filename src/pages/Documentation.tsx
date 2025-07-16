@@ -409,8 +409,8 @@ const Documentation = () => {
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case "guide": return BookOpen;
-      case "api": return File;
       case "tutorial": return FileText;
+      case "reference": return File;
       default: return FileText;
     }
   };
@@ -455,7 +455,6 @@ const Documentation = () => {
   const categories = [
     { value: "all", label: "Toutes les catégories" },
     { value: "guide", label: "Guides" },
-    { value: "api", label: "API" },
     { value: "tutorial", label: "Tutoriels" },
     { value: "reference", label: "Référence" }
   ];
