@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCurrentContext } from './useCurrentContext';
 import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -21,6 +22,7 @@ export interface TeamFormData {
 
 export const useTeams = () => {
   const { userProfile } = useAuth();
+  const { currentOrganizationId, isMspAdmin } = useCurrentContext();
   const [teams, setTeams] = useState<TeamWithDetails[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -40,8 +42,13 @@ export const useTeams = () => {
         `)
         .order('name');
 
+      // Filtrer par organisation courante si sélectionnée
+      if (currentOrganizationId) {
+        query = query.eq('organization_id', currentOrganizationId);
+      }
+
       // Si l'utilisateur n'est pas admin MSP, filtrer par ses équipes
-      if (!userProfile.is_msp_admin) {
+      if (!isMspAdmin) {
         const { data: membershipData } = await supabase
           .from('team_memberships')
           .select('team_id')
@@ -245,10 +252,10 @@ export const useTeams = () => {
     }
   };
 
-  // Charger les données au montage
+  // Charger les données au montage et quand le contexte change
   useEffect(() => {
     fetchTeams();
-  }, [userProfile]);
+  }, [userProfile, currentOrganizationId]);
 
   return {
     teams,
