@@ -408,7 +408,7 @@ const Documentation = () => {
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case "guide": return BookOpen;
+      case "spécification": return BookOpen;
       case "tutorial": return FileText;
       case "reference": return File;
       default: return FileText;
