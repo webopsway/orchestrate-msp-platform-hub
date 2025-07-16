@@ -83,9 +83,9 @@ const CloudAccounts = () => {
                           account.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           account.account_identifier.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const matchesProvider = !providerFilter || account.provider_id === providerFilter;
-      const matchesOrganization = !organizationFilter || account.client_organization_id === organizationFilter;
-      const matchesTeam = !teamFilter || account.team_id === teamFilter;
+      const matchesProvider = !providerFilter || providerFilter === "all" || account.provider_id === providerFilter;
+      const matchesOrganization = !organizationFilter || organizationFilter === "all" || account.client_organization_id === organizationFilter;
+      const matchesTeam = !teamFilter || teamFilter === "all" || account.team_id === teamFilter;
       
       return matchesSearch && matchesProvider && matchesOrganization && matchesTeam;
     });
@@ -228,7 +228,7 @@ const CloudAccounts = () => {
                   <SelectValue placeholder="Fournisseur" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tous les fournisseurs</SelectItem>
+                  <SelectItem value="all">Tous les fournisseurs</SelectItem>
                   {providers?.map(provider => (
                     <SelectItem key={provider.id} value={provider.id}>
                       {provider.display_name}
@@ -242,7 +242,7 @@ const CloudAccounts = () => {
                   <SelectValue placeholder="Organisation" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Toutes les organisations</SelectItem>
+                  <SelectItem value="all">Toutes les organisations</SelectItem>
                   {organizations?.map(org => (
                     <SelectItem key={org.id} value={org.id}>
                       {org.name}
@@ -256,7 +256,7 @@ const CloudAccounts = () => {
                   <SelectValue placeholder="Équipe" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Toutes les équipes</SelectItem>
+                  <SelectItem value="all">Toutes les équipes</SelectItem>
                   {teams?.map(team => (
                     <SelectItem key={team.id} value={team.id}>
                       {team.name}
