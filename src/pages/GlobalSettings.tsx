@@ -12,12 +12,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { AlertTriangle, Settings, Plus, Edit3, Trash2, Globe, Users, Save, X } from 'lucide-react';
+import { AlertTriangle, Settings, Plus, Edit3, Trash2, Globe, Users, Save, X, Cloud } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { ITSMConfigManager } from '@/components/itsm/ITSMConfigManager';
+import { useCloudEnvironments } from '@/hooks/useCloudEnvironments';
 
 export default function GlobalSettings() {
   const { user } = useAuth();
@@ -43,6 +44,24 @@ export default function GlobalSettings() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingSetting, setEditingSetting] = useState<any>(null);
   const [editingValue, setEditingValue] = useState<string>('');
+
+  // Cloud environments state
+  const { 
+    environments, 
+    isLoading: environmentsLoading, 
+    createEnvironment, 
+    updateEnvironment, 
+    deleteEnvironment 
+  } = useCloudEnvironments();
+  const [isEnvDialogOpen, setIsEnvDialogOpen] = useState(false);
+  const [editingEnvironment, setEditingEnvironment] = useState<any>(null);
+  const [envFormData, setEnvFormData] = useState({
+    name: '',
+    display_name: '',
+    description: '',
+    color: '#3b82f6',
+    is_active: true
+  });
 
   // Check if user is MSP admin
   useEffect(() => {
@@ -178,6 +197,67 @@ export default function GlobalSettings() {
     return JSON.stringify(value, null, 2);
   };
 
+  // Cloud Environment handlers
+  const handleCreateEnvironment = async () => {
+    try {
+      await createEnvironment.mutateAsync(envFormData);
+      setIsEnvDialogOpen(false);
+      setEnvFormData({
+        name: '',
+        display_name: '',
+        description: '',
+        color: '#3b82f6',
+        is_active: true
+      });
+    } catch (error) {
+      console.error('Error creating environment:', error);
+    }
+  };
+
+  const handleEditEnvironment = (env: any) => {
+    setEditingEnvironment(env);
+    setEnvFormData({
+      name: env.name,
+      display_name: env.display_name,
+      description: env.description || '',
+      color: env.color || '#3b82f6',
+      is_active: env.is_active
+    });
+    setIsEnvDialogOpen(true);
+  };
+
+  const handleUpdateEnvironment = async () => {
+    if (!editingEnvironment) return;
+    
+    try {
+      await updateEnvironment.mutateAsync({
+        id: editingEnvironment.id,
+        ...envFormData
+      });
+      setIsEnvDialogOpen(false);
+      setEditingEnvironment(null);
+      setEnvFormData({
+        name: '',
+        display_name: '',
+        description: '',
+        color: '#3b82f6',
+        is_active: true
+      });
+    } catch (error) {
+      console.error('Error updating environment:', error);
+    }
+  };
+
+  const handleDeleteEnvironment = async (env: any) => {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer l'environnement "${env.display_name}" ?`)) {
+      try {
+        await deleteEnvironment.mutateAsync(env.id);
+      } catch (error) {
+        console.error('Error deleting environment:', error);
+      }
+    }
+  };
+
   const globalSettings = settings.filter(s => s.team_id === null);
   const teamSettings = settings.filter(s => s.team_id !== null);
 
@@ -199,8 +279,9 @@ export default function GlobalSettings() {
       </div>
 
       <Tabs defaultValue="global" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="global">Paramètres Globaux</TabsTrigger>
+          <TabsTrigger value="environments">Environnements Cloud</TabsTrigger>
           <TabsTrigger value="itsm-dynamic">Configuration Dynamique</TabsTrigger>
           <TabsTrigger value="namespaces">Namespaces</TabsTrigger>
         </TabsList>
@@ -344,6 +425,162 @@ export default function GlobalSettings() {
                     <h3 className="mt-2 text-sm font-semibold">Aucun paramètre global</h3>
                     <p className="mt-1 text-sm text-muted-foreground">
                       Créez votre premier paramètre global pour configurer la plateforme.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="environments" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-semibold">Environnements Cloud</h2>
+            <Dialog open={isEnvDialogOpen} onOpenChange={setIsEnvDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => {
+                  setEditingEnvironment(null);
+                  setEnvFormData({
+                    name: '',
+                    display_name: '',
+                    description: '',
+                    color: '#3b82f6',
+                    is_active: true
+                  });
+                }}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nouvel Environnement
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingEnvironment ? 'Modifier l\'Environnement' : 'Ajouter un Environnement Cloud'}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {editingEnvironment 
+                      ? 'Modifiez les paramètres de cet environnement cloud.'
+                      : 'Créez un nouvel environnement cloud pour organiser vos comptes.'
+                    }
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="env-name">Nom (identifiant)</Label>
+                    <Input
+                      id="env-name"
+                      placeholder="production, staging, development..."
+                      value={envFormData.name}
+                      onChange={(e) => setEnvFormData({ ...envFormData, name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="env-display-name">Nom d'affichage</Label>
+                    <Input
+                      id="env-display-name"
+                      placeholder="Production, Pré-production, Développement..."
+                      value={envFormData.display_name}
+                      onChange={(e) => setEnvFormData({ ...envFormData, display_name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="env-description">Description</Label>
+                    <Textarea
+                      id="env-description"
+                      placeholder="Description de l'environnement..."
+                      value={envFormData.description}
+                      onChange={(e) => setEnvFormData({ ...envFormData, description: e.target.value })}
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="env-color">Couleur</Label>
+                    <Input
+                      id="env-color"
+                      type="color"
+                      value={envFormData.color}
+                      onChange={(e) => setEnvFormData({ ...envFormData, color: e.target.value })}
+                      className="w-20 h-10"
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="env-active"
+                      checked={envFormData.is_active}
+                      onCheckedChange={(checked) => setEnvFormData({ ...envFormData, is_active: checked })}
+                    />
+                    <Label htmlFor="env-active">Environnement actif</Label>
+                  </div>
+                  <Button 
+                    onClick={editingEnvironment ? handleUpdateEnvironment : handleCreateEnvironment}
+                    disabled={createEnvironment.isPending || updateEnvironment.isPending}
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    {editingEnvironment ? 'Mettre à jour' : 'Créer'}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <div className="grid gap-4">
+            {environmentsLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="text-sm text-muted-foreground mt-2">Chargement des environnements...</p>
+              </div>
+            ) : environments && environments.length > 0 ? (
+              environments.map((env) => (
+                <Card key={env.id}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div 
+                          className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
+                          style={{ backgroundColor: env.color }}
+                        />
+                        <div>
+                          <CardTitle className="text-lg">{env.display_name}</CardTitle>
+                          <CardDescription>{env.name}</CardDescription>
+                        </div>
+                        <Badge variant={env.is_active ? "default" : "secondary"}>
+                          {env.is_active ? 'Actif' : 'Inactif'}
+                        </Badge>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditEnvironment(env)}
+                        >
+                          <Edit3 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteEnvironment(env)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  {env.description && (
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">{env.description}</p>
+                    </CardContent>
+                  )}
+                </Card>
+              ))
+            ) : (
+              <Card>
+                <CardContent className="flex items-center justify-center py-8">
+                  <div className="text-center">
+                    <Cloud className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-2 text-sm font-semibold">Aucun environnement cloud</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Créez votre premier environnement cloud pour organiser vos comptes.
                     </p>
                   </div>
                 </CardContent>
