@@ -163,7 +163,7 @@ const Documentation = () => {
       
       // Récupérer les documents - Admin MSP voit tout, autres voient leur équipe
       let query = supabase
-        .from('documentation')
+        .from('team_documents')
         .select('*');
 
       // Si pas admin MSP, filtrer par équipe
@@ -217,7 +217,7 @@ const Documentation = () => {
       };
       
       const { data, error } = await supabase
-        .from('documentation')
+        .from('team_documents')
         .insert([docData])
         .select()
         .single();
@@ -244,7 +244,7 @@ const Documentation = () => {
       
       // Mettre à jour le document principal directement
       const { error: updateError } = await supabase
-        .from('documentation')
+        .from('team_documents')
         .update({
           title: editDocument.title,
           content: editDocument.content,
@@ -276,7 +276,7 @@ const Documentation = () => {
   const deleteDocument = async (documentId: string) => {
     try {
       const { error } = await supabase
-        .from('documentation')
+        .from('team_documents')
         .delete()
         .eq('id', documentId);
 
@@ -296,7 +296,7 @@ const Documentation = () => {
       if (!document) return;
 
       const { error } = await supabase
-        .from('documentation')
+        .from('team_documents')
         .update({
           metadata: {
             ...document.metadata,

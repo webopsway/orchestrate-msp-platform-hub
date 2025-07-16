@@ -694,67 +694,6 @@ export type Database = {
           },
         ]
       }
-      documentation: {
-        Row: {
-          content: string | null
-          created_at: string
-          created_by: string
-          id: string
-          metadata: Json | null
-          team_id: string
-          title: string
-          updated_at: string
-          updated_by: string | null
-          version: string
-        }
-        Insert: {
-          content?: string | null
-          created_at?: string
-          created_by: string
-          id?: string
-          metadata?: Json | null
-          team_id: string
-          title: string
-          updated_at?: string
-          updated_by?: string | null
-          version?: string
-        }
-        Update: {
-          content?: string | null
-          created_at?: string
-          created_by?: string
-          id?: string
-          metadata?: Json | null
-          team_id?: string
-          title?: string
-          updated_at?: string
-          updated_by?: string | null
-          version?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "documentation_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "documentation_team_id_fkey"
-            columns: ["team_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "documentation_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       infrastructure_docs: {
         Row: {
           approved_by: string | null
@@ -2037,45 +1976,61 @@ export type Database = {
       }
       team_documents: {
         Row: {
-          author_id: string | null
-          content: string
-          created_at: string | null
+          content: string | null
+          created_at: string
+          created_by: string
           id: string
+          metadata: Json | null
           team_id: string
           title: string
-          updated_at: string | null
+          updated_at: string
+          updated_by: string | null
+          version: string
         }
         Insert: {
-          author_id?: string | null
-          content: string
-          created_at?: string | null
+          content?: string | null
+          created_at?: string
+          created_by: string
           id?: string
+          metadata?: Json | null
           team_id: string
           title: string
-          updated_at?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: string
         }
         Update: {
-          author_id?: string | null
-          content?: string
-          created_at?: string | null
+          content?: string | null
+          created_at?: string
+          created_by?: string
           id?: string
+          metadata?: Json | null
           team_id?: string
           title?: string
-          updated_at?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: string
         }
         Relationships: [
           {
-            foreignKeyName: "team_documents_author_id_fkey"
-            columns: ["author_id"]
+            foreignKeyName: "documentation_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "team_documents_team_id_fkey"
+            foreignKeyName: "documentation_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentation_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

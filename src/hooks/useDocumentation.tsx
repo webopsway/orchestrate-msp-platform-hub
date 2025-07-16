@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Tables } from "@/integrations/supabase/types";
 
-export type Documentation = Tables<'documentation'>;
+export type Documentation = Tables<'team_documents'>;
 
 export const useDocumentation = () => {
   const { user, userProfile } = useAuth();
@@ -21,7 +21,7 @@ export const useDocumentation = () => {
       // Les politiques RLS gèrent maintenant l'accès automatiquement
       // MSP admin voit tout, membres d'équipe voient leur équipe, ESN voient les clients
       const { data, error } = await supabase
-        .from('documentation')
+        .from('team_documents')
         .select(`
           *,
           team:teams!inner(
@@ -33,13 +33,13 @@ export const useDocumentation = () => {
               type
             )
           ),
-          created_by_profile:profiles!documentation_created_by_fkey(
+          created_by_profile:profiles!team_documents_created_by_fkey(
             id,
             first_name,
             last_name,
             email
           ),
-          updated_by_profile:profiles!documentation_updated_by_fkey(
+          updated_by_profile:profiles!team_documents_updated_by_fkey(
             id,
             first_name,
             last_name,
@@ -81,7 +81,7 @@ export const useDocumentation = () => {
       }
 
       const { data, error } = await supabase
-        .from('documentation')
+        .from('team_documents')
         .insert({
           team_id: targetTeamId,
           title: document.title!,
@@ -121,7 +121,7 @@ export const useDocumentation = () => {
       setLoading(true);
 
       const { error } = await supabase
-        .from('documentation')
+        .from('team_documents')
         .update({
           ...updates,
           updated_by: user?.id,
@@ -155,7 +155,7 @@ export const useDocumentation = () => {
       setLoading(true);
 
       const { error } = await supabase
-        .from('documentation')
+        .from('team_documents')
         .delete()
         .eq('id', id);
 
@@ -258,13 +258,13 @@ export const useDocumentation = () => {
     if (!user) return;
 
     const channel = supabase
-      .channel('documentation_updates')
+      .channel('team_documents_updates')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'documentation'
+          table: 'team_documents'
         },
         () => {
           fetchDocuments();
