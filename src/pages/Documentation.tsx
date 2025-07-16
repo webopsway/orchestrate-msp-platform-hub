@@ -454,7 +454,7 @@ const Documentation = () => {
 
   const categories = [
     { value: "all", label: "Toutes les catégories" },
-    { value: "guide", label: "Guides" },
+    { value: "spécification", label: "Spécification" },
     { value: "tutorial", label: "Tutoriels" },
     { value: "reference", label: "Référence" }
   ];
