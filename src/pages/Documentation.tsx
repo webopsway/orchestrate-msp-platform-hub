@@ -290,6 +290,41 @@ const Documentation = () => {
     }
   };
 
+  const updateDocumentStatus = async (documentId: string, newStatus: 'draft' | 'published' | 'archived') => {
+    try {
+      const document = documents.find(doc => doc.id === documentId);
+      if (!document) return;
+
+      const { error } = await supabase
+        .from('documentation')
+        .update({
+          metadata: {
+            ...document.metadata,
+            status: newStatus
+          },
+          updated_by: userProfile?.id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', documentId);
+
+      if (error) throw error;
+
+      // Mettre à jour localement
+      setDocuments(prevDocs => 
+        prevDocs.map(doc => 
+          doc.id === documentId 
+            ? { ...doc, metadata: { ...doc.metadata, status: newStatus }, updated_at: new Date().toISOString() }
+            : doc
+        )
+      );
+
+      toast.success(`Statut modifié vers "${newStatus}"`);
+    } catch (error) {
+      console.error('Error updating document status:', error);
+      toast.error('Erreur lors de la modification du statut');
+    }
+  };
+
   const downloadPDF = async (document: Document) => {
     try {
       // Simuler la génération de PDF
@@ -561,9 +596,25 @@ const Documentation = () => {
                           <Badge variant="outline">{doc.version}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getStatusColor(doc.metadata?.status || "draft")}>
-                            {doc.metadata?.status || "draft"}
-                          </Badge>
+                          <Select 
+                            value={doc.metadata?.status || "draft"} 
+                            onValueChange={(value: 'draft' | 'published' | 'archived') => updateDocumentStatus(doc.id, value)}
+                          >
+                            <SelectTrigger className="w-28 h-6 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="z-50 bg-background border">
+                              <SelectItem value="draft">
+                                <Badge variant="secondary" className="text-xs">Brouillon</Badge>
+                              </SelectItem>
+                              <SelectItem value="published">
+                                <Badge variant="default" className="text-xs">Publié</Badge>
+                              </SelectItem>
+                              <SelectItem value="archived">
+                                <Badge variant="outline" className="text-xs">Archivé</Badge>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-2">
@@ -629,9 +680,25 @@ const Documentation = () => {
                             </p>
                           </div>
                         </div>
-                        <Badge variant={getStatusColor(doc.metadata?.status || "draft")}>
-                          {doc.metadata?.status || "draft"}
-                        </Badge>
+                        <Select 
+                          value={doc.metadata?.status || "draft"} 
+                          onValueChange={(value: 'draft' | 'published' | 'archived') => updateDocumentStatus(doc.id, value)}
+                        >
+                          <SelectTrigger className="w-20 h-6 text-xs border-none p-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="z-50 bg-background border">
+                            <SelectItem value="draft">
+                              <Badge variant="secondary" className="text-xs">Brouillon</Badge>
+                            </SelectItem>
+                            <SelectItem value="published">
+                              <Badge variant="default" className="text-xs">Publié</Badge>
+                            </SelectItem>
+                            <SelectItem value="archived">
+                              <Badge variant="outline" className="text-xs">Archivé</Badge>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-3">
