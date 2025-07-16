@@ -3,7 +3,7 @@ export { RBACGuard, RoleGuard, PermissionGuard, ConditionalRender } from './RBAC
 export { PermissionManagerPlaceholder } from './PermissionManagerPlaceholder';
 export { UserRoleManager } from './UserRoleManager';
 
-// Export des hooks utilitaires
+// Export des hooks utilitaires  
 export { usePermission, useRole, useRoles } from './RBACGuard';
 
 // Export des types
