@@ -7,6 +7,7 @@ import {
   CloudInstalledPackage,
   CloudRunningProcess,
   CloudPatchStatus,
+  PatchStatus,
   SecurityVulnerability,
   CloudAssetConfigurationFilters,
   CloudInstalledPackageFilters,
@@ -47,7 +48,7 @@ export const useCloudAssetManagement = (options: UseCloudAssetManagementOptions 
   // États pour la pagination
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(page);
-  const [pageSize, setPageSize] = useState(limit);
+  const [currentPageSize, setCurrentPageSize] = useState(limit);
   
   // États de chargement
   const [loading, setLoading] = useState(false);
@@ -90,8 +91,8 @@ export const useCloudAssetManagement = (options: UseCloudAssetManagementOptions 
     try {
       setLoading(true);
       
-      const from = (currentPage - 1) * pageSize;
-      const to = from + pageSize - 1;
+      const from = (currentPage - 1) * currentPageSize;
+      const to = from + currentPageSize - 1;
       
       let query = buildFilters(filters as CloudAssetConfigurationFilters);
       query = query.range(from, to).order('collected_at', { ascending: false });
@@ -100,7 +101,10 @@ export const useCloudAssetManagement = (options: UseCloudAssetManagementOptions 
       
       if (error) throw error;
       
-      setConfigurations(data || []);
+      setConfigurations(data?.map(item => ({
+        ...item,
+        metadata: (item.metadata as any) || {}
+      })) || []);
       setTotalCount(count || 0);
     } catch (error) {
       console.error('Error loading configurations:', error);
@@ -108,7 +112,7 @@ export const useCloudAssetManagement = (options: UseCloudAssetManagementOptions 
     } finally {
       setLoading(false);
     }
-  }, [hasValidContext, currentPage, pageSize, filters, buildFilters]);
+  }, [hasValidContext, currentPage, currentPageSize, filters, buildFilters]);
 
   // Charger les packages installés
   const loadPackages = useCallback(async () => {
@@ -117,8 +121,8 @@ export const useCloudAssetManagement = (options: UseCloudAssetManagementOptions 
     try {
       setLoading(true);
       
-      const from = (currentPage - 1) * pageSize;
-      const to = from + pageSize - 1;
+      const from = (currentPage - 1) * currentPageSize;
+      const to = from + currentPageSize - 1;
       
       let query = supabase.from('cloud_installed_packages').select('*', { count: 'exact' });
       
@@ -136,7 +140,10 @@ export const useCloudAssetManagement = (options: UseCloudAssetManagementOptions 
       
       if (error) throw error;
       
-      setPackages(data || []);
+      setPackages(data?.map(item => ({
+        ...item,
+        metadata: (item.metadata as any) || {}
+      })) || []);
       setTotalCount(count || 0);
     } catch (error) {
       console.error('Error loading packages:', error);
@@ -144,7 +151,7 @@ export const useCloudAssetManagement = (options: UseCloudAssetManagementOptions 
     } finally {
       setLoading(false);
     }
-  }, [hasValidContext, currentPage, pageSize, filters]);
+  }, [hasValidContext, currentPage, currentPageSize, filters]);
 
   // Charger les processus en cours
   const loadProcesses = useCallback(async () => {
@@ -153,8 +160,8 @@ export const useCloudAssetManagement = (options: UseCloudAssetManagementOptions 
     try {
       setLoading(true);
       
-      const from = (currentPage - 1) * pageSize;
-      const to = from + pageSize - 1;
+      const from = (currentPage - 1) * currentPageSize;
+      const to = from + currentPageSize - 1;
       
       let query = supabase.from('cloud_running_processes').select('*', { count: 'exact' });
       
@@ -171,7 +178,10 @@ export const useCloudAssetManagement = (options: UseCloudAssetManagementOptions 
       
       if (error) throw error;
       
-      setProcesses(data || []);
+      setProcesses(data?.map(item => ({
+        ...item,
+        metadata: (item.metadata as any) || {}
+      })) || []);
       setTotalCount(count || 0);
     } catch (error) {
       console.error('Error loading processes:', error);
@@ -179,7 +189,7 @@ export const useCloudAssetManagement = (options: UseCloudAssetManagementOptions 
     } finally {
       setLoading(false);
     }
-  }, [hasValidContext, currentPage, pageSize, filters]);
+  }, [hasValidContext, currentPage, currentPageSize, filters]);
 
   // Charger les statuts de patches
   const loadPatches = useCallback(async () => {
@@ -188,8 +198,8 @@ export const useCloudAssetManagement = (options: UseCloudAssetManagementOptions 
     try {
       setLoading(true);
       
-      const from = (currentPage - 1) * pageSize;
-      const to = from + pageSize - 1;
+      const from = (currentPage - 1) * currentPageSize;
+      const to = from + currentPageSize - 1;
       
       let query = supabase.from('cloud_patch_status').select('*', { count: 'exact' });
       
@@ -207,7 +217,11 @@ export const useCloudAssetManagement = (options: UseCloudAssetManagementOptions 
       
       if (error) throw error;
       
-      setPatches(data || []);
+      setPatches(data?.map(item => ({
+        ...item,
+        metadata: (item.metadata as any) || {},
+        status: item.status as PatchStatus
+      })) || []);
       setTotalCount(count || 0);
     } catch (error) {
       console.error('Error loading patches:', error);
@@ -215,15 +229,15 @@ export const useCloudAssetManagement = (options: UseCloudAssetManagementOptions 
     } finally {
       setLoading(false);
     }
-  }, [hasValidContext, currentPage, pageSize, filters]);
+  }, [hasValidContext, currentPage, currentPageSize, filters]);
 
   // Charger les vulnérabilités
   const loadVulnerabilities = useCallback(async () => {
     try {
       setLoading(true);
       
-      const from = (currentPage - 1) * pageSize;
-      const to = from + pageSize - 1;
+      const from = (currentPage - 1) * currentPageSize;
+      const to = from + currentPageSize - 1;
       
       let query = supabase.from('security_vulnerabilities').select('*', { count: 'exact' });
       
@@ -241,7 +255,10 @@ export const useCloudAssetManagement = (options: UseCloudAssetManagementOptions 
       
       if (error) throw error;
       
-      setVulnerabilities(data || []);
+      setVulnerabilities(data?.map(item => ({
+        ...item,
+        metadata: (item.metadata as any) || {}
+      })) || []);
       setTotalCount(count || 0);
     } catch (error) {
       console.error('Error loading vulnerabilities:', error);
@@ -249,7 +266,7 @@ export const useCloudAssetManagement = (options: UseCloudAssetManagementOptions 
     } finally {
       setLoading(false);
     }
-  }, [currentPage, pageSize, filters]);
+  }, [currentPage, currentPageSize, filters]);
 
   // Charger les statistiques
   const loadStats = useCallback(async () => {
@@ -612,7 +629,7 @@ export const useCloudAssetManagement = (options: UseCloudAssetManagementOptions 
   }, []);
 
   const setPageSize = useCallback((size: number) => {
-    setPageSize(size);
+    setCurrentPageSize(size);
     setCurrentPage(1);
   }, []);
 
@@ -636,7 +653,7 @@ export const useCloudAssetManagement = (options: UseCloudAssetManagementOptions 
     loadingStats,
     totalCount,
     currentPage,
-    pageSize,
+    pageSize: currentPageSize,
     hasValidContext,
 
     // Fonctions de chargement

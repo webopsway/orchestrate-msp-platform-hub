@@ -56,13 +56,22 @@ export interface CloudPatchStatus {
 }
 
 export interface SecurityVulnerability {
-  cve_id: string;
-  severity?: string;
+  id: string;
+  team_id: string;
+  title: string;
+  cve_id?: string;
+  severity: string;
   cvss_score?: number;
   description?: string;
   published_at?: string;
-  references?: string[];
+  refs?: string[];
   source?: string;
+  status?: string;
+  assigned_to?: string;
+  cloud_asset_id?: string;
+  affected_instances?: string[];
+  remediated_at?: string;
+  discovered_at?: string;
   metadata?: Record<string, any>;
   created_at: string;
   updated_at: string;
@@ -107,13 +116,19 @@ export interface CreateCloudPatchStatusData {
 }
 
 export interface CreateSecurityVulnerabilityData {
-  cve_id: string;
-  severity?: string;
+  team_id: string;
+  title: string;
+  cve_id?: string;
+  severity: string;
   cvss_score?: number;
   description?: string;
   published_at?: string;
-  references?: string[];
+  refs?: string[];
   source?: string;
+  status?: string;
+  assigned_to?: string;
+  cloud_asset_id?: string;
+  affected_instances?: string[];
   metadata?: Record<string, any>;
 }
 
@@ -152,7 +167,7 @@ export interface UpdateSecurityVulnerabilityData {
   cvss_score?: number;
   description?: string;
   published_at?: string;
-  references?: string[];
+  refs?: string[];
   source?: string;
   metadata?: Record<string, any>;
 }
