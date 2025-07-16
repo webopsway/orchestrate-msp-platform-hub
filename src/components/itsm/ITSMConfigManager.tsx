@@ -118,10 +118,10 @@ const ConfigForm: React.FC<{
 }> = ({ type, initialData, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState<ConfigFormData>({
     config_key: initialData?.config_key || '',
-    label: getConfigLabel(initialData!) || '',
-    color: getConfigColor(initialData!) || defaultColors[0],
-    category: getConfigCategory(initialData!) || '',
-    description: getConfigDescription(initialData!) || '',
+    label: initialData ? getConfigLabel(initialData) : '',
+    color: initialData ? getConfigColor(initialData) : defaultColors[0],
+    category: initialData ? getConfigCategory(initialData) : '',
+    description: initialData ? getConfigDescription(initialData) : '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
