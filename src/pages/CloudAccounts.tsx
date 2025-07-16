@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
   PageHeader, 
@@ -8,6 +8,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Cloud, 
   CreditCard, 
@@ -21,131 +22,114 @@ import {
 import { useCloudAccounts, type CloudAccountWithDetails, type CloudAccountFormData } from "@/hooks/useCloudAccounts";
 import { CloudAccountForm } from "@/components/cloud/CloudAccountForm";
 import { CloudAccountCard } from "@/components/cloud/CloudAccountCard";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const CloudAccounts = () => {
   const { userProfile } = useAuth();
-  const { 
-    accounts, 
-    providers, 
-    organizations, 
-    teams, 
-    loading,
-    createAccount,
-    updateAccount,
-    deleteAccount
+  const {
+    cloudAccounts,
+    providers,
+    organizations,
+    teams,
+    environments,
+    isLoading,
+    createCloudAccount,
+    updateCloudAccount,
+    deleteCloudAccount
   } = useCloudAccounts();
 
   // États locaux pour l'interface
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [providerFilter, setProviderFilter] = useState<string>("all");
-  const [environmentFilter, setEnvironmentFilter] = useState<string>("all");
+  const [providerFilter, setProviderFilter] = useState<string>("");
+  const [organizationFilter, setOrganizationFilter] = useState<string>("");
+  const [teamFilter, setTeamFilter] = useState<string>("");
   
   // États pour les modales
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showUserDialog, setShowUserDialog] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<CloudAccountWithDetails | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<CloudAccountWithDetails | null>(null);
-  const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
 
-  // Gestionnaires d'événements
+  // Calculate statistics
+  const stats = useMemo(() => {
+    if (!cloudAccounts) return null;
+    
+    const total = cloudAccounts.length;
+    const active = cloudAccounts.filter(acc => acc.is_active).length;
+    const byProvider = cloudAccounts.reduce((acc, account) => {
+      const provider = account.cloud_providers?.display_name || 'Unknown';
+      acc[provider] = (acc[provider] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const byEnvironment = cloudAccounts.reduce((acc, account) => {
+      if (account.environments && Array.isArray(account.environments)) {
+        account.environments.forEach(env => {
+          acc[env.display_name] = (acc[env.display_name] || 0) + 1;
+        });
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    return { total, active, byProvider, byEnvironment };
+  }, [cloudAccounts]);
+
+  // Filter accounts based on search and filters
+  const filteredAccounts = useMemo(() => {
+    if (!cloudAccounts) return [];
+    
+    return cloudAccounts.filter(account => {
+      const matchesSearch = account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          account.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          account.account_identifier.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesProvider = !providerFilter || account.provider_id === providerFilter;
+      const matchesOrganization = !organizationFilter || account.client_organization_id === organizationFilter;
+      const matchesTeam = !teamFilter || account.team_id === teamFilter;
+      
+      return matchesSearch && matchesProvider && matchesOrganization && matchesTeam;
+    });
+  }, [cloudAccounts, searchTerm, providerFilter, organizationFilter, teamFilter]);
+
   const handleCreateAccount = async (data: CloudAccountFormData) => {
-    await createAccount(data);
+    createCloudAccount.mutate(data, {
+      onSuccess: () => {
+        setShowCreateDialog(false);
+      }
+    });
   };
 
   const handleUpdateAccount = async (data: CloudAccountFormData) => {
-    if (!selectedAccount) return;
-    await updateAccount(selectedAccount.id, data);
+    if (!editingAccount) return;
+    
+    updateCloudAccount.mutate({ ...data, id: editingAccount.id }, {
+      onSuccess: () => {
+        setShowEditDialog(false);
+        setEditingAccount(null);
+      }
+    });
+  };
+
+  const handleDeleteAccount = (id: string) => {
+    deleteCloudAccount.mutate(id);
   };
 
   const handleEditAccount = (account: CloudAccountWithDetails) => {
-    setSelectedAccount(account);
-    setIsEditing(true);
-    setIsFormOpen(true);
-  };
-
-  const handleDeleteAccount = async (id: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer ce compte ?')) {
-      await deleteAccount(id);
-    }
+    setEditingAccount(account);
+    setShowEditDialog(true);
   };
 
   const handleManageUsers = (account: CloudAccountWithDetails) => {
     setSelectedAccount(account);
-    setIsUserManagementOpen(true);
+    setShowUserDialog(true);
   };
 
-  const resetForm = () => {
-    setSelectedAccount(null);
-    setIsEditing(false);
-    setIsFormOpen(false);
-  };
-
-  // Fonctions de filtrage
-  const filteredAccounts = accounts.filter(account => {
-    const matchesSearch = 
-      account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      account.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      account.cloud_providers?.display_name.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === "all" || 
-      (statusFilter === "active" && account.is_active) ||
-      (statusFilter === "inactive" && !account.is_active);
-    
-    const matchesProvider = providerFilter === "all" || account.provider_id === providerFilter;
-    
-    const matchesEnvironment = environmentFilter === "all" || 
-      (Array.isArray(account.environment) && account.environment.includes(environmentFilter));
-
-    return matchesSearch && matchesStatus && matchesProvider && matchesEnvironment;
-  });
-
-  // Statistiques
-  const totalAccounts = accounts.length;
-  const activeAccounts = accounts.filter(a => a.is_active).length;
-  const inactiveAccounts = totalAccounts - activeAccounts;
-  const environments = [...new Set(accounts.flatMap(a => Array.isArray(a.environment) ? a.environment : [a.environment || 'production']))].length;
-
-  const stats = [
-    {
-      title: "Total des comptes",
-      value: totalAccounts.toString(),
-      icon: CreditCard,
-      color: "text-blue-500"
-    },
-    {
-      title: "Comptes actifs",
-      value: activeAccounts.toString(),
-      icon: CheckCircle,
-      color: "text-green-500"
-    },
-    {
-      title: "Comptes inactifs",
-      value: inactiveAccounts.toString(),
-      icon: XCircle,
-      color: "text-red-500"
-    },
-    {
-      title: "Environnements",
-      value: environments.toString(),
-      icon: Globe,
-      color: "text-purple-500"
-    }
-  ];
-
-  // Gestion des permissions
   const canManageAccounts = userProfile?.is_msp_admin || false;
 
-  if (loading && accounts.length === 0) {
+  if (isLoading) {
     return (
-      <div className="space-y-6">
-        <PageHeader
-          title="Comptes Cloud"
-          description="Gestion centralisée des comptes cloud"
-        />
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -154,35 +138,74 @@ const CloudAccounts = () => {
     <div className="space-y-6">
       <PageHeader
         title="Comptes Cloud"
-        description="Gestion centralisée des comptes cloud par les administrateurs MSP"
+        description="Gestion centralisée des comptes cloud"
         action={canManageAccounts ? {
           label: "Nouveau compte",
           icon: Plus,
-          onClick: () => {
-            resetForm();
-            setIsFormOpen(true);
-          }
+          onClick: () => setShowCreateDialog(true)
         } : undefined}
       />
 
       {/* Statistiques */}
-      <DataGrid columns={4}>
-        {stats.map((stat) => (
-          <Card key={stat.title}>
+      {stats && (
+        <DataGrid columns={4}>
+          <Card>
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className={`p-2 rounded-lg bg-muted ${stat.color}`}>
-                  <stat.icon className="h-6 w-6" />
+                <div className="p-2 rounded-lg bg-muted text-blue-500">
+                  <CreditCard className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                  <p className="text-2xl font-bold">{stat.value}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Total des comptes</p>
+                  <p className="text-2xl font-bold">{stats.total}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-        ))}
-      </DataGrid>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-2 rounded-lg bg-muted text-green-500">
+                  <CheckCircle className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Comptes actifs</p>
+                  <p className="text-2xl font-bold">{stats.active}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-2 rounded-lg bg-muted text-red-500">
+                  <XCircle className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Comptes inactifs</p>
+                  <p className="text-2xl font-bold">{stats.total - stats.active}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-2 rounded-lg bg-muted text-purple-500">
+                  <Globe className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Environnements</p>
+                  <p className="text-2xl font-bold">{Object.keys(stats.byEnvironment).length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </DataGrid>
+      )}
 
       {/* Filtres et recherche */}
       <Card>
@@ -192,7 +215,7 @@ const CloudAccounts = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Rechercher par nom, description ou provider..."
+                  placeholder="Rechercher par nom, description ou identifiant..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
@@ -202,36 +225,43 @@ const CloudAccounts = () => {
             <div className="flex gap-2">
               <Select value={providerFilter} onValueChange={setProviderFilter}>
                 <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Provider" />
+                  <SelectValue placeholder="Fournisseur" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tous les providers</SelectItem>
-                  {providers.map(provider => (
+                  <SelectItem value="">Tous les fournisseurs</SelectItem>
+                  {providers?.map(provider => (
                     <SelectItem key={provider.id} value={provider.id}>
                       {provider.display_name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={environmentFilter} onValueChange={setEnvironmentFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Environnement" />
+
+              <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Organisation" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tous</SelectItem>
-                  <SelectItem value="production">Production</SelectItem>
-                  <SelectItem value="staging">Staging</SelectItem>
-                  <SelectItem value="development">Développement</SelectItem>
+                  <SelectItem value="">Toutes les organisations</SelectItem>
+                  {organizations?.map(org => (
+                    <SelectItem key={org.id} value={org.id}>
+                      {org.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+
+              <Select value={teamFilter} onValueChange={setTeamFilter}>
                 <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Statut" />
+                  <SelectValue placeholder="Équipe" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tous</SelectItem>
-                  <SelectItem value="active">Actif</SelectItem>
-                  <SelectItem value="inactive">Inactif</SelectItem>
+                  <SelectItem value="">Toutes les équipes</SelectItem>
+                  {teams?.map(team => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -243,10 +273,10 @@ const CloudAccounts = () => {
       {filteredAccounts.length === 0 ? (
         <EmptyState
           icon={Cloud}
-          title={searchTerm || statusFilter !== "all" || providerFilter !== "all" || environmentFilter !== "all" 
+          title={searchTerm || providerFilter || organizationFilter || teamFilter 
             ? "Aucun compte trouvé" 
             : "Aucun compte cloud"}
-          description={searchTerm || statusFilter !== "all" || providerFilter !== "all" || environmentFilter !== "all"
+          description={searchTerm || providerFilter || organizationFilter || teamFilter
             ? "Aucun compte ne correspond à vos critères de recherche"
             : canManageAccounts 
               ? "Commencez par créer votre premier compte cloud"
@@ -267,53 +297,60 @@ const CloudAccounts = () => {
         </DataGrid>
       )}
 
-      {/* Modal de création/édition */}
-      <CloudAccountForm
-        open={isFormOpen}
-        onOpenChange={(open) => {
-          setIsFormOpen(open);
-          if (!open) resetForm();
-        }}
-        onSubmit={isEditing ? handleUpdateAccount : handleCreateAccount}
-        providers={providers}
-        organizations={organizations}
-        teams={teams}
-        initialData={selectedAccount ? {
-          name: selectedAccount.name,
-          description: selectedAccount.description || '',
-          provider_id: selectedAccount.provider_id,
-          team_id: selectedAccount.team_id,
-          client_organization_id: selectedAccount.client_organization_id,
-          account_identifier: selectedAccount.account_identifier,
-          region: selectedAccount.region || '',
-          environment: Array.isArray(selectedAccount.environment) ? selectedAccount.environment : ['production']
-        } : undefined}
-        isEditing={isEditing}
-      />
+      {/* Dialogs */}
+      {canManageAccounts && (
+        <CloudAccountForm
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          onSubmit={handleCreateAccount}
+          providers={providers || []}
+          organizations={organizations || []}
+          teams={teams || []}
+          environments={environments || []}
+        />
+      )}
 
-      {/* Modal de gestion des utilisateurs */}
-      <Dialog open={isUserManagementOpen} onOpenChange={setIsUserManagementOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              Gestion des accès - {selectedAccount?.name}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-              <Users className="h-4 w-4" />
-              <span>Fonctionnalité de gestion des utilisateurs à venir</span>
-            </div>
-            {selectedAccount?.profiles && selectedAccount.profiles.length > 0 && (
-              <div>
-                <p className="text-sm font-medium mb-2">
-                  Utilisateurs actuellement assignés : {selectedAccount.profiles.length}
+      {editingAccount && (
+        <CloudAccountForm
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          onSubmit={handleUpdateAccount}
+          providers={providers || []}
+          organizations={organizations || []}
+          teams={teams || []}
+          environments={environments || []}
+          initialData={{
+            environment_ids: editingAccount.environments?.map(env => env.id) || [],
+            ...editingAccount
+          }}
+          isEditing
+        />
+      )}
+
+      {selectedAccount && (
+        <Dialog open={showUserDialog} onOpenChange={setShowUserDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Gestion des utilisateurs - {selectedAccount.name}</DialogTitle>
+              <DialogDescription>
+                Gérez les accès utilisateurs pour le compte.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-4">
+              <p className="text-sm text-muted-foreground mb-4">
+                Utilisateurs ayant accès au compte :
+              </p>
+              <div className="space-y-2">
+                {/* TODO: Liste des utilisateurs avec possibilité d'ajouter/retirer */}
+                <p className="text-sm text-muted-foreground">
+                  Fonctionnalité de gestion des utilisateurs à implémenter
                 </p>
               </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

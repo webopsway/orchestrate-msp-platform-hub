@@ -161,6 +161,42 @@ export type Database = {
           },
         ]
       }
+      cloud_account_environments: {
+        Row: {
+          cloud_account_id: string
+          cloud_environment_id: string
+          created_at: string | null
+          id: string
+        }
+        Insert: {
+          cloud_account_id: string
+          cloud_environment_id: string
+          created_at?: string | null
+          id?: string
+        }
+        Update: {
+          cloud_account_id?: string
+          cloud_environment_id?: string
+          created_at?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_account_environments_cloud_account_id_fkey"
+            columns: ["cloud_account_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cloud_account_environments_cloud_environment_id_fkey"
+            columns: ["cloud_environment_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_environments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cloud_account_profiles: {
         Row: {
           account_id: string
@@ -212,7 +248,6 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
-          environment: string[] | null
           id: string
           is_active: boolean
           metadata: Json | null
@@ -228,7 +263,6 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
-          environment?: string[] | null
           id?: string
           is_active?: boolean
           metadata?: Json | null
@@ -244,7 +278,6 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
-          environment?: string[] | null
           id?: string
           is_active?: boolean
           metadata?: Json | null
@@ -432,6 +465,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cloud_environments: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          display_name: string
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_name: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       cloud_installed_packages: {
         Row: {

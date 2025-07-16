@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2 } from 'lucide-react';
-import type { CloudAccountFormData, CloudProvider, Organization, Team } from '@/hooks/useCloudAccounts';
+import type { CloudAccountFormData, CloudProvider, Organization, Team, CloudEnvironment } from '@/hooks/useCloudAccounts';
 
 interface CloudAccountFormProps {
   open: boolean;
@@ -17,6 +17,7 @@ interface CloudAccountFormProps {
   providers: CloudProvider[];
   organizations: Organization[];
   teams: Team[];
+  environments: CloudEnvironment[];
   initialData?: CloudAccountFormData;
   isEditing?: boolean;
 }
@@ -28,6 +29,7 @@ export const CloudAccountForm: React.FC<CloudAccountFormProps> = ({
   providers,
   organizations,
   teams,
+  environments,
   initialData,
   isEditing = false
 }) => {
@@ -47,7 +49,7 @@ export const CloudAccountForm: React.FC<CloudAccountFormProps> = ({
       client_organization_id: '',
       account_identifier: '',
       region: '',
-      environment: ['production']
+      environment_ids: []
     }
   });
 
@@ -146,31 +148,27 @@ export const CloudAccountForm: React.FC<CloudAccountFormProps> = ({
             </div>
 
             <div>
-              <Label htmlFor="environment">Environnements</Label>
+              <Label htmlFor="environment_ids">Environnements</Label>
               <div className="space-y-2 mt-2">
-                {[
-                  { value: 'production', label: 'Production' },
-                  { value: 'staging', label: 'Staging' },
-                  { value: 'development', label: 'Développement' }
-                ].map((env) => (
-                  <div key={env.value} className="flex items-center space-x-2">
+                {environments?.map((env) => (
+                  <div key={env.id} className="flex items-center space-x-2">
                     <Checkbox
-                      id={env.value}
-                      checked={watch('environment')?.includes(env.value) || false}
+                      id={env.id}
+                      checked={watch('environment_ids')?.includes(env.id) || false}
                       onCheckedChange={(checked) => {
-                        const currentEnv = watch('environment') || [];
+                        const currentEnv = watch('environment_ids') || [];
                         if (checked) {
-                          setValue('environment', [...currentEnv, env.value]);
+                          setValue('environment_ids', [...currentEnv, env.id]);
                         } else {
-                          setValue('environment', currentEnv.filter(e => e !== env.value));
+                          setValue('environment_ids', currentEnv.filter(e => e !== env.id));
                         }
                       }}
                     />
-                    <Label htmlFor={env.value} className="text-sm">{env.label}</Label>
+                    <Label htmlFor={env.id} className="text-sm">{env.display_name}</Label>
                   </div>
                 ))}
               </div>
-              {(!watch('environment') || watch('environment')?.length === 0) && (
+              {(!watch('environment_ids') || watch('environment_ids')?.length === 0) && (
                 <p className="text-sm text-destructive mt-1">Au moins un environnement est requis</p>
               )}
             </div>
