@@ -2368,8 +2368,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      user_can_access_client_org: {
+        Args: { p_client_org_id: string }
+        Returns: boolean
+      }
       user_has_organization_access: {
         Args: { org_id: string }
+        Returns: boolean
+      }
+      user_has_permission: {
+        Args: { p_resource: string; p_action: string }
         Returns: boolean
       }
       user_has_team_access: {
