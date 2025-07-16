@@ -1,22 +1,19 @@
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { 
-  MoreHorizontal, 
+  Cloud, 
+  MapPin, 
+  Calendar, 
+  Users, 
   Edit, 
   Trash2, 
-  Users, 
-  Globe, 
-  Building,
-  Calendar,
-  MapPin
+  Settings,
+  ExternalLink
 } from 'lucide-react';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import type { CloudAccountWithDetails } from '@/hooks/useCloudAccounts';
 
 interface CloudAccountCardProps {
@@ -27,24 +24,30 @@ interface CloudAccountCardProps {
   canManage: boolean;
 }
 
-export const CloudAccountCard = ({
+export const CloudAccountCard: React.FC<CloudAccountCardProps> = ({
   account,
   onEdit,
   onDelete,
   onManageUsers,
   canManage
-}: CloudAccountCardProps) => {
-  const getEnvironmentColor = (env: string) => {
-    switch (env) {
-      case 'production': return 'default';
-      case 'staging': return 'secondary';
-      case 'development': return 'outline';
-      default: return 'outline';
+}) => {
+  const getEnvironmentColor = (environment: string) => {
+    switch (environment) {
+      case 'production':
+        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
+      case 'staging':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
+      case 'development':
+        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
     }
   };
 
   const getStatusColor = (isActive: boolean) => {
-    return isActive ? 'default' : 'secondary';
+    return isActive 
+      ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+      : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
   };
 
   return (
@@ -52,9 +55,22 @@ export const CloudAccountCard = ({
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-lg bg-muted">
-              <Globe className="h-5 w-5" />
-            </div>
+            {account.cloud_providers?.metadata && 
+             typeof account.cloud_providers.metadata === 'object' &&
+             !Array.isArray(account.cloud_providers.metadata) &&
+             'icon_url' in account.cloud_providers.metadata &&
+             account.cloud_providers.metadata.icon_url ? (
+              <img 
+                src={account.cloud_providers.metadata.icon_url as string} 
+                alt={account.cloud_providers.display_name}
+                className="h-8 w-8"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            ) : (
+              <Cloud className="h-8 w-8 text-muted-foreground" />
+            )}
             <div>
               <CardTitle className="text-lg">{account.name}</CardTitle>
               <p className="text-sm text-muted-foreground">
@@ -62,33 +78,14 @@ export const CloudAccountCard = ({
               </p>
             </div>
           </div>
-          
-          {canManage && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onEdit(account)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Modifier
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onManageUsers(account)}>
-                  <Users className="h-4 w-4 mr-2" />
-                  Gérer les accès
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => onDelete(account.id)}
-                  className="text-destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Supprimer
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+          <div className="flex space-x-1">
+            <Badge className={getStatusColor(account.is_active)}>
+              {account.is_active ? 'Actif' : 'Inactif'}
+            </Badge>
+            <Badge className={getEnvironmentColor(account.environment || 'production')}>
+              {account.environment || 'production'}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
 
@@ -99,67 +96,69 @@ export const CloudAccountCard = ({
           </p>
         )}
 
-        <div className="flex flex-wrap gap-2">
-          <Badge variant={getStatusColor(account.is_active)}>
-            {account.is_active ? 'Actif' : 'Inactif'}
-          </Badge>
-          <Badge variant={getEnvironmentColor(account.environment || 'production')}>
-            {account.environment || 'production'}
-          </Badge>
-        </div>
-
         <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="flex items-center space-x-2">
-            <Building className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">Organisation:</span>
+          <div>
+            <p className="text-muted-foreground">Organisation</p>
+            <p className="font-medium">{account.organizations?.name || 'N/A'}</p>
           </div>
-          <span className="font-medium">{account.organizations?.name}</span>
-
-          <div className="flex items-center space-x-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">Équipe:</span>
+          <div>
+            <p className="text-muted-foreground">Équipe</p>
+            <p className="font-medium">{account.teams?.name || 'N/A'}</p>
           </div>
-          <span className="font-medium">{account.teams?.name}</span>
-
+          <div>
+            <p className="text-muted-foreground">Identifiant</p>
+            <p className="font-mono text-xs">{account.account_identifier}</p>
+          </div>
           {account.region && (
-            <>
-              <div className="flex items-center space-x-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Région:</span>
-              </div>
-              <span className="font-medium">{account.region}</span>
-            </>
-          )}
-
-          <div className="flex items-center space-x-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">Créé le:</span>
-          </div>
-          <span className="font-medium">
-            {new Date(account.created_at).toLocaleDateString()}
-          </span>
-        </div>
-
-        <div className="text-xs text-muted-foreground">
-          <span className="font-medium">ID:</span> {account.account_identifier}
-        </div>
-
-        {account.profiles && account.profiles.length > 0 && (
-          <div className="pt-2 border-t">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                {account.profiles.length} utilisateur(s) assigné(s)
-              </span>
-              {canManage && (
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => onManageUsers(account)}
-                >
-                  <Users className="h-4 w-4" />
-                </Button>
-              )}
+            <div>
+              <p className="text-muted-foreground">Région</p>
+              <p className="font-medium flex items-center">
+                <MapPin className="h-3 w-3 mr-1" />
+                {account.region}
+              </p>
             </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between pt-2 border-t">
+          <div className="flex items-center text-xs text-muted-foreground">
+            <Calendar className="h-3 w-3 mr-1" />
+            {format(new Date(account.created_at), 'dd/MM/yyyy', { locale: fr })}
+          </div>
+          <div className="flex items-center text-xs text-muted-foreground">
+            <Users className="h-3 w-3 mr-1" />
+            {account.profiles?.length || 0} utilisateur(s)
+          </div>
+        </div>
+
+        {canManage && (
+          <div className="flex space-x-2 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onEdit(account)}
+              className="flex-1"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Modifier
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onManageUsers(account)}
+              className="flex-1"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Utilisateurs
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onDelete(account.id)}
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         )}
       </CardContent>
