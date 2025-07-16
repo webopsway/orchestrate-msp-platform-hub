@@ -35,6 +35,33 @@ export function OrganizationSelector() {
     ? availableTeams.filter(team => team.organization_id === currentOrganization.id)
     : availableTeams;
 
+  // Affichage en lecture seule pour les utilisateurs non-MSP
+  if (!userProfile.is_msp_admin) {
+    return (
+      <div className="w-full px-3 py-2 text-left">
+        <div className="flex flex-col items-start space-y-1 min-w-0 flex-1">
+          {currentOrganization && (
+            <div className="flex items-center space-x-1 text-xs text-muted-foreground truncate w-full">
+              <Building2 className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">{currentOrganization.name}</span>
+            </div>
+          )}
+          {currentTeam && (
+            <div className="flex items-center space-x-1 text-xs font-medium truncate w-full">
+              <Users className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">{currentTeam.name}</span>
+            </div>
+          )}
+          {!currentOrganization && !currentTeam && (
+            <span className="text-xs text-muted-foreground">Aucun contexte</span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Affichage complet avec sélecteur pour les admins MSP
+
   return (
     <Popover>
       <PopoverTrigger asChild>
