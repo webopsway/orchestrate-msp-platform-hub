@@ -1,6 +1,6 @@
 // Export des composants RBAC
 export { RBACGuard, RoleGuard, PermissionGuard, ConditionalRender } from './RBACGuard';
-export { PermissionManager } from './PermissionManagerPlaceholder';
+export { PermissionManagerPlaceholder } from './PermissionManagerPlaceholder';
 export { UserRoleManager } from './UserRoleManager';
 
 // Export des hooks utilitaires

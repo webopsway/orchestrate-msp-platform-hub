@@ -45,12 +45,10 @@ export function useUsers(): UseUsersReturn {
           *,
           organization_memberships(
             organization_id,
-            role,
-            organizations(name, type)
+            organizations(name, is_msp)
           ),
           team_memberships(
             team_id,
-            role,
             teams(name, organization_id)
           )
         `);

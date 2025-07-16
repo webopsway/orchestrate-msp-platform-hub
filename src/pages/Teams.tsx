@@ -118,11 +118,16 @@ const Teams = () => {
     try {
       const { data: orgsData, error: orgsError } = await supabase
         .from('organizations')
-        .select('id, name, type');
+        .select('id, name, is_msp');
 
       if (orgsError) throw orgsError;
       
-      setOrganizations(orgsData || []);
+      setOrganizations((orgsData || []).map(org => ({
+        id: org.id,
+        name: org.name,
+        type: org.is_msp ? 'msp' : 'client',
+        is_msp: org.is_msp
+      })));
     } catch (error) {
       console.error('Error fetching organizations:', error);
     }

@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useRBAC } from "@/hooks/useRBAC";
 import { RBACGuard, RoleGuard } from "@/components/rbac/RBACGuard";
-import { PermissionManager } from "@/components/rbac/PermissionManager";
+import { PermissionManagerPlaceholder } from "@/components/rbac/PermissionManagerPlaceholder";
 import { UserRoleManager } from "@/components/rbac/UserRoleManager";
 import { CRUDTable } from "@/components/common/CRUDTable";
 // import { CRUDForm } from "@/components/common/CRUDForm";
@@ -94,19 +94,13 @@ const RBACManagement = () => {
     if (!acc[category]) {
       acc[category] = [];
     }
-    acc[category].push({
-      ...permission,
-      category: permission.resource || 'General',
-      description: permission.description || '',
-      is_system: permission.is_system || false,
-      updated_at: permission.updated_at || permission.created_at
-    });
+    acc[category].push(permission);
     return acc;
   }, {} as Record<string, Permission[]>);
 
-  // Rôles par type
-  const systemRoles = roles.filter(role => role.is_system);
-  const customRoles = roles.filter(role => !role.is_system);
+  // Rôles par type - SimpleRole n'a pas is_system_role, donc on traite tous comme custom
+  const systemRoles = roles.filter(role => role.name?.startsWith('system_') || false);
+  const customRoles = roles.filter(role => !role.name?.startsWith('system_') || true);
 
   // Utilisateurs par rôle
   const usersByRole = roles.map(role => {
@@ -130,15 +124,10 @@ const RBACManagement = () => {
         <div>
           <div className="flex items-center space-x-2">
             <p className="font-medium">{row.display_name}</p>
-            {row.is_system && (
+            {row.name?.startsWith('system_') && (
               <Badge variant="secondary" className="text-xs">
                 <Shield className="h-3 w-3 mr-1" />
                 Système
-              </Badge>
-            )}
-            {row.is_default && (
-              <Badge variant="outline" className="text-xs">
-                Par défaut
               </Badge>
             )}
           </div>
@@ -251,7 +240,7 @@ const RBACManagement = () => {
         name: data.name.toLowerCase().replace(/\s+/g, '_'),
         display_name: data.display_name,
         description: data.description,
-        is_system: false,
+        is_system_role: false,
         metadata: {}
       };
 
@@ -298,8 +287,8 @@ const RBACManagement = () => {
   };
 
   // Supprimer un rôle
-  const deleteRole = async (role: Role) => {
-    if (role.is_system) {
+  const deleteRole = async (role: any) => {
+    if (role.name?.startsWith('system_')) {
       toast.error('Impossible de supprimer un rôle système');
       return;
     }
@@ -401,14 +390,7 @@ const RBACManagement = () => {
                           {userRoles.filter(ur => ur.role_id === role.id && ur.is_active).length} utilisateurs
                         </Badge>
                         <RBACGuard resource="roles" action="update">
-                          <Button variant="ghost" size="sm" onClick={() => openPermissionModal({
-                            ...role,
-                            team_id: userProfile?.default_team_id || '',
-                            permissions: [],
-                            is_system: role.is_system || false,
-                            is_default: role.is_default || false,
-                            user_count: userRoles.filter(ur => ur.role_id === role.id && ur.is_active).length
-                          })}>
+                          <Button variant="ghost" size="sm" onClick={() => openPermissionModal(role)}>
                             <Settings className="h-4 w-4" />
                           </Button>
                         </RBACGuard>
@@ -625,16 +607,7 @@ const RBACManagement = () => {
 
       {/* Modals */}
       {selectedRole && (
-        <PermissionManager
-          roleId={selectedRole.id}
-          role={selectedRole}
-          open={isPermissionModalOpen}
-          onOpenChange={setIsPermissionModalOpen}
-          onPermissionsChange={(permissionIds) => {
-            toast.success('Permissions mises à jour');
-            refresh();
-          }}
-        />
+        <PermissionManagerPlaceholder />
       )}
 
       <UserRoleManager

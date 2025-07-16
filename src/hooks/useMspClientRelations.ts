@@ -20,17 +20,17 @@ export interface MspClientRelation {
   msp_organization?: {
     id: string;
     name: string;
-    type: string;
+    is_msp: boolean;
   };
   client_organization?: {
     id: string;
     name: string;
-    type: string;
+    is_msp: boolean;
   };
   esn_organization?: {
     id: string;
     name: string;
-    type: string;
+    is_msp: boolean;
   } | null;
   creator?: {
     id: string;
@@ -72,16 +72,16 @@ export const useMspClientRelations = () => {
         return;
       }
 
-      const { data, error: fetchError } = await supabase
-        .from('msp_client_relations')
-        .select(`
-          *,
-          msp_organization:organizations!msp_organization_id(id, name, type),
-          client_organization:organizations!client_organization_id(id, name, type),
-          esn_organization:organizations!esn_organization_id(id, name, type),
-          creator:profiles!created_by(id, first_name, last_name, email)
-        `)
-        .order('created_at', { ascending: false });
+        const { data, error: fetchError } = await supabase
+          .from('msp_client_relations')
+          .select(`
+            *,
+            msp_organization:organizations!msp_organization_id(id, name, is_msp),
+            client_organization:organizations!client_organization_id(id, name, is_msp),
+            esn_organization:organizations!esn_organization_id(id, name, is_msp),
+            creator:profiles!created_by(id, first_name, last_name, email)
+          `)
+          .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
 

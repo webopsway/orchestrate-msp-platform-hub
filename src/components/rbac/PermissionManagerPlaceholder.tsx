@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Settings } from 'lucide-react';
 
-export const PermissionManager = () => {
+export const PermissionManagerPlaceholder = () => {
   return (
     <Card>
       <CardHeader>

@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 export interface Organization {
   id: string;
   name: string;
-  type: 'client' | 'esn' | 'msp';
   is_msp: boolean;
 }
 
@@ -22,8 +21,8 @@ export const useOrganizationsAndTeams = () => {
       // Récupérer toutes les organisations clientes
       const { data: organizations, error: orgError } = await supabase
         .from('organizations')
-        .select('id, name, type, is_msp')
-        .eq('type', 'client')
+        .select('id, name, is_msp')
+        .eq('is_msp', false)
         .order('name');
 
       if (orgError) throw orgError;
