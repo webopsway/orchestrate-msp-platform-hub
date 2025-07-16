@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useServiceRequests, ServiceRequest } from "@/hooks/useServiceRequests";
+import { useServiceRequests, ServiceRequestWithProfile } from "@/hooks/useServiceRequests";
 import { 
   PageHeader, 
   DataGrid
@@ -44,23 +44,23 @@ import { toast } from "sonner";
 const ITSMRequests = () => {
   const { user, userProfile } = useAuth();
   const { 
-    requests, 
+    serviceRequests: requests, 
     loading, 
-    createRequest, 
-    updateRequest, 
-    deleteRequest 
+    createServiceRequest: createRequest, 
+    updateServiceRequest: updateRequest, 
+    deleteServiceRequest: deleteRequest 
   } = useServiceRequests();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
-  const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<ServiceRequestWithProfile | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
-  const getRequesterDisplayName = useCallback((request: ServiceRequest) => {
+  const getRequesterDisplayName = useCallback((request: ServiceRequestWithProfile) => {
     const profile = request.requested_by_profile;
     if (!profile) return "N/A";
     
@@ -70,7 +70,7 @@ const ITSMRequests = () => {
     return profile.email;
   }, []);
 
-  const openDetail = useCallback((request: ServiceRequest) => {
+  const openDetail = useCallback((request: ServiceRequestWithProfile) => {
     setSelectedRequest(request);
     setIsDetailOpen(true);
   }, []);
@@ -84,12 +84,12 @@ const ITSMRequests = () => {
     setIsCreateOpen(true);
   }, []);
 
-  const openEdit = useCallback((request: ServiceRequest) => {
+  const openEdit = useCallback((request: ServiceRequestWithProfile) => {
     setSelectedRequest(request);
     setIsEditOpen(true);
   }, []);
 
-  const openDelete = useCallback((request: ServiceRequest) => {
+  const openDelete = useCallback((request: ServiceRequestWithProfile) => {
     setSelectedRequest(request);
     setIsDeleteOpen(true);
   }, []);
@@ -102,26 +102,20 @@ const ITSMRequests = () => {
   }, []);
 
   const handleCreate = useCallback(async (data: any) => {
-    const success = await createRequest(data);
-    if (success) {
-      closeAll();
-    }
+    await createRequest(data);
+    closeAll();
   }, [createRequest, closeAll]);
 
   const handleUpdate = useCallback(async (data: any) => {
     if (!selectedRequest) return;
-    const success = await updateRequest(selectedRequest.id, data);
-    if (success) {
-      closeAll();
-    }
+    await updateRequest(selectedRequest.id, data);
+    closeAll();
   }, [selectedRequest, updateRequest, closeAll]);
 
   const handleDelete = useCallback(async () => {
     if (!selectedRequest) return;
-    const success = await deleteRequest(selectedRequest.id);
-    if (success) {
-      closeAll();
-    }
+    await deleteRequest(selectedRequest.id);
+    closeAll();
   }, [selectedRequest, deleteRequest, closeAll]);
 
   const getPriorityColor = useCallback((priority: string) => {
@@ -461,7 +455,12 @@ const ITSMRequests = () => {
           {selectedRequest && (
             <ServiceRequestForm
               initialData={{
-                ...selectedRequest,
+                title: selectedRequest.title,
+                description: selectedRequest.description,
+                priority: selectedRequest.priority as "critical" | "high" | "medium" | "low",
+                service_category: selectedRequest.service_category,
+                urgency: selectedRequest.urgency as "critical" | "high" | "medium" | "low",
+                impact: selectedRequest.impact as "critical" | "high" | "medium" | "low",
                 due_date: selectedRequest.due_date ? new Date(selectedRequest.due_date) : undefined
               }}
               onSubmit={handleUpdate}

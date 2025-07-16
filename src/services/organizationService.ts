@@ -22,7 +22,7 @@ export class OrganizationService {
       id: org.id,
       msp_id: org.parent_organization_id || userProfile?.default_team_id || null,
       name: org.name,
-      type: org.type,
+      type: org.is_msp ? 'msp' : 'client', // Derive type from is_msp
       is_msp: org.is_msp || false,
       status: 'active' as const,
       user_count: 0,

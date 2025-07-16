@@ -51,3 +51,29 @@ export const SYSTEM_ROLES = {
 } as const;
 
 export type SystemRole = typeof SYSTEM_ROLES[keyof typeof SYSTEM_ROLES];
+
+// RBAC Types
+export type RBACResource = 'users' | 'roles' | 'permissions' | 'organizations' | 'teams' | 'incidents' | 'changes' | 'assets' | 'vulnerabilities';
+export type RBACAction = 'create' | 'read' | 'update' | 'delete' | 'manage' | 'assign';
+
+export interface RBACGuardProps {
+  resource: RBACResource;
+  action: RBACAction;
+  conditions?: any;
+  fallback?: React.ReactNode;
+  children: React.ReactNode;
+}
+
+export interface RoleGuardProps {
+  roles: string[];
+  requireAll?: boolean;
+  fallback?: React.ReactNode;
+  children: React.ReactNode;
+}
+
+export interface PermissionGuardProps {
+  permissions: string[];
+  requireAll?: boolean;
+  fallback?: React.ReactNode;
+  children: React.ReactNode;
+}
