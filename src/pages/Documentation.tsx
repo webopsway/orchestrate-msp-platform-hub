@@ -140,7 +140,7 @@ const Documentation = () => {
     category: "",
     team_id: "", // Nouvelle propriété pour l'équipe cliente
     tags: [] as string[],
-    status: "draft" as const
+    status: "draft" as 'draft' | 'published' | 'archived'
   });
 
   const [editDocument, setEditDocument] = useState({
@@ -148,7 +148,7 @@ const Documentation = () => {
     content: "",
     category: "",
     tags: [] as string[],
-    status: "draft" as const
+    status: "draft" as 'draft' | 'published' | 'archived'
   });
 
   useEffect(() => {
@@ -386,7 +386,7 @@ const Documentation = () => {
       content: document.content,
       category: document.metadata?.category || "",
       tags: document.metadata?.tags || [],
-      status: "draft" as const
+      status: (document.metadata?.status as 'draft' | 'published' | 'archived') || "draft"
     });
     setIsEditModalOpen(true);
   };
@@ -794,6 +794,31 @@ const Documentation = () => {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="doc-status">Statut</Label>
+                <Select value={newDocument.status} onValueChange={(value: 'draft' | 'published' | 'archived') => setNewDocument({...newDocument, status: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un statut" />
+                  </SelectTrigger>
+                  <SelectContent className="z-50 bg-background border">
+                    <SelectItem value="draft">
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="secondary" className="text-xs">Brouillon</Badge>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="published">
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="default" className="text-xs">Publié</Badge>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="archived">
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="outline" className="text-xs">Archivé</Badge>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -880,6 +905,31 @@ const Documentation = () => {
                         {category.label}
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-status">Statut</Label>
+                <Select value={editDocument.status} onValueChange={(value: 'draft' | 'published' | 'archived') => setEditDocument({...editDocument, status: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un statut" />
+                  </SelectTrigger>
+                  <SelectContent className="z-50 bg-background border">
+                    <SelectItem value="draft">
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="secondary" className="text-xs">Brouillon</Badge>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="published">
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="default" className="text-xs">Publié</Badge>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="archived">
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="outline" className="text-xs">Archivé</Badge>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
