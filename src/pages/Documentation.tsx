@@ -161,11 +161,17 @@ const Documentation = () => {
     try {
       setLoading(true);
       
-      // Récupérer les documents
-      const { data: docsData, error: docsError } = await supabase
+      // Récupérer les documents - Admin MSP voit tout, autres voient leur équipe
+      let query = supabase
         .from('documentation')
-        .select('*')
-        .eq('team_id', userProfile.default_team_id)
+        .select('*');
+
+      // Si pas admin MSP, filtrer par équipe
+      if (!userProfile?.is_msp_admin) {
+        query = query.eq('team_id', userProfile.default_team_id);
+      }
+
+      const { data: docsData, error: docsError } = await query
         .order('updated_at', { ascending: false });
 
       if (docsError) throw docsError;
