@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganizationsAndTeams } from "@/hooks/useOrganizationsAndTeams";
-import { NotionEditorWrapper } from "@/components/documentation/NotionEditorWrapper";
+import { TipTapEditor } from "@/components/documentation/TipTapEditor";
 import { 
   PageHeader, 
   DataGrid, 
@@ -459,9 +459,9 @@ const Documentation = () => {
   // Si on est en mode édition ou visualisation de document, afficher l'éditeur
   if ((isEditingDocument || isViewingDocument) && selectedDocument) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
+      <div className="min-h-screen bg-background">
+        <div className="sticky top-0 z-20 bg-background border-b border-border">
+          <div className="flex items-center justify-between p-4">
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
@@ -474,53 +474,82 @@ const Documentation = () => {
               >
                 ← Retour à la liste
               </Button>
-              <h1 className="text-2xl font-bold tracking-tight">{selectedDocument.title}</h1>
-              <Badge variant={getStatusColor(selectedDocument.metadata?.status || "draft")}>
-                {selectedDocument.metadata?.status || "draft"}
-              </Badge>
-              {isViewingDocument && (
-                <Badge variant="outline">Mode lecture</Badge>
-              )}
+              <div>
+                <h1 className="text-xl font-semibold">{selectedDocument.title}</h1>
+                <div className="flex items-center space-x-2 mt-1">
+                  <Badge variant={getStatusColor(selectedDocument.metadata?.status || "draft")}>
+                    {selectedDocument.metadata?.status || "draft"}
+                  </Badge>
+                  {isViewingDocument && (
+                    <Badge variant="outline">Mode lecture</Badge>
+                  )}
+                  <span className="text-xs text-muted-foreground">
+                    Version {selectedDocument.version}
+                  </span>
+                </div>
+              </div>
             </div>
-            <p className="text-muted-foreground">
-              Version {selectedDocument.version} - {selectedDocument.metadata?.category}
-            </p>
-          </div>
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => downloadPDF(selectedDocument)}
-            >
-              <Download className="h-4 w-4 mr-1" />
-              Télécharger PDF
-            </Button>
-            {isViewingDocument && (
+            <div className="flex space-x-2">
               <Button
-                variant="default"
+                variant="outline"
                 size="sm"
-                onClick={() => openDocumentEditor(selectedDocument, true)}
+                onClick={() => downloadPDF(selectedDocument)}
               >
-                <Edit className="h-4 w-4 mr-1" />
-                Modifier
+                <Download className="h-4 w-4 mr-1" />
+                PDF
               </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => openEditModal(selectedDocument)}
-            >
-              <Cog className="h-4 w-4 mr-1" />
-              Modifier métadonnées
-            </Button>
+              {isViewingDocument && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => openDocumentEditor(selectedDocument, true)}
+                >
+                  <Edit className="h-4 w-4 mr-1" />
+                  Modifier
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openEditModal(selectedDocument)}
+              >
+                <Cog className="h-4 w-4 mr-1" />
+                Métadonnées
+              </Button>
+            </div>
           </div>
         </div>
         
-        <div className="border rounded-lg bg-background flex-1 min-h-[600px]">
-          <NotionEditorWrapper 
-            documentId={selectedDocument.id}
-            teamId={selectedDocument.team_id}
-            readOnly={isViewingDocument}
+        <div className="container mx-auto p-4">
+          <TipTapEditor 
+            content={selectedDocument.content ? JSON.parse(selectedDocument.content) : null}
+            onChange={(content) => {
+              // Auto-save logic here
+              console.log('Content changed:', content);
+            }}
+            onSave={async (content) => {
+              try {
+                const { error } = await supabase
+                  .from('team_documents')
+                  .update({
+                    content: JSON.stringify(content),
+                    updated_at: new Date().toISOString(),
+                    updated_by: userProfile?.id
+                  })
+                  .eq('id', selectedDocument.id);
+                
+                if (error) throw error;
+                toast.success('Document sauvegardé automatiquement');
+              } catch (error) {
+                console.error('Auto-save error:', error);
+                toast.error('Erreur lors de la sauvegarde automatique');
+              }
+            }}
+            editable={isEditingDocument}
+            placeholder="Commencez à écrire votre document..."
+            autoSave={isEditingDocument}
+            autoSaveDelay={3000}
+            className="max-w-none"
           />
         </div>
       </div>
