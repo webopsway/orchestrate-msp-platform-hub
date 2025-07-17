@@ -53,7 +53,7 @@ import {
   CheckCircle,
   AlertCircle,
   Building2,
-  Settings
+  Cog
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -966,7 +966,7 @@ const Documentation = () => {
                       openEditModal(selectedDocument);
                     }}
                   >
-                    <Settings className="h-4 w-4 mr-1" />
+                    <Cog className="h-4 w-4 mr-1" />
                     Modifier métadonnées
                   </Button>
                 </div>
