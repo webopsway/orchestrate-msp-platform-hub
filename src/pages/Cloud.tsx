@@ -6,6 +6,7 @@ import { Cloud, Server, Settings, Database } from "lucide-react";
 import CloudAccounts from "./CloudAccounts";
 import CloudInventory from "./CloudInventory";
 import CloudOrchestration from "./CloudOrchestration";
+import { CloudProviderManager } from "@/components/cloud";
 
 const CloudManagement = () => {
   const [activeTab, setActiveTab] = useState("accounts");
@@ -18,10 +19,14 @@ const CloudManagement = () => {
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="accounts" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             Comptes
+          </TabsTrigger>
+          <TabsTrigger value="providers" className="flex items-center gap-2">
+            <Cloud className="h-4 w-4" />
+            Providers
           </TabsTrigger>
           <TabsTrigger value="inventory" className="flex items-center gap-2">
             <Server className="h-4 w-4" />
@@ -35,6 +40,10 @@ const CloudManagement = () => {
 
         <TabsContent value="accounts" className="space-y-6">
           <CloudAccounts />
+        </TabsContent>
+
+        <TabsContent value="providers" className="space-y-6">
+          <CloudProviderManager />
         </TabsContent>
 
         <TabsContent value="inventory" className="space-y-6">
