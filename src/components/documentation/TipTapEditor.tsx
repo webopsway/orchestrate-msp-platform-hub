@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { BlockDndProvider } from './extensions/BlockDndExtension';
 import { ParagraphDnd } from './extensions/paragraph-dnd-extension';
+import { SlashMenu } from './extensions/SlashMenu';
 
 const lowlight = createLowlight(common);
 
@@ -49,6 +50,10 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   autoSave = false,
   autoSaveDelay = 2000
 }) => {
+  const [showSlashMenu, setShowSlashMenu] = useState(false);
+  const [slashMenuPosition, setSlashMenuPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const editorRef = useRef<HTMLDivElement>(null);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -110,6 +115,22 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
       attributes: {
         class: `prose prose-sm sm:prose lg:prose-lg xl:prose-xl mx-auto focus:outline-none min-h-[200px] ${className}`,
         'data-placeholder': placeholder,
+      },
+      handleKeyDown(view, event) {
+        if (event.key === '/' && editable) {
+          // Obtenir la position du curseur
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+            setSlashMenuPosition({ x: rect.left, y: rect.bottom + window.scrollY });
+            setShowSlashMenu(true);
+          }
+        }
+        if (showSlashMenu && event.key === 'Escape') {
+          setShowSlashMenu(false);
+        }
+        return false;
       },
     },
   });
@@ -287,7 +308,16 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
       )}
       {/* Bloc DnD provider autour de l'éditeur */}
       <BlockDndProvider editor={editor}>
-        <EditorContent editor={editor} />
+        <div ref={editorRef} className="relative">
+          <EditorContent editor={editor} />
+          {showSlashMenu && editor && (
+            <SlashMenu
+              editor={editor}
+              position={slashMenuPosition}
+              onClose={() => setShowSlashMenu(false)}
+            />
+          )}
+        </div>
       </BlockDndProvider>
 
       {/* CSS pour le placeholder et styles */}
