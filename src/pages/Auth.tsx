@@ -46,12 +46,8 @@ const Auth = () => {
     accentColor: "#1e40af"
   });
 
-  // Redirection si déjà connecté
-  useEffect(() => {
-    if (user) {
-      navigate("/", { replace: true });
-    }
-  }, [user, navigate]);
+  // Redirection si déjà connecté - suppressée pour éviter la boucle
+  // La redirection est gérée par PublicRoute dans App.tsx
 
   // Chargement du branding par équipe
   useEffect(() => {
