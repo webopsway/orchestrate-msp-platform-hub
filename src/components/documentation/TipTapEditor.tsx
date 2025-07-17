@@ -23,6 +23,7 @@ import {
   Table as TableIcon,
   Minus
 } from 'lucide-react';
+import { BlockDndProvider } from './extensions/BlockDndExtension';
 
 const lowlight = createLowlight(common);
 
@@ -279,12 +280,10 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
           </Button>
         </div>
       )}
-
-      {/* Editor Content */}
-      <EditorContent 
-        editor={editor} 
-        className="min-h-[400px] focus-within:outline-none"
-      />
+      {/* Bloc DnD provider autour de l'éditeur */}
+      <BlockDndProvider editor={editor}>
+        <EditorContent editor={editor} />
+      </BlockDndProvider>
 
       {/* CSS pour le placeholder et styles */}
       <style dangerouslySetInnerHTML={{
