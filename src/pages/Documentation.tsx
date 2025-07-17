@@ -442,6 +442,16 @@ const Documentation = () => {
     { value: "reference", label: "Référence" }
   ];
 
+  const safeParseTiptapContent = (content: string | null | undefined) => {
+    if (!content) return null;
+    try {
+      return JSON.parse(content);
+    } catch (e) {
+      console.error('Erreur de parsing du contenu Tiptap:', e, content);
+      return 'error';
+    }
+  };
+
   if (loading && documents.length === 0) {
     return (
       <div className="space-y-6">
@@ -521,36 +531,43 @@ const Documentation = () => {
         </div>
         
         <div className="container mx-auto p-4">
-          <TipTapEditor 
-            content={selectedDocument.content ? JSON.parse(selectedDocument.content) : null}
-            onChange={(content) => {
-              // Auto-save logic here
-              console.log('Content changed:', content);
-            }}
-            onSave={async (content) => {
-              try {
-                const { error } = await supabase
-                  .from('team_documents')
-                  .update({
-                    content: JSON.stringify(content),
-                    updated_at: new Date().toISOString(),
-                    updated_by: userProfile?.id
-                  })
-                  .eq('id', selectedDocument.id);
-                
-                if (error) throw error;
-                toast.success('Document sauvegardé automatiquement');
-              } catch (error) {
-                console.error('Auto-save error:', error);
-                toast.error('Erreur lors de la sauvegarde automatique');
-              }
-            }}
-            editable={isEditingDocument}
-            placeholder="Commencez à écrire votre document..."
-            autoSave={isEditingDocument}
-            autoSaveDelay={3000}
-            className="max-w-none"
-          />
+          {safeParseTiptapContent(selectedDocument.content) === 'error' ? (
+            <div className="p-4 bg-destructive/10 border border-destructive rounded text-destructive mb-4">
+              Erreur : le contenu du document est corrompu ou non lisible.<br />
+              Veuillez contacter un administrateur ou restaurer une version précédente.
+            </div>
+          ) : (
+            <TipTapEditor
+              content={safeParseTiptapContent(selectedDocument.content)}
+              onChange={(content) => {
+                // Auto-save logic here
+                console.log('Content changed:', content);
+              }}
+              onSave={async (content) => {
+                try {
+                  const { error } = await supabase
+                    .from('team_documents')
+                    .update({
+                      content: JSON.stringify(content),
+                      updated_at: new Date().toISOString(),
+                      updated_by: userProfile?.id
+                    })
+                    .eq('id', selectedDocument.id);
+                  
+                  if (error) throw error;
+                  toast.success('Document sauvegardé automatiquement');
+                } catch (error) {
+                  console.error('Auto-save error:', error);
+                  toast.error('Erreur lors de la sauvegarde automatique');
+                }
+              }}
+              editable={isEditingDocument}
+              placeholder="Commencez à écrire votre document..."
+              autoSave={isEditingDocument}
+              autoSaveDelay={3000}
+              className="max-w-none"
+            />
+          )}
         </div>
       </div>
     );
