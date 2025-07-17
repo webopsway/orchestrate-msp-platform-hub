@@ -117,7 +117,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Fetch document
     const { data: document, error: docError } = await supabase
-      .from('documentation')
+      .from('team_documents')
       .select('*')
       .eq('id', document_id)
       .single();
