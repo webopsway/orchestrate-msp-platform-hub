@@ -758,6 +758,41 @@ export type Database = {
           },
         ]
       }
+      documentation_pages: {
+        Row: {
+          content: Json
+          created_at: string | null
+          id: string
+          team_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: Json
+          created_at?: string | null
+          id?: string
+          team_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: Json
+          created_at?: string | null
+          id?: string
+          team_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentation_pages_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       infrastructure_docs: {
         Row: {
           approved_by: string | null
