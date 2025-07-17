@@ -123,10 +123,13 @@ export function NotionClone({
     }
   }, [blocks]);
 
-  // Sauvegarder automatiquement
+  // Sauvegarder automatiquement avec débounce
   const saveBlocks = useCallback((blocks: Block[]) => {
     if (!readOnly) {
-      onSave(blocks);
+      // Utiliser setTimeout pour éviter les mises à jour pendant le rendu
+      setTimeout(() => {
+        onSave(blocks);
+      }, 0);
     }
   }, [onSave, readOnly]);
 
@@ -174,13 +177,15 @@ export function NotionClone({
     });
   }, [saveBlocks]);
 
-  // Mettre à jour le contenu d'un bloc
   const updateBlockContent = useCallback((blockId: string, content: any) => {
     setEditorBlocks(prev => {
       const updated = prev.map(block => 
         block.id === blockId ? { ...block, content } : block
       );
-      saveBlocks(updated);
+      // Débouncer la sauvegarde pour éviter trop d'appels
+      setTimeout(() => {
+        saveBlocks(updated);
+      }, 500);
       return updated;
     });
   }, [saveBlocks]);
