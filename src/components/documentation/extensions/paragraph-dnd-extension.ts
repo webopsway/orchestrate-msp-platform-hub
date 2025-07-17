@@ -4,17 +4,34 @@ import { DraggableParagraphNodeView } from './DraggableParagraphNodeView';
 
 export const ParagraphDnd = Node.create({
   name: 'paragraph',
+  priority: 1000,
   group: 'block',
   content: 'inline*',
-  draggable: true,
+  
   parseHTML() {
     return [
       { tag: 'p' },
     ];
   },
+
   renderHTML({ HTMLAttributes }) {
     return ['p', mergeAttributes(HTMLAttributes), 0];
   },
+
+  addCommands() {
+    return {
+      setParagraph: () => ({ commands }) => {
+        return commands.setNode(this.name);
+      },
+    };
+  },
+
+  addKeyboardShortcuts() {
+    return {
+      'Mod-Alt-0': () => this.editor.commands.setParagraph(),
+    };
+  },
+
   addNodeView() {
     return ReactNodeViewRenderer(DraggableParagraphNodeView);
   },

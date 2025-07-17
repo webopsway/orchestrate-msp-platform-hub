@@ -57,7 +57,6 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        paragraph: false, // Désactiver le paragraphe par défaut
         bulletList: {
           keepMarks: true,
           keepAttributes: false,
@@ -67,7 +66,6 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
           keepAttributes: false,
         },
       }),
-      ParagraphDnd, // Ajouter notre extension paragraph personnalisée
       Image.configure({
         HTMLAttributes: {
           class: 'rounded-lg max-w-full h-auto',
@@ -113,22 +111,6 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
       attributes: {
         class: `prose prose-sm sm:prose lg:prose-lg xl:prose-xl mx-auto focus:outline-none min-h-[200px] ${className}`,
         'data-placeholder': placeholder,
-      },
-      handleKeyDown(view, event) {
-        if (event.key === '/' && editable) {
-          // Obtenir la position du curseur
-          const selection = window.getSelection();
-          if (selection && selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            const rect = range.getBoundingClientRect();
-            setSlashMenuPosition({ x: rect.left, y: rect.bottom + window.scrollY });
-            setShowSlashMenu(true);
-          }
-        }
-        if (showSlashMenu && event.key === 'Escape') {
-          setShowSlashMenu(false);
-        }
-        return false;
       },
     },
   });
@@ -305,18 +287,16 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
         </div>
       )}
       {/* Bloc DnD provider autour de l'éditeur */}
-      <BlockDndProvider editor={editor}>
-        <div ref={editorRef} className="relative">
-          <EditorContent editor={editor} />
-          {showSlashMenu && editor && (
-            <SlashMenu
-              editor={editor}
-              position={slashMenuPosition}
-              onClose={() => setShowSlashMenu(false)}
-            />
-          )}
-        </div>
-      </BlockDndProvider>
+      <div ref={editorRef} className="relative">
+        <EditorContent editor={editor} />
+        {showSlashMenu && editor && (
+          <SlashMenu
+            editor={editor}
+            position={slashMenuPosition}
+            onClose={() => setShowSlashMenu(false)}
+          />
+        )}
+      </div>
 
       {/* CSS pour le placeholder et styles */}
       <style dangerouslySetInnerHTML={{
