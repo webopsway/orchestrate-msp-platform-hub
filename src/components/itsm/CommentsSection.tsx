@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Send, User, Clock, Edit, Trash2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { MessageSquare, Send, User, Clock, Edit, Trash2, Check, X, MoreVertical } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 
 interface Comment {
@@ -210,22 +213,46 @@ export function CommentsSection({ ticketId, ticketType, readonly = false }: Comm
                   </div>
                   
                   {!readonly && comment.created_by === user?.id && (
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => startEdit(comment)}
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteComment(comment.id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
+                    <TooltipProvider>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => startEdit(comment)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Modifier
+                          </DropdownMenuItem>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Supprimer
+                              </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Supprimer le commentaire</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Êtes-vous sûr de vouloir supprimer ce commentaire ? Cette action est irréversible.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => deleteComment(comment.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Supprimer
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TooltipProvider>
                   )}
                 </div>
                 
@@ -237,20 +264,24 @@ export function CommentsSection({ ticketId, ticketType, readonly = false }: Comm
                       placeholder="Modifier le commentaire..."
                       className="min-h-[60px]"
                     />
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => updateComment(comment.id)}
-                        disabled={!editContent.trim()}
-                      >
-                        Sauvegarder
-                      </Button>
+                    <div className="flex gap-2 justify-end">
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={cancelEdit}
+                        className="flex items-center gap-1"
                       >
+                        <X className="h-3 w-3" />
                         Annuler
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => updateComment(comment.id)}
+                        disabled={!editContent.trim()}
+                        className="flex items-center gap-1"
+                      >
+                        <Check className="h-3 w-3" />
+                        Sauvegarder
                       </Button>
                     </div>
                   </div>
