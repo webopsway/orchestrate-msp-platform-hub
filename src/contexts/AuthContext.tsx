@@ -93,19 +93,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id);
         
         setSession(session);
         setUser(session?.user ?? null);
         
         if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
-          await loadUserProfile(session.user.id);
+          // Déférer le chargement du profil pour éviter les conflits
+          setTimeout(() => {
+            loadUserProfile(session.user.id);
+          }, 0);
         } else if (event === 'SIGNED_OUT') {
           setUserProfile(null);
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
           if (!userProfile) {
-            await loadUserProfile(session.user.id);
+            setTimeout(() => {
+              loadUserProfile(session.user.id);
+            }, 0);
           }
         }
         
