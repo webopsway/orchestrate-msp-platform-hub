@@ -102,6 +102,7 @@ const Documentation = () => {
 
   // État pour l'édition en page complète
   const [isEditingDocument, setIsEditingDocument] = useState(false);
+  const [isViewingDocument, setIsViewingDocument] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
@@ -371,7 +372,13 @@ const Documentation = () => {
   const openDocumentEditor = (document: Document, editMode: boolean = false) => {
     setSelectedDocument(document);
     setSelectedVersion(document.version);
-    setIsEditingDocument(editMode);
+    if (editMode) {
+      setIsEditingDocument(true);
+      setIsViewingDocument(false);
+    } else {
+      setIsViewingDocument(true);
+      setIsEditingDocument(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -449,8 +456,8 @@ const Documentation = () => {
     );
   }
 
-  // Si on est en mode édition de document, afficher l'éditeur
-  if (isEditingDocument && selectedDocument) {
+  // Si on est en mode édition ou visualisation de document, afficher l'éditeur
+  if ((isEditingDocument || isViewingDocument) && selectedDocument) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -459,7 +466,10 @@ const Documentation = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsEditingDocument(false)}
+                onClick={() => {
+                  setIsEditingDocument(false);
+                  setIsViewingDocument(false);
+                }}
                 className="text-muted-foreground hover:text-foreground"
               >
                 ← Retour à la liste
@@ -468,6 +478,9 @@ const Documentation = () => {
               <Badge variant={getStatusColor(selectedDocument.metadata?.status || "draft")}>
                 {selectedDocument.metadata?.status || "draft"}
               </Badge>
+              {isViewingDocument && (
+                <Badge variant="outline">Mode lecture</Badge>
+              )}
             </div>
             <p className="text-muted-foreground">
               Version {selectedDocument.version} - {selectedDocument.metadata?.category}
@@ -482,6 +495,16 @@ const Documentation = () => {
               <Download className="h-4 w-4 mr-1" />
               Télécharger PDF
             </Button>
+            {isViewingDocument && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => openDocumentEditor(selectedDocument, true)}
+              >
+                <Edit className="h-4 w-4 mr-1" />
+                Modifier
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -497,7 +520,7 @@ const Documentation = () => {
           <NotionEditorWrapper 
             documentId={selectedDocument.id}
             teamId={selectedDocument.team_id}
-            readOnly={false}
+            readOnly={isViewingDocument}
           />
         </div>
       </div>
