@@ -52,7 +52,8 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Building2
+  Building2,
+  Settings
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -104,6 +105,7 @@ const Documentation = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
+  const [isEditingContent, setIsEditingContent] = useState(false);
 
 
   // État pour les formulaires
@@ -206,6 +208,7 @@ const Documentation = () => {
       };
       setSelectedDocument(newDoc);
       setIsViewModalOpen(true);
+      setIsEditingContent(true); // Démarrer en mode édition pour les nouveaux documents
       
       fetchDocuments();
     } catch (error) {
@@ -370,6 +373,7 @@ const Documentation = () => {
   const openViewModal = (document: Document) => {
     setSelectedDocument(document);
     setSelectedVersion(document.version);
+    setIsEditingContent(false); // Commencer en mode lecture par défaut
     setIsViewModalOpen(true);
   };
 
@@ -940,12 +944,29 @@ const Documentation = () => {
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => setIsEditingContent(!isEditingContent)}
+                  >
+                    {isEditingContent ? (
+                      <>
+                        <Eye className="h-4 w-4 mr-1" />
+                        Mode lecture
+                      </>
+                    ) : (
+                      <>
+                        <Edit className="h-4 w-4 mr-1" />
+                        Modifier contenu
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => {
                       setIsViewModalOpen(false);
                       openEditModal(selectedDocument);
                     }}
                   >
-                    <Edit className="h-4 w-4 mr-1" />
+                    <Settings className="h-4 w-4 mr-1" />
                     Modifier métadonnées
                   </Button>
                 </div>
@@ -955,7 +976,7 @@ const Documentation = () => {
                 <NotionEditorWrapper 
                   documentId={selectedDocument.id}
                   teamId={selectedDocument.team_id}
-                  readOnly={true}
+                  readOnly={!isEditingContent}
                 />
               </div>
             </div>
