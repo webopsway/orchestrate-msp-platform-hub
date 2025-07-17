@@ -1,5 +1,5 @@
 import React from 'react';
-import { NotionLikeEditor } from './NotionLikeEditor';
+import { NotionClone } from './NotionClone';
 import { useNotionEditor } from '../../hooks/useNotionEditor';
 import { Loader2 } from 'lucide-react';
 
@@ -15,6 +15,64 @@ export function NotionEditorWrapper({
   readOnly = false 
 }: NotionEditorWrapperProps) {
   const { blocks, loading, isSaving, handleSave } = useNotionEditor(documentId, teamId);
+
+  const handleNotionSave = (editorBlocks: any[]) => {
+    // Convertir au format EditorJS OutputData
+    const outputData = {
+      version: "2.28.2",
+      time: Date.now(),
+      blocks: editorBlocks.map(block => ({
+        id: block.id,
+        type: block.type === 'paragraph' ? 'paragraph' : 
+              block.type.startsWith('heading') ? 'header' :
+              block.type.includes('list') ? 'list' :
+              block.type,
+        data: convertBlockToEditorData(block)
+      }))
+    };
+    
+    handleSave(outputData);
+  };
+
+  const convertBlockToEditorData = (block: any) => {
+    switch (block.type) {
+      case 'heading1':
+      case 'heading2':
+      case 'heading3':
+        return { 
+          text: block.content.text || '', 
+          level: parseInt(block.type.replace('heading', '')) 
+        };
+      case 'bulleted-list':
+        return { 
+          style: 'unordered', 
+          items: [block.content.text || ''] 
+        };
+      case 'numbered-list':
+        return { 
+          style: 'ordered', 
+          items: [block.content.text || ''] 
+        };
+      case 'quote':
+        return { 
+          text: block.content.text || '', 
+          caption: '' 
+        };
+      case 'code':
+        return { 
+          code: block.content.text || '' 
+        };
+      case 'todo':
+        return { 
+          text: block.content.text || '', 
+          checked: block.content.checked || false 
+        };
+      default:
+        return { 
+          text: block.content.text || '' 
+        };
+    }
+  };
 
   if (loading) {
     return (
@@ -33,11 +91,11 @@ export function NotionEditorWrapper({
         </div>
       )}
       
-      <NotionLikeEditor
+      <NotionClone
         documentId={documentId}
         teamId={teamId}
         blocks={blocks}
-        onSave={handleSave}
+        onSave={handleNotionSave}
         readOnly={readOnly}
       />
     </div>
