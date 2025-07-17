@@ -97,7 +97,7 @@ export function useNotionEditor(documentId: string, teamId: string) {
         }
       }
 
-      toast.success('Document saved successfully');
+      
     } catch (error) {
       console.error('Error saving document:', error);
       toast.error('Failed to save document');

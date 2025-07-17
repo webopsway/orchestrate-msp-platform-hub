@@ -35,8 +35,6 @@ export const useDocumentBlocks = (documentId?: string) => {
     if (!user || !documentId) return;
 
     try {
-      setLoading(true);
-
       const { data, error } = await supabase
         .from('document_content_blocks')
         .insert({
@@ -49,20 +47,26 @@ export const useDocumentBlocks = (documentId?: string) => {
 
       if (error) throw error;
 
-      toast.success('Bloc créé avec succès');
-      await fetchBlocks();
+      // Optimistic update - add to local state
+      setBlocks(prevBlocks => [...prevBlocks, data as DocumentContentBlock].sort((a, b) => a.position - b.position));
+      
       return data;
     } catch (error) {
       console.error('Error creating block:', error);
       toast.error('Erreur lors de la création du bloc');
-    } finally {
-      setLoading(false);
     }
   };
 
   const updateBlock = async (blockId: string, updates: Partial<DocumentContentBlock>) => {
     try {
-      setLoading(true);
+      // Optimistic update - update local state first
+      setBlocks(prevBlocks => 
+        prevBlocks.map(block => 
+          block.id === blockId 
+            ? { ...block, ...updates, updated_at: new Date().toISOString() }
+            : block
+        )
+      );
 
       const { error } = await supabase
         .from('document_content_blocks')
@@ -72,36 +76,39 @@ export const useDocumentBlocks = (documentId?: string) => {
         })
         .eq('id', blockId);
 
-      if (error) throw error;
+      if (error) {
+        // Revert optimistic update on error
+        await fetchBlocks();
+        throw error;
+      }
 
-      toast.success('Bloc mis à jour');
-      await fetchBlocks();
+      // No need to fetch again, state is already updated optimistically
     } catch (error) {
       console.error('Error updating block:', error);
       toast.error('Erreur lors de la mise à jour');
-    } finally {
-      setLoading(false);
     }
   };
 
   const deleteBlock = async (blockId: string) => {
     try {
-      setLoading(true);
+      // Optimistic update - remove from local state first
+      setBlocks(prevBlocks => prevBlocks.filter(block => block.id !== blockId));
 
       const { error } = await supabase
         .from('document_content_blocks')
         .delete()
         .eq('id', blockId);
 
-      if (error) throw error;
+      if (error) {
+        // Revert optimistic update on error
+        await fetchBlocks();
+        throw error;
+      }
 
-      toast.success('Bloc supprimé');
-      await fetchBlocks();
+      // No need to fetch again, state is already updated optimistically
     } catch (error) {
       console.error('Error deleting block:', error);
       toast.error('Erreur lors de la suppression');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -137,30 +144,6 @@ export const useDocumentBlocks = (documentId?: string) => {
     }
   }, [documentId]);
 
-  // Real-time subscriptions
-  useEffect(() => {
-    if (!user || !documentId) return;
-
-    const channel = supabase
-      .channel('document_blocks_updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'document_content_blocks',
-          filter: `document_id=eq.${documentId}`
-        },
-        () => {
-          fetchBlocks();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, documentId]);
 
   return {
     blocks,

@@ -36,7 +36,7 @@ export function NotionLikeEditor({
     
     saveTimeoutRef.current = setTimeout(() => {
       onSave(outputData);
-    }, 1500); // Wait 1.5 seconds before saving
+    }, 500); // Wait 500ms before saving (like Notion)
   }, [onSave]);
 
   // Convert blocks to Editor.js format
