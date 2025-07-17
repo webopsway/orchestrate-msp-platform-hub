@@ -694,6 +694,70 @@ export type Database = {
           },
         ]
       }
+      document_content_blocks: {
+        Row: {
+          block_type: string
+          content: Json
+          created_at: string
+          created_by: string
+          document_id: string
+          id: string
+          metadata: Json | null
+          position: number
+          team_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          block_type: string
+          content?: Json
+          created_at?: string
+          created_by: string
+          document_id: string
+          id?: string
+          metadata?: Json | null
+          position?: number
+          team_id: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          block_type?: string
+          content?: Json
+          created_at?: string
+          created_by?: string
+          document_id?: string
+          id?: string
+          metadata?: Json | null
+          position?: number
+          team_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_content_blocks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_content_blocks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "team_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_content_blocks_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       infrastructure_docs: {
         Row: {
           approved_by: string | null

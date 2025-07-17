@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganizationsAndTeams } from "@/hooks/useOrganizationsAndTeams";
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import { DocumentBlockEditor } from "@/components/documentation/DocumentBlockEditor";
 import { 
   PageHeader, 
   DataGrid, 
@@ -106,37 +105,10 @@ const Documentation = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
 
-  // Configuration de ReactQuill
-  const quillModules = {
-    toolbar: [
-      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      [{ 'script': 'sub'}, { 'script': 'super' }],
-      [{ 'indent': '-1'}, { 'indent': '+1' }],
-      [{ 'direction': 'rtl' }],
-      [{ 'color': [] }, { 'background': [] }],
-      [{ 'align': [] }],
-      ['link', 'image', 'video'],
-      ['code-block'],
-      ['clean']
-    ],
-  };
-
-  const quillFormats = [
-    'header', 'font', 'size',
-    'bold', 'italic', 'underline', 'strike', 'blockquote',
-    'list', 'bullet', 'indent',
-    'link', 'image', 'video',
-    'color', 'background',
-    'align', 'direction',
-    'code-block', 'script'
-  ];
 
   // État pour les formulaires
   const [newDocument, setNewDocument] = useState({
     title: "",
-    content: "",
     category: "",
     team_id: "", // Nouvelle propriété pour l'équipe cliente
     tags: [] as string[],
@@ -145,7 +117,6 @@ const Documentation = () => {
 
   const [editDocument, setEditDocument] = useState({
     title: "",
-    content: "",
     category: "",
     tags: [] as string[],
     status: "draft" as 'draft' | 'published' | 'archived'
@@ -206,7 +177,7 @@ const Documentation = () => {
       const docData = {
         team_id: newDocument.team_id,
         title: newDocument.title,
-        content: newDocument.content,
+        content: '', // Contenu géré par les blocs
         version: "1.0",
         created_by: user?.id || '',
         metadata: {
@@ -247,7 +218,6 @@ const Documentation = () => {
         .from('team_documents')
         .update({
           title: editDocument.title,
-          content: editDocument.content,
           version: (parseFloat(selectedDocument.version) + 0.1).toFixed(1),
           updated_by: userProfile?.id,
           updated_at: new Date().toISOString(),
@@ -360,7 +330,6 @@ const Documentation = () => {
   const resetNewDocumentForm = () => {
     setNewDocument({
       title: "",
-      content: "",
       category: "",
       team_id: "",
       tags: [],
@@ -371,7 +340,6 @@ const Documentation = () => {
   const resetEditDocumentForm = () => {
     setEditDocument({
       title: "",
-      content: "",
       category: "",
       tags: [],
       status: "draft"
@@ -383,7 +351,6 @@ const Documentation = () => {
     setSelectedDocument(document);
     setEditDocument({
       title: document.title,
-      content: document.content,
       category: document.metadata?.category || "",
       tags: document.metadata?.tags || [],
       status: (document.metadata?.status as 'draft' | 'published' | 'archived') || "draft"
@@ -417,7 +384,6 @@ const Documentation = () => {
 
   const filteredDocuments = documents.filter(doc => {
     const matchesSearch = doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         doc.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          doc.metadata?.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = categoryFilter === "all" || doc.metadata?.category === categoryFilter;
     const matchesStatus = statusFilter === "all" || doc.metadata?.status === statusFilter;
@@ -581,7 +547,7 @@ const Documentation = () => {
                           <div>
                             <p className="font-medium">{doc.title}</p>
                             <p className="text-sm text-muted-foreground truncate max-w-xs">
-                              {doc.content.substring(0, 100)}...
+                              Document avec blocs de contenu
                             </p>
                           </div>
                         </TableCell>
@@ -702,7 +668,7 @@ const Documentation = () => {
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <p className="text-sm text-muted-foreground line-clamp-3">
-                        {doc.content.substring(0, 150)}...
+                        Document avec blocs de contenu interactifs
                       </p>
                       
                       {doc.metadata?.tags && doc.metadata.tags.length > 0 && (
@@ -842,20 +808,6 @@ const Documentation = () => {
               </Select>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="doc-content">Contenu</Label>
-              <div className="border rounded-md bg-background">
-                <ReactQuill
-                  theme="snow"
-                  value={newDocument.content}
-                  onChange={(content) => setNewDocument({...newDocument, content})}
-                  modules={quillModules}
-                  formats={quillFormats}
-                  placeholder="Rédigez votre document ici..."
-                  style={{ height: '300px', marginBottom: '42px' }}
-                />
-              </div>
-            </div>
             
             <div className="flex justify-end space-x-2">
               <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
@@ -863,7 +815,7 @@ const Documentation = () => {
               </Button>
               <Button 
                 onClick={createDocument} 
-                disabled={!newDocument.title || !newDocument.content || !newDocument.team_id || teamsLoading}
+                disabled={!newDocument.title || !newDocument.team_id || teamsLoading}
               >
                 Créer
               </Button>
@@ -934,26 +886,12 @@ const Documentation = () => {
               </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="edit-content">Contenu</Label>
-              <div className="border rounded-md bg-background">
-                <ReactQuill
-                  theme="snow"
-                  value={editDocument.content}
-                  onChange={(content) => setEditDocument({...editDocument, content})}
-                  modules={quillModules}
-                  formats={quillFormats}
-                  placeholder="Rédigez votre document ici..."
-                  style={{ height: '300px', marginBottom: '42px' }}
-                />
-              </div>
-            </div>
             
             <div className="flex justify-end space-x-2">
               <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
                 Annuler
               </Button>
-              <Button onClick={updateDocument} disabled={!editDocument.title || !editDocument.content}>
+              <Button onClick={updateDocument} disabled={!editDocument.title}>
                 Mettre à jour
               </Button>
             </div>
@@ -961,9 +899,9 @@ const Documentation = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de visualisation */}
+      {/* Modal de visualisation avec gestionnaire de blocs */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-        <DialogContent className="sm:max-w-[900px] max-h-[80vh]">
+        <DialogContent className="sm:max-w-[1200px] max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>{selectedDocument?.title}</DialogTitle>
             <DialogDescription>
@@ -999,15 +937,16 @@ const Documentation = () => {
                     }}
                   >
                     <Edit className="h-4 w-4 mr-1" />
-                    Modifier
+                    Modifier métadonnées
                   </Button>
                 </div>
               </div>
               
-              <div className="border rounded-lg p-4 max-h-96 overflow-y-auto bg-background">
-                <div className="prose prose-sm max-w-none">
-                  <div dangerouslySetInnerHTML={{ __html: selectedDocument.content }} />
-                </div>
+              <div className="border rounded-lg p-4 max-h-[60vh] overflow-y-auto bg-background">
+                <DocumentBlockEditor 
+                  documentId={selectedDocument.id}
+                  teamId={selectedDocument.team_id}
+                />
               </div>
             </div>
           )}
