@@ -100,12 +100,11 @@ const Documentation = () => {
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<string>("");
 
-  // État pour les modals
+  // État pour l'édition en page complète
+  const [isEditingDocument, setIsEditingDocument] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
-  const [isEditingContent, setIsEditingContent] = useState(false);
 
 
   // État pour les formulaires
@@ -207,8 +206,7 @@ const Documentation = () => {
         metadata: (data.metadata as any) || { tags: [], category: 'general', status: 'draft', is_favorite: false }
       };
       setSelectedDocument(newDoc);
-      setIsViewModalOpen(true);
-      setIsEditingContent(true); // Démarrer en mode édition pour les nouveaux documents
+      setIsEditingDocument(true); // Basculer vers l'édition en page complète
       
       fetchDocuments();
     } catch (error) {
@@ -370,11 +368,10 @@ const Documentation = () => {
     setIsEditModalOpen(true);
   };
 
-  const openViewModal = (document: Document) => {
+  const openDocumentEditor = (document: Document, editMode: boolean = false) => {
     setSelectedDocument(document);
     setSelectedVersion(document.version);
-    setIsEditingContent(false); // Commencer en mode lecture par défaut
-    setIsViewModalOpen(true);
+    setIsEditingDocument(editMode);
   };
 
   const getStatusColor = (status: string) => {
@@ -447,6 +444,61 @@ const Documentation = () => {
         />
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Si on est en mode édition de document, afficher l'éditeur
+  if (isEditingDocument && selectedDocument) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsEditingDocument(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                ← Retour à la liste
+              </Button>
+              <h1 className="text-2xl font-bold tracking-tight">{selectedDocument.title}</h1>
+              <Badge variant={getStatusColor(selectedDocument.metadata?.status || "draft")}>
+                {selectedDocument.metadata?.status || "draft"}
+              </Badge>
+            </div>
+            <p className="text-muted-foreground">
+              Version {selectedDocument.version} - {selectedDocument.metadata?.category}
+            </p>
+          </div>
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => downloadPDF(selectedDocument)}
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Télécharger PDF
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openEditModal(selectedDocument)}
+            >
+              <Cog className="h-4 w-4 mr-1" />
+              Modifier métadonnées
+            </Button>
+          </div>
+        </div>
+        
+        <div className="border rounded-lg bg-background flex-1 min-h-[600px]">
+          <NotionEditorWrapper 
+            documentId={selectedDocument.id}
+            teamId={selectedDocument.team_id}
+            readOnly={false}
+          />
         </div>
       </div>
     );
@@ -607,7 +659,7 @@ const Documentation = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => openViewModal(doc)}
+                              onClick={() => openDocumentEditor(doc, false)}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
@@ -714,7 +766,7 @@ const Documentation = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => openViewModal(doc)}
+                          onClick={() => openDocumentEditor(doc, false)}
                         >
                           <Eye className="h-4 w-4 mr-1" />
                           Voir
@@ -912,77 +964,6 @@ const Documentation = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de visualisation avec gestionnaire de blocs */}
-      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-        <DialogContent className="sm:max-w-[1200px] max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>{selectedDocument?.title}</DialogTitle>
-            <DialogDescription>
-              Version {selectedDocument?.version} - {selectedDocument?.metadata?.category}
-            </DialogDescription>
-          </DialogHeader>
-          {selectedDocument && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <Badge variant={getStatusColor(selectedDocument.metadata?.status || "draft")}>
-                    {selectedDocument.metadata?.status || "draft"}
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">
-                    Dernière modification: {new Date(selectedDocument.updated_at).toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => downloadPDF(selectedDocument)}
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    Télécharger PDF
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsEditingContent(!isEditingContent)}
-                  >
-                    {isEditingContent ? (
-                      <>
-                        <Eye className="h-4 w-4 mr-1" />
-                        Mode lecture
-                      </>
-                    ) : (
-                      <>
-                        <Edit className="h-4 w-4 mr-1" />
-                        Modifier contenu
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setIsViewModalOpen(false);
-                      openEditModal(selectedDocument);
-                    }}
-                  >
-                    <Cog className="h-4 w-4 mr-1" />
-                    Modifier métadonnées
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="border rounded-lg max-h-[60vh] overflow-hidden bg-background">
-                <NotionEditorWrapper 
-                  documentId={selectedDocument.id}
-                  teamId={selectedDocument.team_id}
-                  readOnly={!isEditingContent}
-                />
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
