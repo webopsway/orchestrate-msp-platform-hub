@@ -1,13 +1,27 @@
-import React, { createContext, useContext, useRef } from 'react';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import React, { createContext, useContext, useRef, useState } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDraggable,
+  useDroppable,
+  DragEndEvent,
+  DragStartEvent,
+} from '@dnd-kit/core';
 import { useEditor, EditorContent, ReactRenderer } from '@tiptap/react';
 import { BlockDragHandle } from './BlockDragHandle';
 
-// Contexte pour fournir l'API DnD aux blocs
-const BlockDndContext = createContext({});
+const BlockDndContext = createContext({
+  getDragProps: (_id: string) => ({}),
+  getDropProps: (_id: string) => ({}),
+  isDraggingId: null as string | null,
+});
 export const useBlockDnd = () => useContext(BlockDndContext);
 
 export const BlockDndProvider = ({ editor, children }: { editor: any, children: React.ReactNode }) => {
+  const [draggingId, setDraggingId] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -16,15 +30,41 @@ export const BlockDndProvider = ({ editor, children }: { editor: any, children: 
     })
   );
 
-  // TODO: Gérer l'état de drag & drop, la logique de déplacement de blocs, etc.
-  // Pour l'instant, on fournit juste le contexte et le DndContext autour du contenu
+  // Utilitaire pour obtenir l'id du bloc (node) à partir du DOM
+  const getNodeIdFromEvent = (event: { active: { id: string | number } }) => {
+    return String(event.active?.id);
+  };
+
+  // Fournit les props pour rendre un bloc draggable
+  const getDragProps = (id: string) => {
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id });
+    return { attributes, listeners, setNodeRef, isDragging };
+  };
+
+  // Fournit les props pour rendre un bloc droppable
+  const getDropProps = (id: string) => {
+    const { setNodeRef, isOver } = useDroppable({ id });
+    return { setNodeRef, isOver };
+  };
+
+  // Déplacement effectif du bloc dans Tiptap
+  const handleDragEnd = (event: DragEndEvent) => {
+    setDraggingId(null);
+    const { active, over } = event;
+    if (!active || !over || active.id === over.id) return;
+    const fromPos = editor.state.doc.content.findIndex((node: any) => node.attrs.id === active.id);
+    const toPos = editor.state.doc.content.findIndex((node: any) => node.attrs.id === over.id);
+    if (fromPos === -1 || toPos === -1) return;
+    editor.commands.moveNode({ from: fromPos, to: toPos });
+  };
 
   return (
-    <BlockDndContext.Provider value={{}}>
+    <BlockDndContext.Provider value={{ getDragProps, getDropProps, isDraggingId: draggingId }}>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
-        // TODO: onDragEnd, onDragStart, etc.
+        onDragStart={(e: DragStartEvent) => setDraggingId(getNodeIdFromEvent(e))}
+        onDragEnd={handleDragEnd}
       >
         {children}
       </DndContext>
@@ -32,7 +72,6 @@ export const BlockDndProvider = ({ editor, children }: { editor: any, children: 
   );
 };
 
-// Utilitaire pour rendre la poignée sur chaque bloc (à utiliser dans le composant de NodeView Tiptap)
 export const renderBlockDragHandle = (props: any) => {
   return <BlockDragHandle {...props} />;
 }; 

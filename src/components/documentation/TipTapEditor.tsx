@@ -24,6 +24,7 @@ import {
   Minus
 } from 'lucide-react';
 import { BlockDndProvider } from './extensions/BlockDndExtension';
+import { ParagraphDnd } from './extensions/paragraph-dnd-extension';
 
 const lowlight = createLowlight(common);
 
@@ -58,6 +59,10 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
         orderedList: {
           keepMarks: true,
           keepAttributes: false,
+        },
+      }).extend({
+        addExtensions() {
+          return [ParagraphDnd];
         },
       }),
       Image.configure({
