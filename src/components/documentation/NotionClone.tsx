@@ -392,7 +392,7 @@ function BlockComponent({
   const handleContentChange = useCallback((e: React.FormEvent<HTMLElement>) => {
     const text = e.currentTarget.textContent || '';
     onUpdate(block.id, { ...block.content, text });
-  }, [block.id, block.content, onUpdate]);
+  }, [block.id, onUpdate]);
 
   const renderBlock = () => {
     const commonProps = {
@@ -404,47 +404,60 @@ function BlockComponent({
       onFocus: onSelect,
       className: `outline-none min-h-[1.5rem] py-1 px-2 rounded transition-colors ${
         isSelected ? 'bg-primary/5' : 'hover:bg-muted/50'
-      }`,
-      dangerouslySetInnerHTML: { __html: block.content.text || '' }
+      }`
     };
 
     switch (block.type) {
       case 'heading1':
         return (
-          <h1 {...commonProps} className={`${commonProps.className} text-3xl font-bold leading-tight`} />
+          <h1 {...commonProps} className={`${commonProps.className} text-3xl font-bold leading-tight`}>
+            {block.content.text || ''}
+          </h1>
         );
       case 'heading2':
         return (
-          <h2 {...commonProps} className={`${commonProps.className} text-2xl font-semibold leading-tight`} />
+          <h2 {...commonProps} className={`${commonProps.className} text-2xl font-semibold leading-tight`}>
+            {block.content.text || ''}
+          </h2>
         );
       case 'heading3':
         return (
-          <h3 {...commonProps} className={`${commonProps.className} text-xl font-semibold leading-tight`} />
+          <h3 {...commonProps} className={`${commonProps.className} text-xl font-semibold leading-tight`}>
+            {block.content.text || ''}
+          </h3>
         );
       case 'quote':
         return (
           <blockquote className="border-l-4 border-primary pl-4 py-2">
-            <div {...commonProps} className={`${commonProps.className} italic text-muted-foreground`} />
+            <div {...commonProps} className={`${commonProps.className} italic text-muted-foreground`}>
+              {block.content.text || ''}
+            </div>
           </blockquote>
         );
       case 'code':
         return (
           <div className="bg-muted rounded-lg p-4 font-mono text-sm">
-            <div {...commonProps} className={`${commonProps.className} whitespace-pre-wrap font-mono`} />
+            <div {...commonProps} className={`${commonProps.className} whitespace-pre-wrap font-mono`}>
+              {block.content.text || ''}
+            </div>
           </div>
         );
       case 'bulleted-list':
         return (
           <div className="flex items-start gap-3">
             <span className="w-2 h-2 bg-foreground rounded-full mt-2 flex-shrink-0" />
-            <div {...commonProps} className={`${commonProps.className} flex-1`} />
+            <div {...commonProps} className={`${commonProps.className} flex-1`}>
+              {block.content.text || ''}
+            </div>
           </div>
         );
       case 'numbered-list':
         return (
           <div className="flex items-start gap-3">
             <span className="text-muted-foreground font-medium mt-1 flex-shrink-0">{index + 1}.</span>
-            <div {...commonProps} className={`${commonProps.className} flex-1`} />
+            <div {...commonProps} className={`${commonProps.className} flex-1`}>
+              {block.content.text || ''}
+            </div>
           </div>
         );
       case 'todo':
@@ -456,7 +469,9 @@ function BlockComponent({
               checked={block.content.checked || false}
               onChange={(e) => onUpdate(block.id, { ...block.content, checked: e.target.checked })}
             />
-            <div {...commonProps} className={`${commonProps.className} flex-1`} />
+            <div {...commonProps} className={`${commonProps.className} flex-1`}>
+              {block.content.text || ''}
+            </div>
           </div>
         );
       default:
@@ -464,7 +479,9 @@ function BlockComponent({
           <div 
             {...commonProps}
             data-placeholder={block.content.text ? '' : "Tapez '/' pour les commandes"}
-          />
+          >
+            {block.content.text || ''}
+          </div>
         );
     }
   };
