@@ -1,7 +1,7 @@
 export interface DocumentContentBlock {
   id: string;
   document_id: string;
-  block_type: 'markdown' | 'excalidraw' | 'drawio';
+  block_type: 'markdown' | 'excalidraw' | 'drawio' | 'header' | 'list' | 'code' | 'quote' | 'paragraph';
   content: any;
   position: number;
   title?: string;
