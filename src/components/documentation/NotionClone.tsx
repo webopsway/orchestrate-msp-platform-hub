@@ -99,6 +99,7 @@ export function NotionClone({
   const [commandMenuPosition, setCommandMenuPosition] = useState({ x: 0, y: 0 });
   const [commandFilter, setCommandFilter] = useState('');
   const commandMenuRef = useRef<HTMLDivElement>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Convertir les blocks de la DB vers notre format interne
   useEffect(() => {
@@ -182,10 +183,16 @@ export function NotionClone({
       const updated = prev.map(block => 
         block.id === blockId ? { ...block, content } : block
       );
-      // Débouncer la sauvegarde pour éviter trop d'appels
-      setTimeout(() => {
+      
+      // Débouncer la sauvegarde
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      
+      saveTimeoutRef.current = setTimeout(() => {
         saveBlocks(updated);
-      }, 500);
+      }, 1000); // Sauvegarder après 1 seconde d'inactivité
+      
       return updated;
     });
   }, [saveBlocks]);
