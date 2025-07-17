@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import EditorJS, { OutputData } from '@editorjs/editorjs';
 import Header from '@editorjs/header';
 import List from '@editorjs/list';
@@ -26,6 +26,18 @@ export function NotionLikeEditor({
 }: NotionLikeEditorProps) {
   const editorRef = useRef<EditorJS | null>(null);
   const holderRef = useRef<HTMLDivElement>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced save function
+  const debouncedSave = useCallback((outputData: OutputData) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    saveTimeoutRef.current = setTimeout(() => {
+      onSave(outputData);
+    }, 1500); // Wait 1.5 seconds before saving
+  }, [onSave]);
 
   // Convert blocks to Editor.js format
   const convertBlocksToEditorData = useCallback((blocks: DocumentContentBlock[]): OutputData => {
@@ -183,7 +195,7 @@ export function NotionLikeEditor({
         if (!readOnly) {
           try {
             const outputData = await api.saver.save();
-            onSave(outputData);
+            debouncedSave(outputData);
           } catch (error) {
             console.error('Editor.js save error:', error);
           }
@@ -195,6 +207,9 @@ export function NotionLikeEditor({
     });
 
     return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
       if (editorRef.current && editorRef.current.destroy) {
         editorRef.current.destroy();
         editorRef.current = null;
