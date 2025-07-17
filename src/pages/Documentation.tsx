@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganizationsAndTeams } from "@/hooks/useOrganizationsAndTeams";
-import { DocumentBlockEditor } from "@/components/documentation/DocumentBlockEditor";
+import { NotionEditorWrapper } from "@/components/documentation/NotionEditorWrapper";
 import { 
   PageHeader, 
   DataGrid, 
@@ -942,10 +942,11 @@ const Documentation = () => {
                 </div>
               </div>
               
-              <div className="border rounded-lg p-4 max-h-[60vh] overflow-y-auto bg-background">
-                <DocumentBlockEditor 
+              <div className="border rounded-lg max-h-[60vh] overflow-hidden bg-background">
+                <NotionEditorWrapper 
                   documentId={selectedDocument.id}
                   teamId={selectedDocument.team_id}
+                  readOnly={true}
                 />
               </div>
             </div>
