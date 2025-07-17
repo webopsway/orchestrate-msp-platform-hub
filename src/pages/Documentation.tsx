@@ -198,6 +198,15 @@ const Documentation = () => {
       toast.success('Document créé avec succès');
       setIsCreateModalOpen(false);
       resetNewDocumentForm();
+      
+      // Ouvrir automatiquement l'éditeur pour le nouveau document
+      const newDoc: Document = {
+        ...data,
+        metadata: (data.metadata as any) || { tags: [], category: 'general', status: 'draft', is_favorite: false }
+      };
+      setSelectedDocument(newDoc);
+      setIsViewModalOpen(true);
+      
       fetchDocuments();
     } catch (error) {
       console.error('Error creating document:', error);
