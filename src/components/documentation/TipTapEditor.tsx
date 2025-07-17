@@ -57,6 +57,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
+        paragraph: false, // Désactiver le paragraphe par défaut
         bulletList: {
           keepMarks: true,
           keepAttributes: false,
@@ -65,11 +66,8 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
           keepMarks: true,
           keepAttributes: false,
         },
-      }).extend({
-        addExtensions() {
-          return [ParagraphDnd];
-        },
       }),
+      ParagraphDnd, // Ajouter notre extension paragraph personnalisée
       Image.configure({
         HTMLAttributes: {
           class: 'rounded-lg max-w-full h-auto',
