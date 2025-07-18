@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useDashboardConfigurations } from '@/hooks/useDashboardConfigurations';
-import { DashboardConfigurationForm } from './DashboardConfigurationForm';
-import { DashboardPreview } from './DashboardPreview';
+import { DashboardBuilder } from './DashboardBuilder';
+import { DashboardGridLayout } from './DashboardGridLayout';
 import { Plus, Settings, Layout, Monitor } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -88,9 +88,9 @@ export function DashboardManager() {
             <DialogHeader>
               <DialogTitle>Créer une configuration de dashboard</DialogTitle>
             </DialogHeader>
-            <DashboardConfigurationForm
+            <DashboardBuilder
               widgets={availableWidgets}
-              onSubmit={handleCreateConfiguration}
+              onSave={handleCreateConfiguration}
               onCancel={() => setIsCreateDialogOpen(false)}
             />
           </DialogContent>
@@ -172,7 +172,11 @@ export function DashboardManager() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <DashboardPreview configuration={config} widgets={availableWidgets} />
+                    <DashboardGridLayout 
+                      configuration={config} 
+                      widgets={availableWidgets}
+                      isEditing={false}
+                    />
                   </CardContent>
                 </Card>
               ))}
@@ -213,10 +217,10 @@ export function DashboardManager() {
             <DialogTitle>Modifier la configuration</DialogTitle>
           </DialogHeader>
           {editingConfig && (
-            <DashboardConfigurationForm
+            <DashboardBuilder
               widgets={availableWidgets}
               initialData={editingConfig}
-              onSubmit={handleUpdateConfiguration}
+              onSave={handleUpdateConfiguration}
               onCancel={() => setEditingConfig(null)}
             />
           )}
