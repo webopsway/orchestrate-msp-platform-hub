@@ -27,11 +27,6 @@ export interface Application {
   documentation_url?: string;
   business_services: string[]; // IDs des services métiers
   deployments: ApplicationDeployment[];
-  organization_id: string;
-  business_owner_team_id?: string;
-  technical_owner_team_id?: string;
-  service_level?: string;
-  criticality: 'low' | 'medium' | 'high' | 'critical';
   metadata?: Record<string, any>;
   team_id: string;
   created_at: string;
@@ -86,11 +81,6 @@ export interface CreateApplicationData {
   repository_url?: string;
   documentation_url?: string;
   business_services?: string[];
-  organization_id: string;
-  business_owner_team_id?: string;
-  technical_owner_team_id?: string;
-  service_level?: string;
-  criticality: 'low' | 'medium' | 'high' | 'critical';
   metadata?: Record<string, any>;
 }
 
