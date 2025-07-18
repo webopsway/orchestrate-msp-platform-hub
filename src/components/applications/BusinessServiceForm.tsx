@@ -70,6 +70,36 @@ export function BusinessServiceForm({ onSubmit, onCancel, initialData }: Busines
     fetchData();
   }, []);
 
+  // Fonction pour mettre à jour l'organisation quand une équipe est sélectionnée
+  const handleTeamSelection = (teamId: string, teamType: 'business' | 'technical') => {
+    const selectedTeam = teams.find(team => team.id === teamId);
+    
+    if (selectedTeam && selectedTeam.organization_id) {
+      // Mettre à jour l'organisation automatiquement
+      setFormData(prev => ({
+        ...prev,
+        organization_id: selectedTeam.organization_id,
+        [teamType === 'business' ? 'business_owner_team_id' : 'technical_owner_team_id']: teamId
+      }));
+    } else {
+      // Juste mettre à jour l'équipe
+      setFormData(prev => ({
+        ...prev,
+        [teamType === 'business' ? 'business_owner_team_id' : 'technical_owner_team_id']: teamId
+      }));
+    }
+  };
+
+  // Fonction pour obtenir l'organisation d'une équipe
+  const getTeamOrganization = (teamId: string) => {
+    const team = teams.find(t => t.id === teamId);
+    if (team && team.organization_id) {
+      const org = organizations.find(o => o.id === team.organization_id);
+      return org ? org.name : '';
+    }
+    return '';
+  };
+
   const addToApplicationStack = (appId: string) => {
     if (!formData.application_stack?.includes(appId)) {
       setFormData({
@@ -252,7 +282,7 @@ export function BusinessServiceForm({ onSubmit, onCancel, initialData }: Busines
               <Label htmlFor="business_owner_team_id">Équipe propriétaire métier</Label>
               <Select
                 value={formData.business_owner_team_id || ''}
-                onValueChange={(value) => setFormData({ ...formData, business_owner_team_id: value })}
+                onValueChange={(value) => handleTeamSelection(value, 'business')}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner une équipe" />
@@ -260,18 +290,30 @@ export function BusinessServiceForm({ onSubmit, onCancel, initialData }: Busines
                 <SelectContent>
                   {teams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>
-                      {team.name}
+                      <div className="flex flex-col">
+                        <span>{team.name}</span>
+                        {team.organizations && (
+                          <span className="text-xs text-muted-foreground">
+                            {team.organizations.name}
+                          </span>
+                        )}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {formData.business_owner_team_id && getTeamOrganization(formData.business_owner_team_id) && (
+                <p className="text-sm text-muted-foreground">
+                  Organisation: {getTeamOrganization(formData.business_owner_team_id)}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="technical_owner_team_id">Équipe propriétaire technique</Label>
               <Select
                 value={formData.technical_owner_team_id || ''}
-                onValueChange={(value) => setFormData({ ...formData, technical_owner_team_id: value })}
+                onValueChange={(value) => handleTeamSelection(value, 'technical')}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner une équipe" />
@@ -279,11 +321,23 @@ export function BusinessServiceForm({ onSubmit, onCancel, initialData }: Busines
                 <SelectContent>
                   {teams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>
-                      {team.name}
+                      <div className="flex flex-col">
+                        <span>{team.name}</span>
+                        {team.organizations && (
+                          <span className="text-xs text-muted-foreground">
+                            {team.organizations.name}
+                          </span>
+                        )}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {formData.technical_owner_team_id && getTeamOrganization(formData.technical_owner_team_id) && (
+                <p className="text-sm text-muted-foreground">
+                  Organisation: {getTeamOrganization(formData.technical_owner_team_id)}
+                </p>
+              )}
             </div>
           </div>
 
