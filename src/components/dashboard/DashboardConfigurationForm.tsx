@@ -31,8 +31,8 @@ export function DashboardConfigurationForm({
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
     description: initialData?.description || '',
-    team_id: initialData?.team_id || '',
-    organization_id: initialData?.organization_id || '',
+    team_id: initialData?.team_id || 'all',
+    organization_id: initialData?.organization_id || 'all',
     is_default: initialData?.is_default || false,
     selected_widgets: initialData?.widgets?.map((w: any) => w.id) || []
   });
@@ -124,13 +124,13 @@ export function DashboardConfigurationForm({
             <Label htmlFor="organization">Organisation cible (optionnel)</Label>
             <Select 
               value={formData.organization_id} 
-              onValueChange={(value) => setFormData({ ...formData, organization_id: value })}
+              onValueChange={(value) => setFormData({ ...formData, organization_id: value === 'all' ? '' : value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Toutes les organisations" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Toutes les organisations</SelectItem>
+                <SelectItem value="all">Toutes les organisations</SelectItem>
                 {organizations.map((org) => (
                   <SelectItem key={org.id} value={org.id}>
                     {org.name}
@@ -144,13 +144,13 @@ export function DashboardConfigurationForm({
             <Label htmlFor="team">Équipe cible (optionnel)</Label>
             <Select 
               value={formData.team_id} 
-              onValueChange={(value) => setFormData({ ...formData, team_id: value })}
+              onValueChange={(value) => setFormData({ ...formData, team_id: value === 'all' ? '' : value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Toutes les équipes" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Toutes les équipes</SelectItem>
+                <SelectItem value="all">Toutes les équipes</SelectItem>
                 {teams.map((team) => (
                   <SelectItem key={team.id} value={team.id}>
                     {team.name}
