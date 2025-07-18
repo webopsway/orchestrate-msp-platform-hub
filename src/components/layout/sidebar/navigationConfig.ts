@@ -64,7 +64,8 @@ export const defaultNavigationItems: NavigationItem[] = [
   { id: "notifications", title: "Notifications", url: "/monitoring/notifications", icon: "Bell", order: 2, group: "monitoring" },
   { id: "documentation", title: "Documentation", url: "/documentation", icon: "FileText", order: 3, group: "monitoring" },
   
-  { id: "settings", title: "Paramètres", url: "/global-settings", icon: "Settings", order: 1, group: "admin" },
+  { id: "dashboard-config", title: "Configuration Dashboard", url: "/dashboard-config", icon: "Monitor", order: 1, group: "admin" },
+  { id: "settings", title: "Paramètres", url: "/global-settings", icon: "Settings", order: 2, group: "admin" },
 ];
 
 export const defaultGroups: NavigationGroup[] = [

@@ -15,33 +15,49 @@ import {
   ActionCard, 
   QuickActionButton 
 } from "@/components/common";
+import { useDashboardConfigurations } from "@/hooks/useDashboardConfigurations";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { useAuth } from "@/contexts/AuthContext";
+import { DashboardManager } from "@/components/dashboard/DashboardManager";
 
 const Dashboard = () => {
-  const stats = [
+  const { userProfile } = useAuth();
+  const { getCurrentDashboard } = useDashboardConfigurations();
+  const { stats } = useDashboardStats();
+  
+  const isMspAdmin = userProfile?.is_msp_admin || false;
+  const currentDashboard = getCurrentDashboard();
+  // Si l'utilisateur est admin MSP et qu'il n'y a pas de dashboard configuré, 
+  // afficher l'interface de gestion
+  if (isMspAdmin && !currentDashboard) {
+    return <DashboardManager />;
+  }
+
+  const defaultStats = [
     {
       title: "Organisations actives",
-      value: "24",
+      value: stats.organizations.toString(),
       description: "Clients, ESN, MSP",
       icon: Building2,
       trend: "+2 ce mois"
     },
     {
       title: "Utilisateurs",
-      value: "156",
+      value: stats.users.toString(),
       description: "Tous rôles confondus",
       icon: Users,
       trend: "+12 ce mois"
     },
     {
       title: "Incidents ouverts",
-      value: "8",
+      value: stats.incidents.toString(),
       description: "À traiter",
       icon: AlertTriangle,
       trend: "-3 cette semaine"
     },
     {
       title: "Services surveillés",
-      value: "342",
+      value: stats.services.toString(),
       description: "Infrastructure cloud",
       icon: Cloud,
       trend: "+15 ce mois"
@@ -99,7 +115,7 @@ const Dashboard = () => {
 
       {/* Statistics Cards */}
       <DataGrid columns={4}>
-        {stats.map((stat) => (
+        {defaultStats.map((stat) => (
           <StatsCard
             key={stat.title}
             title={stat.title}
