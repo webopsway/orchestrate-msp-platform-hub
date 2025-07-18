@@ -5,6 +5,11 @@ export interface BusinessService {
   name: string;
   description?: string;
   criticality: 'low' | 'medium' | 'high' | 'critical';
+  organization_id: string;
+  business_owner_team_id?: string;
+  technical_owner_team_id?: string;
+  application_stack?: string[]; // IDs des applications
+  technical_stack?: string[]; // IDs des cloud assets
   business_owner?: string;
   technical_owner?: string;
   service_level?: string;
@@ -66,6 +71,11 @@ export interface CreateBusinessServiceData {
   name: string;
   description?: string;
   criticality: 'low' | 'medium' | 'high' | 'critical';
+  organization_id: string;
+  business_owner_team_id?: string;
+  technical_owner_team_id?: string;
+  application_stack?: string[];
+  technical_stack?: string[];
   business_owner?: string;
   technical_owner?: string;
   service_level?: string;
