@@ -31,12 +31,15 @@ import { NavigationItem, NavigationGroup } from "./types";
 
 export const defaultNavigationItems: NavigationItem[] = [
   { id: "dashboard", title: "Tableau de bord", url: "/", icon: "Home", order: 1, group: "main" },
-  { id: "organizations", title: "Organisations", url: "/organizations", icon: "Building2", order: 2, group: "main" },
-  { id: "users", title: "Utilisateurs & Équipes", url: "/users", icon: "Users", order: 3, group: "main" },
-  { id: "roles", title: "Rôles", url: "/roles", icon: "Shield", order: 4, group: "main" },
-  { id: "rbac", title: "Gestion RBAC", url: "/rbac", icon: "ShieldCheck", order: 5, group: "main" },
-  { id: "msp-relations", title: "Relations MSP-Client", url: "/msp-client-relations", icon: "Network", order: 6, group: "main" },
-  { id: "sla-management", title: "Gestion des SLA", url: "/sla-management", icon: "Clock", order: 7, group: "main" },
+
+  { id: "organizations", title: "Organisations", url: "/organizations", icon: "Building2", order: 1, group: "organization" },
+  { id: "users", title: "Utilisateurs", url: "/users", icon: "Users", order: 2, group: "organization" },
+  { id: "teams", title: "Équipes", url: "/teams", icon: "Users", order: 3, group: "organization" },
+  { id: "msp-relations", title: "Relations MSP-Client", url: "/msp-client-relations", icon: "Network", order: 4, group: "organization" },
+  { id: "sla-management", title: "Gestion des SLA", url: "/sla-management", icon: "Clock", order: 5, group: "organization" },
+  
+  { id: "roles", title: "Rôles", url: "/roles", icon: "Shield", order: 1, group: "administration" },
+  { id: "rbac", title: "Gestion RBAC", url: "/rbac", icon: "ShieldCheck", order: 2, group: "administration" },
   
   { id: "business-services", title: "Services Métiers", url: "/applications/business-services", icon: "Layers", order: 1, group: "applications" },
   { id: "applications", title: "Applications", url: "/applications/applications", icon: "Server", order: 2, group: "applications" },
@@ -66,12 +69,14 @@ export const defaultNavigationItems: NavigationItem[] = [
 
 export const defaultGroups: NavigationGroup[] = [
   { id: "main", title: "Principal", order: 1 },
-  { id: "applications", title: "Applications", order: 2 },
-  { id: "itsm", title: "ITSM", order: 3 },
-  { id: "security", title: "Sécurité", order: 4 },
-  { id: "cloud", title: "Infrastructure Cloud", order: 5 },
-  { id: "monitoring", title: "Supervision", order: 6 },
-  { id: "admin", title: "Administration", order: 7 },
+  { id: "organization", title: "Organisation", order: 2 },
+  { id: "administration", title: "Administration", order: 3 },
+  { id: "applications", title: "Applications", order: 4 },
+  { id: "itsm", title: "ITSM", order: 5 },
+  { id: "security", title: "Sécurité", order: 6 },
+  { id: "cloud", title: "Infrastructure Cloud", order: 7 },
+  { id: "monitoring", title: "Supervision", order: 8 },
+  { id: "admin", title: "Paramètres", order: 9 },
 ];
 
 export const iconMap: Record<string, any> = {
