@@ -318,7 +318,9 @@ export type Database = {
       }
       business_services: {
         Row: {
+          application_stack: string[] | null
           business_owner: string | null
+          business_owner_team_id: string | null
           created_at: string
           created_by: string
           criticality: string
@@ -326,13 +328,18 @@ export type Database = {
           id: string
           metadata: Json | null
           name: string
+          organization_id: string | null
           service_level: string | null
           team_id: string
           technical_owner: string | null
+          technical_owner_team_id: string | null
+          technical_stack: string[] | null
           updated_at: string
         }
         Insert: {
+          application_stack?: string[] | null
           business_owner?: string | null
+          business_owner_team_id?: string | null
           created_at?: string
           created_by: string
           criticality: string
@@ -340,13 +347,18 @@ export type Database = {
           id?: string
           metadata?: Json | null
           name: string
+          organization_id?: string | null
           service_level?: string | null
           team_id: string
           technical_owner?: string | null
+          technical_owner_team_id?: string | null
+          technical_stack?: string[] | null
           updated_at?: string
         }
         Update: {
+          application_stack?: string[] | null
           business_owner?: string | null
+          business_owner_team_id?: string | null
           created_at?: string
           created_by?: string
           criticality?: string
@@ -354,12 +366,37 @@ export type Database = {
           id?: string
           metadata?: Json | null
           name?: string
+          organization_id?: string | null
           service_level?: string | null
           team_id?: string
           technical_owner?: string | null
+          technical_owner_team_id?: string | null
+          technical_stack?: string[] | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_business_services_business_owner_team"
+            columns: ["business_owner_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_business_services_organization"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_business_services_technical_owner_team"
+            columns: ["technical_owner_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cloud_account_environments: {
         Row: {
