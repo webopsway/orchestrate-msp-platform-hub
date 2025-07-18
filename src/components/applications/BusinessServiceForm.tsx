@@ -1,11 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { X, Plus } from 'lucide-react';
 import type { CreateBusinessServiceData } from '@/types/application';
+import { useOrganizations } from '@/hooks/useOrganizations';
+import { useTeams } from '@/hooks/useTeams';
+import { useApplications } from '@/hooks/useApplications';
+import { supabase } from '@/integrations/supabase/client';
 
 interface BusinessServiceFormProps {
   onSubmit: (data: CreateBusinessServiceData) => Promise<void>;
@@ -14,6 +20,11 @@ interface BusinessServiceFormProps {
 }
 
 export function BusinessServiceForm({ onSubmit, onCancel, initialData }: BusinessServiceFormProps) {
+  const { teams } = useTeams();
+  const { applications } = useApplications();
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [cloudAssets, setCloudAssets] = useState<any[]>([]);
+
   const [formData, setFormData] = useState<CreateBusinessServiceData>({
     name: initialData?.name || '',
     description: initialData?.description || '',
@@ -32,6 +43,65 @@ export function BusinessServiceForm({ onSubmit, onCancel, initialData }: Busines
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Charger les organisations et cloud assets
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Récupérer les organisations
+        const { data: orgsData } = await supabase
+          .from('organizations')
+          .select('id, name')
+          .order('name');
+        
+        if (orgsData) setOrganizations(orgsData);
+
+        // Récupérer les cloud assets
+        const { data: assetsData } = await supabase
+          .from('cloud_asset')
+          .select('id, asset_name, asset_type')
+          .order('asset_name');
+        
+        if (assetsData) setCloudAssets(assetsData);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const addToApplicationStack = (appId: string) => {
+    if (!formData.application_stack?.includes(appId)) {
+      setFormData({
+        ...formData,
+        application_stack: [...(formData.application_stack || []), appId]
+      });
+    }
+  };
+
+  const removeFromApplicationStack = (appId: string) => {
+    setFormData({
+      ...formData,
+      application_stack: formData.application_stack?.filter(id => id !== appId) || []
+    });
+  };
+
+  const addToTechnicalStack = (assetId: string) => {
+    if (!formData.technical_stack?.includes(assetId)) {
+      setFormData({
+        ...formData,
+        technical_stack: [...(formData.technical_stack || []), assetId]
+      });
+    }
+  };
+
+  const removeFromTechnicalStack = (assetId: string) => {
+    setFormData({
+      ...formData,
+      technical_stack: formData.technical_stack?.filter(id => id !== assetId) || []
+    });
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -41,6 +111,10 @@ export function BusinessServiceForm({ onSubmit, onCancel, initialData }: Busines
 
     if (!formData.criticality) {
       newErrors.criticality = "La criticité est requise";
+    }
+
+    if (!formData.organization_id) {
+      newErrors.organization_id = "L'organisation est requise";
     }
 
     setErrors(newErrors);
@@ -148,6 +222,159 @@ export function BusinessServiceForm({ onSubmit, onCancel, initialData }: Busines
               onChange={(e) => setFormData({ ...formData, service_level: e.target.value })}
               placeholder="Ex: 99.9% de disponibilité"
             />
+          </div>
+
+          {/* Organisation et équipes */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="organization_id">Organisation *</Label>
+              <Select
+                value={formData.organization_id}
+                onValueChange={(value) => setFormData({ ...formData, organization_id: value })}
+              >
+                <SelectTrigger className={errors.organization_id ? "border-destructive" : ""}>
+                  <SelectValue placeholder="Sélectionner une organisation" />
+                </SelectTrigger>
+                <SelectContent>
+                  {organizations.map((org) => (
+                    <SelectItem key={org.id} value={org.id}>
+                      {org.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.organization_id && (
+                <p className="text-sm text-destructive">{errors.organization_id}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="business_owner_team_id">Équipe propriétaire métier</Label>
+              <Select
+                value={formData.business_owner_team_id || ''}
+                onValueChange={(value) => setFormData({ ...formData, business_owner_team_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une équipe" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teams.map((team) => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="technical_owner_team_id">Équipe propriétaire technique</Label>
+              <Select
+                value={formData.technical_owner_team_id || ''}
+                onValueChange={(value) => setFormData({ ...formData, technical_owner_team_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une équipe" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teams.map((team) => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Stack applicative */}
+          <div className="space-y-2">
+            <Label>Stack applicative</Label>
+            <div className="space-y-2">
+              <Select
+                onValueChange={addToApplicationStack}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Ajouter une application" />
+                </SelectTrigger>
+                <SelectContent>
+                  {applications
+                    .filter(app => !formData.application_stack?.includes(app.id))
+                    .map((app) => (
+                    <SelectItem key={app.id} value={app.id}>
+                      {app.name} ({app.application_type})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {formData.application_stack && formData.application_stack.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {formData.application_stack.map((appId) => {
+                    const app = applications.find(a => a.id === appId);
+                    return app ? (
+                      <Badge key={appId} variant="secondary" className="flex items-center gap-1">
+                        {app.name}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-4 w-4 p-0 hover:bg-destructive/20"
+                          onClick={() => removeFromApplicationStack(appId)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    ) : null;
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Stack technique */}
+          <div className="space-y-2">
+            <Label>Stack technique (Cloud Assets)</Label>
+            <div className="space-y-2">
+              <Select
+                onValueChange={addToTechnicalStack}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Ajouter un asset cloud" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cloudAssets
+                    .filter(asset => !formData.technical_stack?.includes(asset.id))
+                    .map((asset) => (
+                    <SelectItem key={asset.id} value={asset.id}>
+                      {asset.asset_name} ({asset.asset_type})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {formData.technical_stack && formData.technical_stack.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {formData.technical_stack.map((assetId) => {
+                    const asset = cloudAssets.find(a => a.id === assetId);
+                    return asset ? (
+                      <Badge key={assetId} variant="secondary" className="flex items-center gap-1">
+                        {asset.asset_name}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-4 w-4 p-0 hover:bg-destructive/20"
+                          onClick={() => removeFromTechnicalStack(assetId)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    ) : null;
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex gap-2 pt-4">

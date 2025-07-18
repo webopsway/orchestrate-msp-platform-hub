@@ -43,6 +43,12 @@ export function useBusinessServices() {
       return false;
     }
 
+    // Validation de l'organisation requise
+    if (!data.organization_id) {
+      toast.error('L\'organisation est requise');
+      return false;
+    }
+
     try {
       const { error } = await supabase
         .from('business_services')
