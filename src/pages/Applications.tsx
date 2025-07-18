@@ -3,7 +3,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/common/PageHeader';
 import { BusinessServiceManager } from '@/components/applications/BusinessServiceManager';
 import { ApplicationManager } from '@/components/applications/ApplicationManager';
-import { Layers, Server } from 'lucide-react';
+import { ApplicationDeploymentManager } from '@/components/applications/ApplicationDeploymentManager';
+import { Layers, Server, Rocket } from 'lucide-react';
 
 export default function Applications() {
   const [activeTab, setActiveTab] = useState('business-services');
@@ -16,7 +17,7 @@ export default function Applications() {
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="business-services" className="flex items-center gap-2">
             <Layers className="h-4 w-4" />
             Services Métiers
@@ -24,6 +25,10 @@ export default function Applications() {
           <TabsTrigger value="applications" className="flex items-center gap-2">
             <Server className="h-4 w-4" />
             Applications
+          </TabsTrigger>
+          <TabsTrigger value="deployments" className="flex items-center gap-2">
+            <Rocket className="h-4 w-4" />
+            Déploiements
           </TabsTrigger>
         </TabsList>
 
@@ -33,6 +38,10 @@ export default function Applications() {
 
         <TabsContent value="applications" className="space-y-6">
           <ApplicationManager />
+        </TabsContent>
+
+        <TabsContent value="deployments" className="space-y-6">
+          <ApplicationDeploymentManager />
         </TabsContent>
       </Tabs>
     </div>
