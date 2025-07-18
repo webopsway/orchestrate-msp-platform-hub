@@ -23,7 +23,8 @@ import {
   Clock,
   Bug,
   Wrench,
-  Layers
+  Layers,
+  Rocket
 } from "lucide-react";
 
 import { NavigationItem, NavigationGroup } from "./types";
@@ -36,7 +37,10 @@ export const defaultNavigationItems: NavigationItem[] = [
   { id: "rbac", title: "Gestion RBAC", url: "/rbac", icon: "ShieldCheck", order: 5, group: "main" },
   { id: "msp-relations", title: "Relations MSP-Client", url: "/msp-client-relations", icon: "Network", order: 6, group: "main" },
   { id: "sla-management", title: "Gestion des SLA", url: "/sla-management", icon: "Clock", order: 7, group: "main" },
-  { id: "applications", title: "Applications", url: "/applications", icon: "Layers", order: 8, group: "main" },
+  
+  { id: "business-services", title: "Services Métiers", url: "/applications?tab=business-services", icon: "Layers", order: 1, group: "applications" },
+  { id: "applications", title: "Applications", url: "/applications?tab=applications", icon: "Server", order: 2, group: "applications" },
+  { id: "deployments", title: "Déploiements", url: "/applications?tab=deployments", icon: "Rocket", order: 3, group: "applications" },
   
   { id: "tickets", title: "Tickets", url: "/itsm", icon: "FileText", order: 1, group: "itsm" },
   { id: "incidents", title: "Incidents", url: "/itsm/incidents", icon: "AlertTriangle", order: 2, group: "itsm" },
@@ -62,11 +66,12 @@ export const defaultNavigationItems: NavigationItem[] = [
 
 export const defaultGroups: NavigationGroup[] = [
   { id: "main", title: "Principal", order: 1 },
-  { id: "itsm", title: "ITSM", order: 2 },
-  { id: "security", title: "Sécurité", order: 3 },
-  { id: "cloud", title: "Infrastructure Cloud", order: 4 },
-  { id: "monitoring", title: "Supervision", order: 5 },
-  { id: "admin", title: "Administration", order: 6 },
+  { id: "applications", title: "Applications", order: 2 },
+  { id: "itsm", title: "ITSM", order: 3 },
+  { id: "security", title: "Sécurité", order: 4 },
+  { id: "cloud", title: "Infrastructure Cloud", order: 5 },
+  { id: "monitoring", title: "Supervision", order: 6 },
+  { id: "admin", title: "Administration", order: 7 },
 ];
 
 export const iconMap: Record<string, any> = {
@@ -94,5 +99,6 @@ export const iconMap: Record<string, any> = {
   Clock,
   Bug,
   Wrench,
-  Layers
+  Layers,
+  Rocket
 };

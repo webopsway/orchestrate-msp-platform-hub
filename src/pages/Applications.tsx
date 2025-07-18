@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/common/PageHeader';
 import { BusinessServiceManager } from '@/components/applications/BusinessServiceManager';
@@ -7,7 +8,20 @@ import { ApplicationDeploymentManager } from '@/components/applications/Applicat
 import { Layers, Server, Rocket } from 'lucide-react';
 
 export default function Applications() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('business-services');
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['business-services', 'applications', 'deployments'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setSearchParams({ tab: value });
+  };
 
   return (
     <div className="space-y-6">
@@ -16,7 +30,7 @@ export default function Applications() {
         description="Gestion des services métiers et déploiements d'applications"
       />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="business-services" className="flex items-center gap-2">
             <Layers className="h-4 w-4" />
