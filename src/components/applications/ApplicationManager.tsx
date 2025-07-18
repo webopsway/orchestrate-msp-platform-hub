@@ -1,19 +1,32 @@
 import { useState } from 'react';
-import { Plus, Search, Filter, Server, Globe, Smartphone, Database, Settings, Layers } from 'lucide-react';
+import { Plus, Search, Filter, Server, Globe, Smartphone, Database, Settings, Layers, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ApplicationForm } from '@/components/applications/ApplicationForm';
+import { ApplicationDetailDialog } from '@/components/applications/ApplicationDetailDialog';
 import { CreateDialog } from '@/components/common/CreateDialog';
 import { EmptyState } from '@/components/common/EmptyState';
 import { useApplications } from '@/hooks/useApplications';
+import { useBusinessServices } from '@/hooks/useBusinessServices';
+import { useTeams } from '@/hooks/useTeams';
 import type { Application, ApplicationFilters } from '@/types/application';
 
 export function ApplicationManager() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [filters, setFilters] = useState<ApplicationFilters>({});
+  
   const { applications, isLoading, createApplication, updateApplication, deleteApplication } = useApplications();
+  const { businessServices } = useBusinessServices();
+  const { teams } = useTeams();
+
+  const handleViewApplication = (application: Application) => {
+    setSelectedApplication(application);
+    setShowDetailDialog(true);
+  };
 
   const getApplicationIcon = (type: string) => {
     switch (type) {
@@ -146,6 +159,17 @@ export function ApplicationManager() {
                       )}
                     </div>
                   )}
+
+                  {/* Boutons d'action */}
+                  <div className="flex justify-end gap-2 pt-2 border-t">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleViewApplication(app)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             );
@@ -167,6 +191,17 @@ export function ApplicationManager() {
           </div>
         </div>
       )}
+
+      {/* Dialog de détail */}
+      <ApplicationDetailDialog
+        application={selectedApplication}
+        open={showDetailDialog}
+        onOpenChange={setShowDetailDialog}
+        onUpdate={updateApplication}
+        onDelete={deleteApplication}
+        businessServices={businessServices}
+        teams={teams}
+      />
     </div>
   );
 }

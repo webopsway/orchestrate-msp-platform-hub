@@ -1,19 +1,60 @@
-import { useState } from 'react';
-import { Plus, Search, Filter, Layers } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Search, Filter, Layers, Eye, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BusinessServiceForm } from '@/components/applications/BusinessServiceForm';
+import { BusinessServiceDetailDialog } from '@/components/applications/BusinessServiceDetailDialog';
 import { CreateDialog } from '@/components/common/CreateDialog';
 import { EmptyState } from '@/components/common/EmptyState';
 import { useBusinessServices } from '@/hooks/useBusinessServices';
+import { useTeams } from '@/hooks/useTeams';
+import { useApplications } from '@/hooks/useApplications';
+import { supabase } from '@/integrations/supabase/client';
 import type { BusinessService, BusinessServiceFilters } from '@/types/application';
 
 export function BusinessServiceManager() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [selectedService, setSelectedService] = useState<BusinessService | null>(null);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [filters, setFilters] = useState<BusinessServiceFilters>({});
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [cloudAssets, setCloudAssets] = useState<any[]>([]);
+  
   const { businessServices, isLoading, createBusinessService, updateBusinessService, deleteBusinessService } = useBusinessServices();
+  const { teams } = useTeams();
+  const { applications } = useApplications();
+
+  // Charger les organisations et cloud assets
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const { data: orgsData } = await supabase
+          .from('organizations')
+          .select('id, name')
+          .order('name');
+        
+        if (orgsData) setOrganizations(orgsData);
+
+        const { data: assetsData } = await supabase
+          .from('cloud_asset')
+          .select('id, asset_name, asset_type')
+          .order('asset_name');
+        
+        if (assetsData) setCloudAssets(assetsData);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const handleViewService = (service: BusinessService) => {
+    setSelectedService(service);
+    setShowDetailDialog(true);
+  };
 
   const getCriticalityColor = (criticality: string) => {
     switch (criticality) {
@@ -116,6 +157,17 @@ export function BusinessServiceManager() {
                     <span>{service.dependencies?.length || 0} applications</span>
                   </div>
                 </div>
+
+                {/* Boutons d'action */}
+                <div className="flex justify-end gap-2 pt-2 border-t">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleViewService(service)}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -136,6 +188,19 @@ export function BusinessServiceManager() {
           </div>
         </div>
       )}
+
+      {/* Dialog de détail */}
+      <BusinessServiceDetailDialog
+        service={selectedService}
+        open={showDetailDialog}
+        onOpenChange={setShowDetailDialog}
+        onUpdate={updateBusinessService}
+        onDelete={deleteBusinessService}
+        teams={teams}
+        organizations={organizations}
+        applications={applications}
+        cloudAssets={cloudAssets}
+      />
     </div>
   );
 }
