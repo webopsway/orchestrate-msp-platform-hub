@@ -11,7 +11,6 @@ export const DraggableParagraphNodeView: React.FC<ReactNodeViewProps> = (props) 
 
   return (
     <NodeViewWrapper
-      ref={typeof dropProps.setNodeRef === 'function' ? dropProps.setNodeRef : undefined}
       className={`flex items-center group hover:bg-muted/30 rounded px-1 py-0.5 ${isDraggingId === String(nodeId) ? 'opacity-50' : ''}`}
       data-node-id={nodeId}
     >
