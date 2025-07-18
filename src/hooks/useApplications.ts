@@ -15,20 +15,12 @@ export function useApplications() {
     try {
       setIsLoading(true);
       
-      let query = supabase
+      const { data, error } = await supabase
         .from('applications')
-        .select(`
-          *,
-          deployments:application_deployments(*)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      // Filtrage par équipe si pas admin MSP
-      if (!userProfile.is_msp_admin && userProfile.default_team_id) {
-        query = query.eq('team_id', userProfile.default_team_id);
-      }
-
-      const { data, error } = await query;
+      // Les filtres RLS géreront l'accès aux données
 
       if (error) {
         console.error('Error fetching applications:', error);
@@ -36,7 +28,7 @@ export function useApplications() {
         return;
       }
 
-      setApplications(data || []);
+      setApplications(data as Application[] || []);
     } catch (error) {
       console.error('Error fetching applications:', error);
       toast.error('Erreur lors du chargement des applications');

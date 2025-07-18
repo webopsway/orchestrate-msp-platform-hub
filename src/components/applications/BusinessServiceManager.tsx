@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -73,12 +73,11 @@ export function BusinessServiceManager() {
         <EmptyState
           title="Aucun service métier"
           description="Commencez par créer votre premier service métier"
-          action={
-            <Button onClick={() => setShowCreateDialog(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Créer un service métier
-            </Button>
-          }
+          icon={Layers}
+          action={{
+            label: "Créer un service métier",
+            onClick: () => setShowCreateDialog(true)
+          }}
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -124,20 +123,19 @@ export function BusinessServiceManager() {
       )}
 
       {/* Dialog de création */}
-      <CreateDialog
-        open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
-        title="Nouveau Service Métier"
-        description="Créez un nouveau service métier et définissez ses caractéristiques."
-      >
-        <BusinessServiceForm
-          onSubmit={async (data) => {
-            await createBusinessService(data);
-            setShowCreateDialog(false);
-          }}
-          onCancel={() => setShowCreateDialog(false)}
-        />
-      </CreateDialog>
+      {showCreateDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="max-w-2xl w-full mx-4">
+            <BusinessServiceForm
+              onSubmit={async (data) => {
+                await createBusinessService(data);
+                setShowCreateDialog(false);
+              }}
+              onCancel={() => setShowCreateDialog(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -36,6 +36,7 @@ import Settings from "./pages/Settings";
 import Setup from "./pages/Setup";
 import MspClientRelations from "./pages/MspClientRelations";
 import SLAManagement from "./pages/SLAManagement";
+import Applications from "./pages/Applications";
 
 const queryClient = new QueryClient();
 
@@ -93,6 +94,11 @@ function AppRoutes() {
       <Route path="/organizations" element={
         <ProtectedRoute>
           <NewOrganizations />
+        </ProtectedRoute>
+      } />
+      <Route path="/applications" element={
+        <ProtectedRoute>
+          <Applications />
         </ProtectedRoute>
       } />
       <Route path="/teams" element={

@@ -85,12 +85,11 @@ export function ApplicationManager() {
         <EmptyState
           title="Aucune application"
           description="Commencez par enregistrer votre première application"
-          action={
-            <Button onClick={() => setShowCreateDialog(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Créer une application
-            </Button>
-          }
+          icon={Server}
+          action={{
+            label: "Créer une application",
+            onClick: () => setShowCreateDialog(true)
+          }}
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -155,20 +154,19 @@ export function ApplicationManager() {
       )}
 
       {/* Dialog de création */}
-      <CreateDialog
-        open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
-        title="Nouvelle Application"
-        description="Enregistrez une nouvelle application et configurez ses déploiements."
-      >
-        <ApplicationForm
-          onSubmit={async (data) => {
-            await createApplication(data);
-            setShowCreateDialog(false);
-          }}
-          onCancel={() => setShowCreateDialog(false)}
-        />
-      </CreateDialog>
+      {showCreateDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="max-w-2xl w-full mx-4">
+            <ApplicationForm
+              onSubmit={async (data) => {
+                await createApplication(data);
+                setShowCreateDialog(false);
+              }}
+              onCancel={() => setShowCreateDialog(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

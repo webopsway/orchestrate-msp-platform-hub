@@ -22,7 +22,8 @@ import {
   Network,
   Clock,
   Bug,
-  Wrench
+  Wrench,
+  Layers
 } from "lucide-react";
 
 import { NavigationItem, NavigationGroup } from "./types";
@@ -35,6 +36,7 @@ export const defaultNavigationItems: NavigationItem[] = [
   { id: "rbac", title: "Gestion RBAC", url: "/rbac", icon: "ShieldCheck", order: 5, group: "main" },
   { id: "msp-relations", title: "Relations MSP-Client", url: "/msp-client-relations", icon: "Network", order: 6, group: "main" },
   { id: "sla-management", title: "Gestion des SLA", url: "/sla-management", icon: "Clock", order: 7, group: "main" },
+  { id: "applications", title: "Applications", url: "/applications", icon: "Layers", order: 8, group: "main" },
   
   { id: "tickets", title: "Tickets", url: "/itsm", icon: "FileText", order: 1, group: "itsm" },
   { id: "incidents", title: "Incidents", url: "/itsm/incidents", icon: "AlertTriangle", order: 2, group: "itsm" },
@@ -91,5 +93,6 @@ export const iconMap: Record<string, any> = {
   Network,
   Clock,
   Bug,
-  Wrench
+  Wrench,
+  Layers
 };
