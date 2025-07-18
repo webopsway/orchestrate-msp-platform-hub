@@ -1,63 +1,69 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/common/PageHeader';
-import { BusinessServiceManager } from '@/components/applications/BusinessServiceManager';
-import { ApplicationManager } from '@/components/applications/ApplicationManager';
-import { ApplicationDeploymentManager } from '@/components/applications/ApplicationDeploymentManager';
-import { Layers, Server, Rocket } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Layers, Server, Rocket, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Applications() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState('business-services');
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    if (tabParam && ['business-services', 'applications', 'deployments'].includes(tabParam)) {
-      setActiveTab(tabParam);
+  const sections = [
+    {
+      title: 'Services Métiers',
+      description: 'Gérez vos services métiers et leur criticité',
+      icon: Layers,
+      path: '/applications/business-services',
+      color: 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+    },
+    {
+      title: 'Applications', 
+      description: 'Administrez vos applications et leurs configurations',
+      icon: Server,
+      path: '/applications/applications',
+      color: 'bg-green-50 text-green-600 dark:bg-green-950 dark:text-green-400'
+    },
+    {
+      title: 'Déploiements',
+      description: 'Suivez les déploiements sur votre infrastructure cloud',
+      icon: Rocket,
+      path: '/applications/deployments', 
+      color: 'bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-400'
     }
-  }, [searchParams]);
-
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    setSearchParams({ tab: value });
-  };
+  ];
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Applications & Services"
-        description="Gestion des services métiers et déploiements d'applications"
+        description="Centralisez la gestion de vos services métiers, applications et déploiements"
       />
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="business-services" className="flex items-center gap-2">
-            <Layers className="h-4 w-4" />
-            Services Métiers
-          </TabsTrigger>
-          <TabsTrigger value="applications" className="flex items-center gap-2">
-            <Server className="h-4 w-4" />
-            Applications
-          </TabsTrigger>
-          <TabsTrigger value="deployments" className="flex items-center gap-2">
-            <Rocket className="h-4 w-4" />
-            Déploiements
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="business-services" className="space-y-6">
-          <BusinessServiceManager />
-        </TabsContent>
-
-        <TabsContent value="applications" className="space-y-6">
-          <ApplicationManager />
-        </TabsContent>
-
-        <TabsContent value="deployments" className="space-y-6">
-          <ApplicationDeploymentManager />
-        </TabsContent>
-      </Tabs>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {sections.map((section) => {
+          const IconComponent = section.icon;
+          return (
+            <Card key={section.path} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className={`w-12 h-12 rounded-lg ${section.color} flex items-center justify-center mb-4`}>
+                  <IconComponent className="h-6 w-6" />
+                </div>
+                <CardTitle className="text-xl">{section.title}</CardTitle>
+                <CardDescription>{section.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={() => navigate(section.path)}
+                  className="w-full"
+                  variant="outline"
+                >
+                  Accéder
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }

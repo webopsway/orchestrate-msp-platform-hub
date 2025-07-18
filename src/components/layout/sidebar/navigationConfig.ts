@@ -38,9 +38,9 @@ export const defaultNavigationItems: NavigationItem[] = [
   { id: "msp-relations", title: "Relations MSP-Client", url: "/msp-client-relations", icon: "Network", order: 6, group: "main" },
   { id: "sla-management", title: "Gestion des SLA", url: "/sla-management", icon: "Clock", order: 7, group: "main" },
   
-  { id: "business-services", title: "Services Métiers", url: "/applications?tab=business-services", icon: "Layers", order: 1, group: "applications" },
-  { id: "applications", title: "Applications", url: "/applications?tab=applications", icon: "Server", order: 2, group: "applications" },
-  { id: "deployments", title: "Déploiements", url: "/applications?tab=deployments", icon: "Rocket", order: 3, group: "applications" },
+  { id: "business-services", title: "Services Métiers", url: "/applications/business-services", icon: "Layers", order: 1, group: "applications" },
+  { id: "applications", title: "Applications", url: "/applications/applications", icon: "Server", order: 2, group: "applications" },
+  { id: "deployments", title: "Déploiements", url: "/applications/deployments", icon: "Rocket", order: 3, group: "applications" },
   
   { id: "tickets", title: "Tickets", url: "/itsm", icon: "FileText", order: 1, group: "itsm" },
   { id: "incidents", title: "Incidents", url: "/itsm/incidents", icon: "AlertTriangle", order: 2, group: "itsm" },
