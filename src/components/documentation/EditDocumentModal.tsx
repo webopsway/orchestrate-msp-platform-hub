@@ -1,4 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { 
   Dialog, 
   DialogContent, 
@@ -6,30 +11,32 @@ import {
   DialogHeader, 
   DialogTitle 
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  FileText, 
+  BookOpen, 
+  File, 
+  Settings, 
   Tag, 
-  X, 
-  Plus,
-  FileText,
-  BookOpen,
-  File,
-  Settings,
-  Save,
+  Plus, 
+  X,
   Calendar,
-  User
+  User,
+  Clock,
+  Star
 } from 'lucide-react';
-import { Document } from '@/types/documentation';
 
 interface EditDocumentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  document: Document | null;
+  document: any;
   onSubmit: () => void;
 }
 
@@ -39,189 +46,244 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
   document,
   onSubmit
 }) => {
-  if (!document) return null;
+  const [editedDocument, setEditedDocument] = useState<any>(null);
+  const [newTag, setNewTag] = useState('');
 
-  const categories = [
-    { value: 'spécification', label: 'Spécification', icon: BookOpen },
-    { value: 'tutorial', label: 'Tutoriels', icon: FileText },
-    { value: 'reference', label: 'Référence', icon: File },
-    { value: 'procedure', label: 'Procédure', icon: Settings }
-  ];
+  useEffect(() => {
+    if (document) {
+      setEditedDocument({
+        title: document.title,
+        metadata: {
+          ...document.metadata,
+          tags: [...(document.metadata?.tags || [])]
+        }
+      });
+    }
+  }, [document]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'published': return 'default';
-      case 'draft': return 'secondary';
-      case 'archived': return 'outline';
-      default: return 'outline';
+  const addTag = () => {
+    if (newTag.trim() && !editedDocument?.metadata?.tags?.includes(newTag.trim())) {
+      setEditedDocument({
+        ...editedDocument,
+        metadata: {
+          ...editedDocument.metadata,
+          tags: [...(editedDocument.metadata?.tags || []), newTag.trim()]
+        }
+      });
+      setNewTag('');
     }
   };
 
+  const removeTag = (tagToRemove: string) => {
+    setEditedDocument({
+      ...editedDocument,
+      metadata: {
+        ...editedDocument.metadata,
+        tags: editedDocument.metadata?.tags?.filter((tag: string) => tag !== tagToRemove) || []
+      }
+    });
+  };
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'spécification': return BookOpen;
+      case 'tutorial': return FileText;
+      case 'reference': return File;
+      case 'procedure': return Settings;
+      default: return FileText;
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editedDocument) {
+      // Mettre à jour le document avec les nouvelles métadonnées
+      Object.assign(document, editedDocument);
+      onSubmit();
+    }
+  };
+
+  if (!document || !editedDocument) {
+    return null;
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <Settings className="h-5 w-5" />
-            <span>Modifier le document</span>
-          </DialogTitle>
+          <DialogTitle>Modifier les métadonnées</DialogTitle>
           <DialogDescription>
-            Modifiez les métadonnées et les propriétés du document
+            Modifiez les informations du document
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Informations du document */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Informations de base */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Informations du document</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-title">Titre</Label>
-                <Input
-                  id="edit-title"
-                  value={document.title}
-                  placeholder="Titre du document"
-                  className="w-full"
-                />
-              </div>
+            <div>
+              <Label htmlFor="title">Titre</Label>
+              <Input
+                id="title"
+                value={editedDocument.title}
+                onChange={(e) => setEditedDocument({ ...editedDocument, title: e.target.value })}
+                placeholder="Titre du document"
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="edit-category">Catégorie</Label>
-                <Select value={document.metadata?.category || ''}>
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={editedDocument.metadata?.description || ''}
+                onChange={(e) => setEditedDocument({
+                  ...editedDocument,
+                  metadata: { ...editedDocument.metadata, description: e.target.value }
+                })}
+                placeholder="Description courte du document"
+                rows={3}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="category">Catégorie</Label>
+                <Select 
+                  value={editedDocument.metadata?.category || ''} 
+                  onValueChange={(value) => setEditedDocument({
+                    ...editedDocument,
+                    metadata: { ...editedDocument.metadata, category: value }
+                  })}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionner une catégorie" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map(category => {
-                      const Icon = category.icon;
-                      return (
-                        <SelectItem key={category.value} value={category.value}>
-                          <div className="flex items-center space-x-2">
-                            <Icon className="h-4 w-4" />
-                            <span>{category.label}</span>
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
+                    <SelectItem value="spécification">
+                      <div className="flex items-center space-x-2">
+                        <BookOpen className="h-4 w-4" />
+                        <span>Spécification</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="tutorial">
+                      <div className="flex items-center space-x-2">
+                        <FileText className="h-4 w-4" />
+                        <span>Tutoriels</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="reference">
+                      <div className="flex items-center space-x-2">
+                        <File className="h-4 w-4" />
+                        <span>Référence</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="procedure">
+                      <div className="flex items-center space-x-2">
+                        <Settings className="h-4 w-4" />
+                        <span>Procédure</span>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-description">Description</Label>
-              <Textarea
-                id="edit-description"
-                value={document.metadata?.description || ''}
-                placeholder="Description du document"
-                rows={3}
-              />
-            </div>
-          </div>
-
-          {/* Métadonnées */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Métadonnées</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Version</Label>
-                <div className="flex items-center space-x-2 p-2 border rounded-md bg-muted">
-                  <Badge variant="outline">{document.version}</Badge>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Statut</Label>
-                <Select value={document.metadata?.status || 'draft'}>
+              <div>
+                <Label htmlFor="status">Statut</Label>
+                <Select 
+                  value={editedDocument.metadata?.status || 'draft'} 
+                  onValueChange={(value: 'draft' | 'published' | 'archived') => 
+                    setEditedDocument({
+                      ...editedDocument,
+                      metadata: { ...editedDocument.metadata, status: value }
+                    })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="draft">
-                      <Badge variant="secondary" className="text-xs">Brouillon</Badge>
-                    </SelectItem>
-                    <SelectItem value="published">
-                      <Badge variant="default" className="text-xs">Publié</Badge>
-                    </SelectItem>
-                    <SelectItem value="archived">
-                      <Badge variant="outline" className="text-xs">Archivé</Badge>
-                    </SelectItem>
+                    <SelectItem value="draft">Brouillon</SelectItem>
+                    <SelectItem value="published">Publié</SelectItem>
+                    <SelectItem value="archived">Archivé</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          </div>
 
-              <div className="space-y-2">
-                <Label>Favori</Label>
-                <div className="flex items-center space-x-2 p-2 border rounded-md">
-                  <input
-                    type="checkbox"
-                    checked={document.metadata?.is_favorite || false}
-                    className="rounded"
-                  />
-                  <span className="text-sm">Marquer comme favori</span>
-                </div>
-              </div>
+          {/* Tags */}
+          <div className="space-y-3">
+            <Label>Tags</Label>
+            <div className="flex flex-wrap gap-2">
+              {editedDocument.metadata?.tags?.map((tag: string, index: number) => (
+                <Badge key={index} variant="secondary" className="flex items-center space-x-1">
+                  <Tag className="h-3 w-3" />
+                  <span>{tag}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 hover:bg-transparent"
+                    onClick={() => removeTag(tag)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              ))}
+            </div>
+            <div className="flex space-x-2">
+              <Input
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                placeholder="Ajouter un tag"
+                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+              />
+              <Button type="button" variant="outline" size="sm" onClick={addTag}>
+                <Plus className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
           {/* Informations système */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Informations système</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Créé le</Label>
-                <div className="flex items-center space-x-2 p-2 border rounded-md bg-muted">
-                  <Calendar className="h-4 w-4" />
-                  <span className="text-sm">
-                    {new Date(document.created_at).toLocaleString()}
-                  </span>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Informations système</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="flex items-center space-x-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Créé par:</span>
+                  <span>{document.created_by}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Créé le:</span>
+                  <span>{new Date(document.created_at).toLocaleDateString()}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Modifié le:</span>
+                  <span>{new Date(document.updated_at).toLocaleDateString()}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Version:</span>
+                  <span>{document.version}</span>
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <Label>Dernière modification</Label>
-                <div className="flex items-center space-x-2 p-2 border rounded-md bg-muted">
-                  <Calendar className="h-4 w-4" />
-                  <span className="text-sm">
-                    {new Date(document.updated_at).toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Créé par</Label>
-                <div className="flex items-center space-x-2 p-2 border rounded-md bg-muted">
-                  <User className="h-4 w-4" />
-                  <span className="text-sm">{document.created_by}</span>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Modifié par</Label>
-                <div className="flex items-center space-x-2 p-2 border rounded-md bg-muted">
-                  <User className="h-4 w-4" />
-                  <span className="text-sm">{document.updated_by || 'Non spécifié'}</span>
-                </div>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Actions */}
-          <div className="flex justify-end space-x-2 pt-4 border-t">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex justify-end space-x-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Annuler
             </Button>
-            <Button onClick={onSubmit}>
-              <Save className="h-4 w-4 mr-2" />
+            <Button type="submit">
               Sauvegarder
             </Button>
           </div>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

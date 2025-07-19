@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationsAndTeams } from '@/hooks/useOrganizationsAndTeams';
 import { TipTapEditor } from '@/components/documentation/TipTapEditor';
+import ModernDocumentEditor from '@/components/documentation/ModernDocumentEditor';
 import { 
   PageHeader, 
   DataGrid, 
@@ -534,7 +535,7 @@ const DocumentationModern: React.FC = () => {
   // Rendu du mode éditeur/visualisation
   if ((isEditingDocument || isViewingDocument) && selectedDocument) {
     return (
-      <DocumentEditor
+      <ModernDocumentEditor
         document={selectedDocument}
         isEditing={isEditingDocument}
         onBack={() => {
@@ -1069,6 +1070,5 @@ const DocumentGridView: React.FC<{
 // Composants pour les modals (à implémenter)
 import CreateDocumentModal from '@/components/documentation/CreateDocumentModal';
 import EditDocumentModal from '@/components/documentation/EditDocumentModal';
-import DocumentEditor from '@/components/documentation/DocumentEditor';
 
 export default DocumentationModern; 
