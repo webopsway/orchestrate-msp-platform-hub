@@ -18,34 +18,10 @@ export const useDocumentation = () => {
     try {
       setLoading(true);
       
-      // Les politiques RLS gèrent maintenant l'accès automatiquement
-      // MSP admin voit tout, membres d'équipe voient leur équipe, ESN voient les clients
+      // Requête simplifiée sans jointures pour éviter PGRST200
       const { data, error } = await supabase
         .from('team_documents')
-        .select(`
-          *,
-          team:teams!inner(
-            id,
-            name,
-            organization:organizations!inner(
-              id,
-              name,
-              type
-            )
-          ),
-          created_by_profile:profiles!team_documents_created_by_fkey(
-            id,
-            first_name,
-            last_name,
-            email
-          ),
-          updated_by_profile:profiles!team_documents_updated_by_fkey(
-            id,
-            first_name,
-            last_name,
-            email
-          )
-        `)
+        .select('*') // Sélection simple sans jointures
         .order('created_at', { ascending: false });
 
       if (error) throw error;

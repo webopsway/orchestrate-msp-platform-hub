@@ -154,10 +154,10 @@ const Documentation = () => {
     try {
       setLoading(true);
       
-      // Récupérer les documents - Admin MSP voit tout, autres voient leur équipe
+      // Requête simplifiée sans jointures pour éviter PGRST200
       let query = supabase
         .from('team_documents')
-        .select('*');
+        .select('*'); // Sélection simple sans jointures
 
       // Si pas admin MSP, filtrer par équipe
       if (!userProfile?.is_msp_admin) {
