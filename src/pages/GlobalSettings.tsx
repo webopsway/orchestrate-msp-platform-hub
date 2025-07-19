@@ -591,6 +591,10 @@ export default function GlobalSettings() {
           </div>
         </TabsContent>
 
+        <TabsContent value="sidebar" className="space-y-6">
+          <SidebarConfigManager />
+        </TabsContent>
+
         <TabsContent value="itsm-dynamic" className="space-y-6">
           <ITSMConfigManager />
         </TabsContent>

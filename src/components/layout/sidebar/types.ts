@@ -7,6 +7,7 @@ export interface NavigationItem {
   group: string;
   badge?: string;
   badgeVariant?: "default" | "secondary" | "destructive" | "outline";
+  hidden?: boolean;
 }
 
 export interface NavigationGroup {

@@ -25,7 +25,9 @@ export function SidebarNavigation({ groupedItems, collapsed, getNavCls }: Sideba
           {!collapsed && <SidebarGroupLabel>{group.title}</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
-              {group.items.map((item) => {
+              {group.items
+                .filter(item => !item.hidden) // Filtrer les éléments cachés
+                .map((item) => {
                 const IconComponent = iconMap[item.icon];
                 return (
                   <SidebarMenuItem key={item.id}>
