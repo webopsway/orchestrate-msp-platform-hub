@@ -90,26 +90,6 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
     }
   }, [userProfile, getSetting]);
 
-  // Mettre à jour l'ordre par défaut quand le modal de section s'ouvre
-  useEffect(() => {
-    if (isAddSectionDialogOpen) {
-      setNewSection(prev => ({
-        ...prev,
-        order: sidebarConfig.groups.length + 1
-      }));
-    }
-  }, [isAddSectionDialogOpen, sidebarConfig.groups.length]);
-
-  // Mettre à jour l'ordre par défaut quand le modal d'élément s'ouvre
-  useEffect(() => {
-    if (isAddDialogOpen) {
-      setNewItem(prev => ({
-        ...prev,
-        order: sidebarConfig.items.filter(item => item.group === prev.group).length + 1
-      }));
-    }
-  }, [isAddDialogOpen, sidebarConfig.items, newItem.group]);
-
   // Sauvegarder la configuration
   const saveSidebarConfig = async () => {
     try {
@@ -190,6 +170,18 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
     toast.success('Élément modifié');
   };
 
+  // Ouvrir le modal d'ajout d'élément
+  const openAddItemModal = () => {
+    setNewItem({
+      title: '',
+      url: '',
+      icon: 'Settings',
+      group: 'main',
+      order: 1
+    });
+    setIsAddDialogOpen(true);
+  };
+
   // Ajouter un nouvel élément
   const handleAddItem = () => {
     if (!newItem.title || !newItem.url || !newItem.group) {
@@ -230,6 +222,15 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
     }));
     toast.success('Élément supprimé');
   }, []);
+
+  // Ouvrir le modal d'ajout de section
+  const openAddSectionModal = () => {
+    setNewSection({
+      title: '',
+      order: sidebarConfig.groups.length + 1
+    });
+    setIsAddSectionDialogOpen(true);
+  };
 
   // Ajouter une nouvelle section
   const handleAddSection = () => {
@@ -343,13 +344,11 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
               <span>Gestion des sections</span>
             </CardTitle>
             <div className="flex space-x-2">
+              <Button variant="outline" onClick={openAddSectionModal}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nouvelle section
+              </Button>
               <Dialog open={isAddSectionDialogOpen} onOpenChange={setIsAddSectionDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nouvelle section
-                  </Button>
-                </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Ajouter une nouvelle section</DialogTitle>
@@ -379,7 +378,10 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
                     </div>
                   </div>
                   <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={() => setIsAddSectionDialogOpen(false)}>
+                    <Button variant="outline" onClick={() => {
+                      setIsAddSectionDialogOpen(false);
+                      setNewSection({ title: '', order: 1 });
+                    }}>
                       Annuler
                     </Button>
                     <Button onClick={handleAddSection}>
@@ -437,18 +439,16 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
       {/* Ajouter un nouvel élément */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center space-x-2">
-              <Plus className="h-5 w-5" />
-              <span>Ajouter un élément</span>
-            </CardTitle>
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nouvel élément
-                </Button>
-              </DialogTrigger>
+                      <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center space-x-2">
+                <Plus className="h-5 w-5" />
+                <span>Ajouter un élément</span>
+              </CardTitle>
+              <Button onClick={openAddItemModal}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nouvel élément
+              </Button>
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Ajouter un élément de navigation</DialogTitle>
@@ -516,14 +516,17 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
                     </Select>
                   </div>
                 </div>
-                <div className="flex justify-end space-x-2">
-                  <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                    Annuler
-                  </Button>
-                  <Button onClick={handleAddItem}>
-                    Ajouter
-                  </Button>
-                </div>
+                                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => {
+                      setIsAddDialogOpen(false);
+                      setNewItem({ title: '', url: '', icon: 'Settings', group: 'main', order: 1 });
+                    }}>
+                      Annuler
+                    </Button>
+                    <Button onClick={handleAddItem}>
+                      Ajouter
+                    </Button>
+                  </div>
               </DialogContent>
             </Dialog>
           </div>
@@ -697,7 +700,10 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
             </div>
           )}
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <Button variant="outline" onClick={() => {
+              setIsEditDialogOpen(false);
+              setEditingItem(null);
+            }}>
               Annuler
             </Button>
             <Button onClick={handleSaveEdit}>
