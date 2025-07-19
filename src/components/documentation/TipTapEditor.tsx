@@ -3,6 +3,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { ExcalidrawExtension } from './extensions/ExcalidrawExtension';
 import {
   Bold,
   Italic,
@@ -13,6 +14,7 @@ import {
   Heading1,
   Heading2,
   Heading3,
+  PenTool,
 } from 'lucide-react';
 
 interface TipTapEditorProps {
@@ -41,6 +43,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   const editor = useEditor({
     extensions: [
       StarterKit,
+      ExcalidrawExtension,
     ],
     content: content || '',
     editable,
@@ -157,6 +160,15 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
             className={editor.isActive('blockquote') ? 'bg-muted' : ''}
           >
             <Quote className="h-4 w-4" />
+          </Button>
+          <Separator orientation="vertical" className="h-6" />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor.chain().focus().insertExcalidraw().run()}
+            title="Insérer un diagramme Excalidraw"
+          >
+            <PenTool className="h-4 w-4" />
           </Button>
         </div>
       )}
