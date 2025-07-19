@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganizationsAndTeams } from "@/hooks/useOrganizationsAndTeams";
-import { NotionLikeEditor } from "@/components/documentation/NotionLikeEditor";
-import { useNotionEditor } from "@/hooks/useNotionEditor";
+import { TipTapEditor } from "@/components/documentation/TipTapEditor";
 import { 
   PageHeader, 
   DataGrid, 
@@ -553,16 +552,59 @@ const Documentation = () => {
     isViewingDocument: boolean;
     setSelectedDocument: React.Dispatch<React.SetStateAction<any>>;
   }) {
-    const { blocks, handleSave, isSaving } = useNotionEditor(selectedDocument.id, selectedDocument.team_id);
+    const [isSaving, setIsSaving] = useState(false);
+    const [content, setContent] = useState(selectedDocument.content);
+
+    const handleSave = async (newContent: any) => {
+      if (isViewingDocument) return;
+      
+      setIsSaving(true);
+      try {
+        const { error } = await supabase
+          .from('team_documents')
+          .update({
+            content: JSON.stringify(newContent),
+            updated_by: userProfile?.id,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', selectedDocument.id);
+
+        if (error) throw error;
+        
+        // Mettre à jour le document local
+        setSelectedDocument(prev => ({
+          ...prev,
+          content: JSON.stringify(newContent),
+          updated_at: new Date().toISOString()
+        }));
+        
+        setContent(newContent);
+      } catch (error) {
+        console.error('Error saving document:', error);
+        toast.error('Erreur lors de la sauvegarde');
+      } finally {
+        setIsSaving(false);
+      }
+    };
+
+    // Parser le contenu initial
+    const initialContent = useMemo(() => {
+      try {
+        return selectedDocument.content ? JSON.parse(selectedDocument.content) : null;
+      } catch (e) {
+        console.error('Error parsing document content:', e);
+        return null;
+      }
+    }, [selectedDocument.content]);
 
     return (
       <div className="container mx-auto p-4">
-        <NotionLikeEditor
-          documentId={selectedDocument.id}
-          teamId={selectedDocument.team_id}
-          blocks={blocks}
+        <TipTapEditor
+          content={initialContent}
           onSave={handleSave}
-          readOnly={isViewingDocument}
+          editable={!isViewingDocument}
+          autoSave={true}
+          autoSaveDelay={1500}
         />
         {isSaving && (
           <div className="fixed bottom-4 right-4 bg-primary text-primary-foreground px-4 py-2 rounded-md shadow-lg">
