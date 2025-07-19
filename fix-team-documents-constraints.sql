@@ -29,7 +29,7 @@ DROP POLICY IF EXISTS "docs_team_and_msp_access" ON public.team_documents;
 DROP POLICY IF EXISTS "docs_esn_readonly_access" ON public.team_documents;
 DROP POLICY IF EXISTS "msp_users_can_access_documentation" ON public.team_documents;
 
--- 4. Créer une nouvelle politique simplifiée
+-- 4. Créer une nouvelle politique simplifiée avec le nouveau système de rôles
 CREATE POLICY "team_documents_msp_and_team_access" 
 ON public.team_documents 
 FOR ALL 
@@ -48,12 +48,15 @@ USING (
         AND tm.team_id = team_documents.team_id
     ))
     OR
-    -- Accès pour les managers de l'organisation propriétaire de l'équipe
+    -- Accès pour les managers de l'organisation propriétaire de l'équipe (nouveau système de rôles)
     (EXISTS (
-        SELECT 1 FROM organization_memberships om
-        JOIN teams t ON om.organization_id = t.organization_id
-        WHERE om.user_id = auth.uid() 
-        AND om.role IN ('admin', 'manager')
+        SELECT 1 FROM user_roles ur
+        JOIN roles r ON ur.role_id = r.id
+        JOIN teams t ON ur.organization_id = t.organization_id
+        WHERE ur.user_id = auth.uid() 
+        AND r.name IN ('admin', 'manager')
+        AND ur.is_active = true
+        AND (ur.expires_at IS NULL OR ur.expires_at > now())
         AND t.id = team_documents.team_id
     ))
     OR
@@ -83,12 +86,15 @@ WITH CHECK (
         AND tm.team_id = team_documents.team_id
     ))
     OR
-    -- Managers de l'organisation peuvent créer/modifier
+    -- Managers de l'organisation peuvent créer/modifier (nouveau système de rôles)
     (EXISTS (
-        SELECT 1 FROM organization_memberships om
-        JOIN teams t ON om.organization_id = t.organization_id
-        WHERE om.user_id = auth.uid() 
-        AND om.role IN ('admin', 'manager')
+        SELECT 1 FROM user_roles ur
+        JOIN roles r ON ur.role_id = r.id
+        JOIN teams t ON ur.organization_id = t.organization_id
+        WHERE ur.user_id = auth.uid() 
+        AND r.name IN ('admin', 'manager')
+        AND ur.is_active = true
+        AND (ur.expires_at IS NULL OR ur.expires_at > now())
         AND t.id = team_documents.team_id
     ))
     OR
@@ -101,7 +107,6 @@ WITH CHECK (
         AND client_team.id = team_documents.team_id
         AND mcr.is_active = true
         AND (mcr.end_date IS NULL OR mcr.end_date > now())
-        AND esn_om.role IN ('admin', 'manager')
     ))
 );
 
