@@ -194,11 +194,6 @@ const ITSMIncidents = () => {
     }
   ], [incidents]);
 
-  // Vérifier les permissions d'accès - après tous les hooks
-  const canManageIncidents = useMemo(() => {
-    return userProfile?.is_msp_admin || userProfile?.default_team_id;
-  }, [userProfile]);
-
   // Si l'utilisateur n'est pas connecté
   if (!user) {
     return (
@@ -226,6 +221,11 @@ const ITSMIncidents = () => {
       </div>
     );
   }
+
+  // Vérifier les permissions d'accès
+  const canManageIncidents = useMemo(() => {
+    return userProfile?.is_msp_admin || userProfile?.default_team_id;
+  }, [userProfile]);
 
   // Si l'utilisateur n'a pas les permissions
   if (!canManageIncidents) {

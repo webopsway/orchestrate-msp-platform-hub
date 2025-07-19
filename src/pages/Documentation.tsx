@@ -1,9 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganizationsAndTeams } from "@/hooks/useOrganizationsAndTeams";
 import { TipTapEditor } from "@/components/documentation/TipTapEditor";
-import { ClientDocumentationEditor } from "@/components/documentation/ClientDocumentationEditor";
 import { 
   PageHeader, 
   DataGrid, 
@@ -107,7 +106,6 @@ const Documentation = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
-  const [isClientEditorMode, setIsClientEditorMode] = useState(false);
 
 
   // État pour les formulaires
@@ -127,11 +125,29 @@ const Documentation = () => {
   });
 
   useEffect(() => {
+    console.log('Documentation component mounted, userProfile:', userProfile);
     fetchDocuments();
   }, [userProfile]);
 
+  // Ajouter un useEffect pour surveiller les changements d'état
+  useEffect(() => {
+    console.log('Documents state updated:', documents.length, 'documents');
+  }, [documents]);
+
+  useEffect(() => {
+    console.log('Organization data:', organizationData);
+  }, [organizationData]);
+
   const fetchDocuments = async () => {
-    if (!userProfile?.default_team_id && !userProfile?.is_msp_admin) return;
+    console.log('Fetching documents for user:', userProfile);
+    
+    // Si l'utilisateur n'est pas admin MSP et n'a pas d'équipe par défaut
+    if (!userProfile?.is_msp_admin && !userProfile?.default_team_id) {
+      console.log('User has no default team and is not MSP admin');
+      setDocuments([]);
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -144,12 +160,21 @@ const Documentation = () => {
       // Si pas admin MSP, filtrer par équipe
       if (!userProfile?.is_msp_admin) {
         query = query.eq('team_id', userProfile.default_team_id);
+        console.log('Filtering by team_id:', userProfile.default_team_id);
+      } else {
+        console.log('MSP admin - fetching all documents');
       }
 
       const { data: docsData, error: docsError } = await query
         .order('updated_at', { ascending: false });
 
-      if (docsError) throw docsError;
+      if (docsError) {
+        console.error('Error fetching documents:', docsError);
+        throw docsError;
+      }
+
+      console.log('Fetched documents:', docsData);
+      
       setDocuments((docsData || []).map(doc => ({
         ...doc,
         metadata: (doc.metadata as any) || { tags: [], category: 'general', status: 'draft', is_favorite: false }
@@ -175,10 +200,84 @@ const Documentation = () => {
       return;
     }
 
-    // Mode client - rediriger vers l'éditeur client
-    setIsClientEditorMode(true);
-    setIsCreateModalOpen(false);
-    resetNewDocumentForm();
+    if (!newDocument.title.trim()) {
+      toast.error('Veuillez saisir un titre pour le document');
+      return;
+    }
+
+    if (!user?.id) {
+      toast.error('Utilisateur non authentifié');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      const docData = {
+        team_id: newDocument.team_id,
+        title: newDocument.title.trim(),
+        content: '', // Contenu géré par les blocs
+        version: "1.0",
+        created_by: user.id,
+        updated_by: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        metadata: {
+          category: newDocument.category || 'general',
+          tags: newDocument.tags || [],
+          status: newDocument.status || 'draft',
+          is_favorite: false
+        }
+      };
+      
+      console.log('Creating document with data:', docData);
+      
+      const { data, error } = await supabase
+        .from('team_documents')
+        .insert([docData])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error('Aucune donnée retournée après création');
+      }
+
+      toast.success('Document créé avec succès');
+      setIsCreateModalOpen(false);
+      resetNewDocumentForm();
+      
+      // Ouvrir automatiquement l'éditeur pour le nouveau document
+      const newDoc: Document = {
+        ...data,
+        metadata: (data.metadata as any) || { tags: [], category: 'general', status: 'draft', is_favorite: false }
+      };
+      setSelectedDocument(newDoc);
+      setIsEditingDocument(true); // Basculer vers l'édition en page complète
+      
+      await fetchDocuments();
+    } catch (error: any) {
+      console.error('Error creating document:', error);
+      
+      // Gestion d'erreur plus détaillée
+      let errorMessage = 'Erreur lors de la création du document';
+      
+      if (error?.code === '23505') {
+        errorMessage = 'Un document avec ce titre existe déjà';
+      } else if (error?.code === '23503') {
+        errorMessage = 'Équipe invalide ou inexistante';
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const updateDocument = async () => {
@@ -415,6 +514,42 @@ const Documentation = () => {
     }
   };
 
+  // Composant de débogage temporaire
+  const DebugInfo = () => {
+    if (process.env.NODE_ENV !== 'development') return null;
+    
+    return (
+      <Card className="mb-4 border-orange-200 bg-orange-50">
+        <CardHeader>
+          <CardTitle className="text-sm">Debug Info</CardTitle>
+        </CardHeader>
+        <CardContent className="text-xs space-y-2">
+          <div>
+            <strong>User:</strong> {user?.id} | {userProfile?.email}
+          </div>
+          <div>
+            <strong>User Profile:</strong> 
+            <pre className="mt-1 p-2 bg-gray-100 rounded text-xs overflow-auto">
+              {JSON.stringify(userProfile, null, 2)}
+            </pre>
+          </div>
+          <div>
+            <strong>Organization Data:</strong>
+            <pre className="mt-1 p-2 bg-gray-100 rounded text-xs overflow-auto">
+              {JSON.stringify(organizationData, null, 2)}
+            </pre>
+          </div>
+          <div>
+            <strong>New Document State:</strong>
+            <pre className="mt-1 p-2 bg-gray-100 rounded text-xs overflow-auto">
+              {JSON.stringify(newDocument, null, 2)}
+            </pre>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   if (loading && documents.length === 0) {
     return (
       <div className="space-y-6">
@@ -422,29 +557,10 @@ const Documentation = () => {
           title="Documentation"
           description="Gestion et consultation des documents"
         />
+        <DebugInfo />
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
-      </div>
-    );
-  }
-
-  // Si on est en mode édition client, afficher l'éditeur client
-  if (isClientEditorMode) {
-    return (
-      <div className="h-screen">
-        <ClientDocumentationEditor
-          teamId={userProfile?.default_team_id}
-          onDocumentChange={(document) => {
-            if (document) {
-              // Rafraîchir la liste des documents
-              fetchDocuments();
-            } else {
-              // Retour à la vue liste
-              setIsClientEditorMode(false);
-            }
-          }}
-        />
       </div>
     );
   }
@@ -513,107 +629,45 @@ const Documentation = () => {
           </div>
         </div>
         
-        <DocumentEditor 
-          selectedDocument={selectedDocument} 
-          userProfile={userProfile}
-          isViewingDocument={isViewingDocument}
-          setSelectedDocument={setSelectedDocument}
-        />
-      </div>
-    );
-  }
-
-  // Composant séparé pour l'éditeur
-  function DocumentEditor({ 
-    selectedDocument, 
-    userProfile, 
-    isViewingDocument, 
-    setSelectedDocument 
-  }: {
-    selectedDocument: any;
-    userProfile: any;
-    isViewingDocument: boolean;
-    setSelectedDocument: React.Dispatch<React.SetStateAction<any>>;
-  }) {
-    const [isSaving, setIsSaving] = useState(false);
-    const [content, setContent] = useState(selectedDocument.content);
-    const [saveError, setSaveError] = useState<string | null>(null);
-
-    const handleSave = async (newContent: any) => {
-      if (isViewingDocument) return;
-      
-      setIsSaving(true);
-      setSaveError(null);
-      
-      try {
-        const { error } = await supabase
-          .from('team_documents')
-          .update({
-            content: JSON.stringify(newContent),
-            updated_by: userProfile?.id,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', selectedDocument.id);
-
-        if (error) throw error;
-        
-        // Mettre à jour le document local
-        setSelectedDocument(prev => ({
-          ...prev,
-          content: JSON.stringify(newContent),
-          updated_at: new Date().toISOString()
-        }));
-        
-        setContent(JSON.stringify(newContent));
-        toast.success('Document sauvegardé avec succès');
-        
-      } catch (error: any) {
-        console.error('Error saving document:', error);
-        const errorMessage = error?.message || 'Erreur lors de la sauvegarde';
-        setSaveError(errorMessage);
-        toast.error(errorMessage);
-        throw error; // Re-throw pour que TipTapEditor gère l'erreur
-      } finally {
-        // S'assurer que isSaving est remis à false
-        setTimeout(() => setIsSaving(false), 100);
-      }
-    };
-
-    // Parser le contenu initial
-    const initialContent = useMemo(() => {
-      try {
-        return selectedDocument.content ? JSON.parse(selectedDocument.content) : null;
-      } catch (e) {
-        console.error('Error parsing document content:', e);
-        return null;
-      }
-    }, [selectedDocument.content]);
-
-    return (
-      <div className="container mx-auto p-4 max-w-none">
-        <TipTapEditor
-          content={initialContent}
-          onSave={handleSave}
-          editable={!isViewingDocument}
-          autoSave={false}
-          autoSaveDelay={15000}
-          showAutoSaveToggle={true}
-          placeholder="Commencez à écrire votre document... Utilisez '/' pour insérer des blocs."
-          className="min-h-[600px]"
-        />
-        
-        {/* Notification toast fixe uniquement si erreur persistante */}
-        {saveError && (
-          <div className="fixed bottom-4 right-4 bg-destructive text-destructive-foreground px-4 py-2 rounded-md shadow-lg flex items-center gap-2">
-            <span>{saveError}</span>
-            <button 
-              onClick={() => setSaveError(null)}
-              className="ml-2 text-destructive-foreground/80 hover:text-destructive-foreground"
-            >
-              ✕
-            </button>
-          </div>
-        )}
+        <div className="container mx-auto p-4">
+          {safeParseTiptapContent(selectedDocument.content) === 'error' ? (
+            <div className="p-4 bg-destructive/10 border border-destructive rounded text-destructive mb-4">
+              Erreur : le contenu du document est corrompu ou non lisible.<br />
+              Veuillez contacter un administrateur ou restaurer une version précédente.
+            </div>
+          ) : (
+            <TipTapEditor
+              content={safeParseTiptapContent(selectedDocument.content)}
+              onChange={(content) => {
+                // Auto-save logic here
+                console.log('Content changed:', content);
+              }}
+              onSave={async (content) => {
+                try {
+                  const { error } = await supabase
+                    .from('team_documents')
+                    .update({
+                      content: JSON.stringify(content),
+                      updated_at: new Date().toISOString(),
+                      updated_by: userProfile?.id
+                    })
+                    .eq('id', selectedDocument.id);
+                  
+                  if (error) throw error;
+                  toast.success('Document sauvegardé automatiquement');
+                } catch (error) {
+                  console.error('Auto-save error:', error);
+                  toast.error('Erreur lors de la sauvegarde automatique');
+                }
+              }}
+              editable={isEditingDocument}
+              placeholder="Commencez à écrire votre document..."
+              autoSave={isEditingDocument}
+              autoSaveDelay={3000}
+              className="max-w-none"
+            />
+          )}
+        </div>
       </div>
     );
   }
@@ -626,41 +680,30 @@ const Documentation = () => {
         action={{
           label: "Nouveau document",
           icon: Plus,
-          onClick: () => setIsClientEditorMode(true) // Par défaut, mode client
+          onClick: () => setIsCreateModalOpen(true)
         }}
       />
 
+      <DebugInfo />
+
       {/* Statistiques */}
-      <div className="flex items-center justify-between mb-6">
-        <DataGrid columns={4}>
-          {stats.map((stat) => (
-            <Card key={stat.title}>
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <div className={`p-2 rounded-lg bg-muted ${stat.color}`}>
-                    <stat.icon className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                    <p className="text-2xl font-bold">{stat.value}</p>
-                  </div>
+      <DataGrid columns={4}>
+        {stats.map((stat) => (
+          <Card key={stat.title}>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className={`p-2 rounded-lg bg-muted ${stat.color}`}>
+                  <stat.icon className="h-6 w-6" />
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </DataGrid>
-        
-        <div className="flex gap-2 ml-6">
-          <Button
-            variant="outline"
-            onClick={() => setIsCreateModalOpen(true)}
-            className="h-fit"
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            Mode Avancé
-          </Button>
-        </div>
-      </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
+                  <p className="text-2xl font-bold">{stat.value}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </DataGrid>
 
       {/* Filtres et vue */}
       <Card>
@@ -983,21 +1026,32 @@ const Documentation = () => {
                 <Building2 className="h-4 w-4 inline mr-2" />
                 Équipe cliente
               </Label>
-              <Select value={newDocument.team_id} onValueChange={(value) => setNewDocument({...newDocument, team_id: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner une équipe cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {organizationData?.teams?.map(team => {
-                    const organization = organizationData.organizations.find(org => org.id === team.organization_id);
-                    return (
-                      <SelectItem key={team.id} value={team.id}>
-                        {organization?.name} - {team.name}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+              {teamsLoading ? (
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  <span>Chargement des équipes...</span>
+                </div>
+              ) : !organizationData?.teams || organizationData.teams.length === 0 ? (
+                <div className="text-sm text-destructive">
+                  Aucune équipe cliente disponible. Veuillez contacter un administrateur.
+                </div>
+              ) : (
+                <Select value={newDocument.team_id} onValueChange={(value) => setNewDocument({...newDocument, team_id: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner une équipe cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {organizationData.teams.map(team => {
+                      const organization = organizationData.organizations.find(org => org.id === team.organization_id);
+                      return (
+                        <SelectItem key={team.id} value={team.id}>
+                          {organization?.name} - {team.name}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             
             

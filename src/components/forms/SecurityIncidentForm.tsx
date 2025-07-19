@@ -165,8 +165,9 @@ export function SecurityIncidentForm({
       newErrors.priority = "La priorité est requise";
     }
 
-    // Permettre la création d'incidents manuels sans vulnérabilité ou patch
-    // Cette validation n'est plus nécessaire
+    if (formData.vulnerability_id === "none" && formData.patch_schedule_id === "none") {
+      newErrors.source = "Une vulnérabilité ou un patch doit être sélectionné";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -175,11 +176,7 @@ export function SecurityIncidentForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('🔍 Security incident form submission started');
-    console.log('Form data:', formData);
-    
     if (!validateForm()) {
-      console.log('❌ Form validation failed:', errors);
       return;
     }
 
@@ -193,16 +190,12 @@ export function SecurityIncidentForm({
         asset_owner_team: formData.asset_owner_team === "none" ? null : formData.asset_owner_team
       };
       
-      console.log('📤 Submitting data:', submitData);
       const success = await onSubmit(submitData);
-      console.log('✅ Submission result:', success);
-      
       if (success) {
-        console.log('✅ Form submitted successfully');
         // Form will be closed by parent component
       }
     } catch (error) {
-      console.error('❌ Error submitting security incident form:', error);
+      console.error('Error submitting security incident form:', error);
     } finally {
       setLoading(false);
     }

@@ -145,8 +145,20 @@ export const RoleAdmin = () => {
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Administration des Rôles et Permissions
+          </CardTitle>
+          <CardDescription>
+            Gérez les rôles utilisateur et leurs permissions dans le système
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
       <Tabs defaultValue="user-roles" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="user-roles" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Rôles Utilisateur
@@ -158,6 +170,10 @@ export const RoleAdmin = () => {
           <TabsTrigger value="permissions" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             Permissions
+          </TabsTrigger>
+          <TabsTrigger value="mapping" className="flex items-center gap-2">
+            <Users2 className="h-4 w-4" />
+            Mapping
           </TabsTrigger>
         </TabsList>
 
@@ -513,6 +529,44 @@ export const RoleAdmin = () => {
           </Card>
         </TabsContent>
 
+        <TabsContent value="mapping">
+          <Card>
+            <CardHeader>
+              <CardTitle>Mapping Rôles → Permissions</CardTitle>
+              <CardDescription>
+                Vue d'ensemble des permissions par rôle
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {roles.map((role) => (
+                  <div key={role.id}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <Badge variant={role.is_system_role ? 'default' : 'secondary'}>
+                        {role.display_name}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        {getRolePermissionCount(role.id)} permissions
+                      </span>
+                    </div>
+                    
+                    {rolePermissions[role.id] && (
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-4">
+                        {rolePermissions[role.id].map((permission) => (
+                          <Badge key={permission.id} variant="outline" className="text-xs">
+                            {permission.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <Separator />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );

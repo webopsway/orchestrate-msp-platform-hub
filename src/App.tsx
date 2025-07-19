@@ -36,11 +36,6 @@ import Settings from "./pages/Settings";
 import Setup from "./pages/Setup";
 import MspClientRelations from "./pages/MspClientRelations";
 import SLAManagement from "./pages/SLAManagement";
-import Applications from "./pages/Applications";
-import BusinessServices from "./pages/Applications/BusinessServices";
-import ApplicationsApp from "./pages/Applications/Applications";
-import Deployments from "./pages/Applications/Deployments";
-
 
 const queryClient = new QueryClient();
 
@@ -98,26 +93,6 @@ function AppRoutes() {
       <Route path="/organizations" element={
         <ProtectedRoute>
           <NewOrganizations />
-        </ProtectedRoute>
-      } />
-      <Route path="/applications" element={
-        <ProtectedRoute>
-          <Applications />
-        </ProtectedRoute>
-      } />
-      <Route path="/applications/business-services" element={
-        <ProtectedRoute>
-          <BusinessServices />
-        </ProtectedRoute>
-      } />
-      <Route path="/applications/applications" element={
-        <ProtectedRoute>
-          <ApplicationsApp />
-        </ProtectedRoute>
-      } />
-      <Route path="/applications/deployments" element={
-        <ProtectedRoute>
-          <Deployments />
         </ProtectedRoute>
       } />
       <Route path="/teams" element={
@@ -245,7 +220,6 @@ function AppRoutes() {
           <Documentation />
         </ProtectedRoute>
       } />
-      
       
       {/* Settings */}
       <Route path="/global-settings" element={

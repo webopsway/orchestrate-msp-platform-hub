@@ -151,104 +151,28 @@ const sendAPINotification = async (transport: Transport, notification: Notificat
   return { success: response.ok, messageId: `api-${Date.now()}` };
 };
 
-const getClientRelationInfo = async (teamId: string) => {
-  // Récupérer les informations de l'équipe et de l'organisation
-  const { data: team } = await supabase
-    .from('teams')
-    .select(`
-      organization_id,
-      organization:organizations!inner(
-        id,
-        name,
-        email,
-        type,
-        is_msp
-      )
-    `)
-    .eq('id', teamId)
-    .single();
-
-  if (!team?.organization) return null;
-
-  // Si c'est une organisation MSP, pas besoin de relation client
-  if (team.organization.is_msp) {
-    return {
-      type: 'msp',
-      organization: team.organization,
-      msp: team.organization,
-      esn: null
-    };
-  }
-
-  // Récupérer les relations MSP/ESN/Client
-  const { data: relation } = await supabase
-    .from('msp_client_relations')
-    .select(`
-      relation_type,
-      msp_organization:organizations!msp_organization_id(id, name, email),
-      esn_organization:organizations!esn_organization_id(id, name, email)
-    `)
-    .eq('client_organization_id', team.organization.id)
-    .eq('is_active', true)
-    .maybeSingle();
-
-  return {
-    type: relation?.relation_type || 'direct',
-    organization: team.organization,
-    msp: relation?.msp_organization || null,
-    esn: relation?.esn_organization || null
-  };
-};
-
 const dispatchNotification = async (notification: Notification, transport: Transport) => {
   let result;
 
   try {
-    // Récupérer les informations de relation client
-    const relationInfo = await getClientRelationInfo(notification.team_id);
-    
-    // Modifier le transport en fonction des règles de notification
-    let modifiedTransport = { ...transport };
-    
-    if (relationInfo) {
-      // Pour les emails, adapter l'expéditeur selon les règles
-      if (transport.channel === 'smtp' || transport.channel === 'transactional_email') {
-        if (relationInfo.type === 'via_esn' && relationInfo.esn) {
-          // Client via ESN : utiliser l'email de l'ESN
-          modifiedTransport.config = {
-            ...transport.config,
-            from: relationInfo.esn.email || transport.config.from,
-            fromName: relationInfo.esn.name || transport.config.fromName
-          };
-        } else if (relationInfo.type === 'direct' && relationInfo.msp) {
-          // Client direct : utiliser l'email du MSP
-          modifiedTransport.config = {
-            ...transport.config,
-            from: relationInfo.msp.email || transport.config.from,
-            fromName: relationInfo.msp.name || transport.config.fromName
-          };
-        }
-      }
-    }
-
-    switch (modifiedTransport.channel) {
+    switch (transport.channel) {
       case 'smtp':
-        result = await sendSMTPEmail(modifiedTransport, notification);
+        result = await sendSMTPEmail(transport, notification);
         break;
       case 'transactional_email':
-        result = await sendTransactionalEmail(modifiedTransport, notification);
+        result = await sendTransactionalEmail(transport, notification);
         break;
       case 'slack':
-        result = await sendSlackMessage(modifiedTransport, notification);
+        result = await sendSlackMessage(transport, notification);
         break;
       case 'teams':
-        result = await sendTeamsMessage(modifiedTransport, notification);
+        result = await sendTeamsMessage(transport, notification);
         break;
       case 'api':
-        result = await sendAPINotification(modifiedTransport, notification);
+        result = await sendAPINotification(transport, notification);
         break;
       default:
-        throw new Error(`Unsupported channel: ${modifiedTransport.channel}`);
+        throw new Error(`Unsupported channel: ${transport.channel}`);
     }
 
     if (result.success) {
@@ -260,7 +184,7 @@ const dispatchNotification = async (notification: Notification, transport: Trans
         })
         .eq('id', notification.id);
 
-      console.log(`Notification ${notification.id} sent successfully via ${modifiedTransport.channel}`);
+      console.log(`Notification ${notification.id} sent successfully via ${transport.channel}`);
       return { success: true };
     } else {
       throw new Error(result.error || 'Failed to send notification');
