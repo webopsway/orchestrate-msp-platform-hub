@@ -49,6 +49,7 @@ import {
 } from 'lucide-react';
 import { SlashCommand, slashMenuSuggestion } from './extensions/SlashCommand';
 import { DragAndDropExtension } from './extensions/DragAndDropExtension';
+import { EditorHelp } from './EditorHelp';
 
 const lowlight = createLowlight(common);
 
@@ -920,6 +921,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                     <div className={`w-2 h-2 rounded-full ${localAutoSave ? 'bg-green-500' : 'bg-gray-400'}`}></div>
                     Auto-save
                   </button>
+                  <EditorHelp />
                 </div>
               )}
               
@@ -989,10 +991,18 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                   </Badge>
                 )}
                 
-                {autoSave && !hasUnsavedChanges && (
+                
+                
+                {/* Statut Auto-save */}
+                {localAutoSave ? (
                   <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                    Auto-save activé
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                    Auto-save actif ({getAutoSaveDelay() / 1000}s)
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                    <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
+                    Sauvegarde manuelle
                   </span>
                 )}
                 

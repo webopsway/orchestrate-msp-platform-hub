@@ -603,8 +603,10 @@ const Documentation = () => {
           content={initialContent}
           onSave={handleSave}
           editable={!isViewingDocument}
-          autoSave={true}
-          autoSaveDelay={1500}
+          autoSave={false} // Désactivé par défaut, l'utilisateur peut l'activer
+          autoSaveDelay={15000} // 15 secondes au lieu de 1.5 seconde
+          showAutoSaveToggle={true} // Permettre à l'utilisateur de contrôler
+          placeholder="Commencez à écrire votre document... Utilisez '/' pour insérer des blocs."
         />
         {isSaving && (
           <div className="fixed bottom-4 right-4 bg-primary text-primary-foreground px-4 py-2 rounded-md shadow-lg">
