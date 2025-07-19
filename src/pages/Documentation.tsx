@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganizationsAndTeams } from "@/hooks/useOrganizationsAndTeams";
 import { NotionLikeEditor } from "@/components/documentation/NotionLikeEditor";
+import { useDocumentBlocks } from "@/hooks/useDocumentBlocks";
 import { 
   PageHeader, 
   DataGrid, 
@@ -530,40 +531,64 @@ const Documentation = () => {
           </div>
         </div>
         
-        <div className="container mx-auto p-4">
-          <NotionLikeEditor
-            documentId={selectedDocument.id}
-            teamId={selectedDocument.team_id}
-            blocks={[]} // TODO: Charger les blocs depuis document_content_blocks
-            onSave={async (data) => {
-              try {
-                await supabase
-                  .from('team_documents')
-                  .update({
-                    content: JSON.stringify(data),
-                    updated_by: userProfile?.id,
-                    updated_at: new Date().toISOString(),
-                    version: (parseFloat(selectedDocument.version) + 0.1).toFixed(1)
-                  })
-                  .eq('id', selectedDocument.id);
-                
-                // Mettre à jour localement
-                setSelectedDocument(prev => prev ? {
-                  ...prev,
+        <DocumentEditor 
+          selectedDocument={selectedDocument} 
+          userProfile={userProfile}
+          isViewingDocument={isViewingDocument}
+          setSelectedDocument={setSelectedDocument}
+        />
+      </div>
+    );
+  }
+
+  // Composant séparé pour l'éditeur
+  function DocumentEditor({ 
+    selectedDocument, 
+    userProfile, 
+    isViewingDocument, 
+    setSelectedDocument 
+  }: {
+    selectedDocument: any;
+    userProfile: any;
+    isViewingDocument: boolean;
+    setSelectedDocument: React.Dispatch<React.SetStateAction<any>>;
+  }) {
+    const { blocks } = useDocumentBlocks(selectedDocument.id);
+
+    return (
+      <div className="container mx-auto p-4">
+        <NotionLikeEditor
+          documentId={selectedDocument.id}
+          teamId={selectedDocument.team_id}
+          blocks={blocks}
+          onSave={async (data) => {
+            try {
+              await supabase
+                .from('team_documents')
+                .update({
                   content: JSON.stringify(data),
-                  version: (parseFloat(prev.version) + 0.1).toFixed(1),
-                  updated_at: new Date().toISOString()
-                } : null);
-                
-                toast.success('Document sauvegardé automatiquement');
-              } catch (error) {
-                console.error('Error saving document:', error);
-                toast.error('Erreur lors de la sauvegarde');
-              }
-            }}
-            readOnly={isViewingDocument}
-          />
-        </div>
+                  updated_by: userProfile?.id,
+                  updated_at: new Date().toISOString(),
+                  version: (parseFloat(selectedDocument.version) + 0.1).toFixed(1)
+                })
+                .eq('id', selectedDocument.id);
+              
+              // Mettre à jour localement
+              setSelectedDocument((prev: any) => prev ? {
+                ...prev,
+                content: JSON.stringify(data),
+                version: (parseFloat(prev.version) + 0.1).toFixed(1),
+                updated_at: new Date().toISOString()
+              } : null);
+              
+              toast.success('Document sauvegardé automatiquement');
+            } catch (error) {
+              console.error('Error saving document:', error);
+              toast.error('Erreur lors de la sauvegarde');
+            }
+          }}
+          readOnly={isViewingDocument}
+        />
       </div>
     );
   }
