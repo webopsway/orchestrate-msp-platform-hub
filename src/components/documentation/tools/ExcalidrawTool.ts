@@ -109,24 +109,49 @@ export class ExcalidrawTool implements BlockTool {
     // Dynamic import of Excalidraw
     import('@excalidraw/excalidraw').then(({ Excalidraw }) => {
       const excalidrawContainer = document.createElement('div');
-      excalidrawContainer.style.height = '100%';
+      excalidrawContainer.style.height = 'calc(100% - 60px)';
       excalidrawContainer.style.width = '100%';
+      excalidrawContainer.style.marginTop = '60px';
       editorContainer.appendChild(excalidrawContainer);
 
-      // Mount Excalidraw (simplified version)
-      const handleSave = () => {
-        // In real implementation, get data from Excalidraw instance
-        this.data.elements = []; // Get from Excalidraw
-        this.data.appState = {}; // Get from Excalidraw
-        this.renderExcalidrawContent();
-        document.body.removeChild(modal);
-      };
+      // Import React and ReactDOM for rendering
+      import('react').then(React => {
+        import('react-dom/client').then(ReactDOM => {
+          const root = ReactDOM.createRoot(excalidrawContainer);
+          
+          let currentElements = this.data.elements || [];
+          let currentAppState = this.data.appState || {};
+          
+          const ExcalidrawApp = React.createElement(Excalidraw, {
+            initialData: {
+              elements: currentElements,
+              appState: currentAppState
+            },
+            onChange: (elements: any[], appState: any) => {
+              currentElements = elements;
+              currentAppState = appState;
+            }
+          });
 
-      closeButton.addEventListener('click', () => {
-        document.body.removeChild(modal);
+          root.render(ExcalidrawApp);
+
+          const handleSave = () => {
+            this.data.elements = currentElements;
+            this.data.appState = currentAppState;
+            this.renderExcalidrawContent();
+            root.unmount();
+            document.body.removeChild(modal);
+          };
+
+          const handleClose = () => {
+            root.unmount();
+            document.body.removeChild(modal);
+          };
+
+          closeButton.addEventListener('click', handleClose);
+          saveButton.addEventListener('click', handleSave);
+        });
       });
-
-      saveButton.addEventListener('click', handleSave);
     });
   }
 
