@@ -39,6 +39,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   autoSaveDelay = 2000
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
+  const [lastSavedContent, setLastSavedContent] = useState<string>('');
 
   const editor = useEditor({
     extensions: [
@@ -63,13 +64,17 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   useEffect(() => {
     if (!autoSave || !editor || !onSave) return;
 
+    const currentContent = editor.getHTML();
+    if (currentContent === lastSavedContent) return;
+
     const timeoutId = setTimeout(() => {
       const json = editor.getJSON();
       onSave(json);
+      setLastSavedContent(currentContent);
     }, autoSaveDelay);
 
     return () => clearTimeout(timeoutId);
-  }, [editor?.getHTML(), autoSave, autoSaveDelay, onSave]);
+  }, [editor?.getHTML(), autoSave, autoSaveDelay, onSave, lastSavedContent]);
 
   // Update content when prop changes
   useEffect(() => {
