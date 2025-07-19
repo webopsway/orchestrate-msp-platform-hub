@@ -52,7 +52,7 @@ import { DragAndDropExtension } from './extensions/DragAndDropExtension';
 
 const lowlight = createLowlight(common);
 
-interface TipTapEditorProps {
+export interface TipTapEditorProps {
   content?: any;
   onChange?: (content: any) => void;
   onSave?: (content: any) => void;
@@ -61,6 +61,7 @@ interface TipTapEditorProps {
   placeholder?: string;
   autoSave?: boolean;
   autoSaveDelay?: number;
+  showAutoSaveToggle?: boolean; // Nouvelle prop pour afficher le toggle
 }
 
 export const TipTapEditor: React.FC<TipTapEditorProps> = ({
@@ -71,7 +72,8 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   className = '',
   placeholder = 'Tapez "/" pour voir les commandes ou commencez à écrire...',
   autoSave = false,
-  autoSaveDelay = 2000
+  autoSaveDelay = 2000,
+  showAutoSaveToggle = true, // Default to true
 }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -85,11 +87,19 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
     timestamp: Date;
     wordCount: number;
   }[]>([]);
+  const [localAutoSave, setLocalAutoSave] = useState(autoSave);
   const editorRef = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedContentRef = useRef<string>('');
   const maxRetries = 3;
   const maxHistoryEntries = 10;
+  
+  // Délais plus raisonnables pour l'auto-save
+  const getAutoSaveDelay = () => {
+    // Si l'utilisateur écrit activement, attendre plus longtemps
+    const baseDelay = autoSaveDelay || 10000; // 10 secondes par défaut au lieu de 2
+    return hasUnsavedChanges ? baseDelay : baseDelay * 2; // 20 secondes si déjà des changements
+  };
 
   // Détecter le statut de connexion
   useEffect(() => {
@@ -264,15 +274,16 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
         }
       }
       
-      // Auto-save with debounce
-      if (autoSave && onSave) {
+      // Auto-save with debounce - seulement si activé localement
+      if (localAutoSave && onSave && currentContent !== lastSavedContentRef.current) {
         if (saveTimeoutRef.current) {
           clearTimeout(saveTimeoutRef.current);
         }
         
+        // Auto-save plus intelligent : sauvegarder seulement après une pause dans l'écriture
         saveTimeoutRef.current = setTimeout(async () => {
           await handleSave(json);
-        }, autoSaveDelay);
+        }, getAutoSaveDelay());
       }
     },
     editorProps: {
@@ -894,9 +905,27 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
             
             {/* Actions de droite */}
             <div className="flex items-center gap-2">
+              {/* Toggle Auto-save */}
+              {showAutoSaveToggle && onSave && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setLocalAutoSave(!localAutoSave)}
+                    className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
+                      localAutoSave 
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' 
+                        : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                    }`}
+                    title={localAutoSave ? 'Désactiver l\'auto-save' : 'Activer l\'auto-save'}
+                  >
+                    <div className={`w-2 h-2 rounded-full ${localAutoSave ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                    Auto-save
+                  </button>
+                </div>
+              )}
+              
               {/* Indicateur de mode d'édition */}
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 rounded-full text-xs font-medium">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                 Mode édition
               </div>
               
@@ -907,7 +936,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                   onClick={() => handleSave(editor.getJSON())}
                   disabled={isSaving}
                   className="h-8 px-3 text-xs font-medium"
-                  title="Sauvegarder le document (Ctrl+S)"
+                  title="Sauvegarder maintenant (Ctrl+S)"
                 >
                   <Save className="h-3.5 w-3.5 mr-1.5" />
                   {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
