@@ -64,7 +64,7 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
   });
   const [newSection, setNewSection] = useState<Partial<NavigationGroup>>({
     title: '',
-    order: sidebarConfig.groups.length + 1
+    order: 1
   });
 
   // Charger la configuration depuis les paramètres
@@ -90,6 +90,26 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
     }
   }, [userProfile, getSetting]);
 
+  // Mettre à jour l'ordre par défaut quand le modal de section s'ouvre
+  useEffect(() => {
+    if (isAddSectionDialogOpen) {
+      setNewSection(prev => ({
+        ...prev,
+        order: sidebarConfig.groups.length + 1
+      }));
+    }
+  }, [isAddSectionDialogOpen, sidebarConfig.groups.length]);
+
+  // Mettre à jour l'ordre par défaut quand le modal d'élément s'ouvre
+  useEffect(() => {
+    if (isAddDialogOpen) {
+      setNewItem(prev => ({
+        ...prev,
+        order: sidebarConfig.items.filter(item => item.group === prev.group).length + 1
+      }));
+    }
+  }, [isAddDialogOpen, sidebarConfig.items, newItem.group]);
+
   // Sauvegarder la configuration
   const saveSidebarConfig = async () => {
     try {
@@ -114,7 +134,7 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
   };
 
   // Toggle visibilité d'un élément
-  const toggleItemVisibility = (itemId: string) => {
+  const toggleItemVisibility = React.useCallback((itemId: string) => {
     setSidebarConfig(prev => ({
       ...prev,
       items: prev.items.map(item => 
@@ -123,10 +143,10 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
           : item
       )
     }));
-  };
+  }, []);
 
   // Modifier l'ordre d'un élément
-  const moveItem = (itemId: string, direction: 'up' | 'down') => {
+  const moveItem = React.useCallback((itemId: string, direction: 'up' | 'down') => {
     setSidebarConfig(prev => {
       const items = [...prev.items];
       const currentIndex = items.findIndex(item => item.id === itemId);
@@ -146,13 +166,13 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
       
       return { ...prev, items };
     });
-  };
+  }, []);
 
   // Modifier un élément
-  const handleEditItem = (item: NavigationItem) => {
+  const handleEditItem = React.useCallback((item: NavigationItem) => {
     setEditingItem(item);
     setIsEditDialogOpen(true);
-  };
+  }, []);
 
   // Sauvegarder les modifications d'un élément
   const handleSaveEdit = () => {
@@ -203,13 +223,13 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
   };
 
   // Supprimer un élément
-  const handleDeleteItem = (itemId: string) => {
+  const handleDeleteItem = React.useCallback((itemId: string) => {
     setSidebarConfig(prev => ({
       ...prev,
       items: prev.items.filter(item => item.id !== itemId)
     }));
     toast.success('Élément supprimé');
-  };
+  }, []);
 
   // Ajouter une nouvelle section
   const handleAddSection = () => {
@@ -231,14 +251,14 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
 
     setNewSection({
       title: '',
-      order: sidebarConfig.groups.length + 2
+      order: 1
     });
     setIsAddSectionDialogOpen(false);
     toast.success('Nouvelle section ajoutée');
   };
 
   // Supprimer une section
-  const handleDeleteSection = (sectionId: string) => {
+  const handleDeleteSection = React.useCallback((sectionId: string) => {
     // Vérifier s'il y a des éléments dans cette section
     const itemsInSection = sidebarConfig.items.filter(item => item.group === sectionId);
     
@@ -252,7 +272,7 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
       groups: prev.groups.filter(group => group.id !== sectionId)
     }));
     toast.success('Section supprimée');
-  };
+  }, [sidebarConfig.items]);
 
   // Filtrer les éléments selon la visibilité
   const filteredItems = showHiddenItems 
