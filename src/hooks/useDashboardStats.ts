@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { DashboardStats } from '@/types/dashboard';
+
+export interface DashboardStats {
+  organizations: number;
+  users: number;
+  incidents: number;
+  services: number;
+}
 
 export function useDashboardStats() {
   const [stats, setStats] = useState<DashboardStats>({

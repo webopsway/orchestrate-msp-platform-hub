@@ -40,7 +40,7 @@ import Applications from "./pages/Applications";
 import BusinessServices from "./pages/Applications/BusinessServices";
 import ApplicationsApp from "./pages/Applications/Applications";
 import Deployments from "./pages/Applications/Deployments";
-import DashboardConfig from "./pages/DashboardConfig";
+
 
 const queryClient = new QueryClient();
 
@@ -246,12 +246,6 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
       
-      {/* Dashboard Configuration */}
-      <Route path="/dashboard-config" element={
-        <ProtectedRoute>
-          <DashboardConfig />
-        </ProtectedRoute>
-      } />
       
       {/* Settings */}
       <Route path="/global-settings" element={
