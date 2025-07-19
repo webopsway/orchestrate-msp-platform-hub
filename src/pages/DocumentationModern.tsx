@@ -520,6 +520,17 @@ const DocumentationModern: React.FC = () => {
     }
   };
 
+  // Fonction utilitaire pour obtenir l'icône de catégorie
+  const getCategoryIconComponent = (category: string) => {
+    switch (category) {
+      case 'spécification': return BookOpen;
+      case 'tutorial': return FileText;
+      case 'reference': return File;
+      case 'procedure': return Settings;
+      default: return FileText;
+    }
+  };
+
   // Rendu du mode éditeur/visualisation
   if ((isEditingDocument || isViewingDocument) && selectedDocument) {
     return (
@@ -588,6 +599,7 @@ const DocumentationModern: React.FC = () => {
             });
           }
         }}
+        getCategoryIcon={getCategoryIconComponent}
       />
 
       {/* Modals */}
@@ -763,7 +775,8 @@ const DocumentList: React.FC<{
   onDelete: (id: string) => void;
   onToggleFavorite: (id: string) => void;
   onUpdateStatus: (id: string, status: 'draft' | 'published' | 'archived') => void;
-}> = ({ documents, loading, viewMode, onView, onEdit, onDelete, onToggleFavorite, onUpdateStatus }) => {
+  getCategoryIcon: (category: string) => React.ComponentType<any>;
+}> = ({ documents, loading, viewMode, onView, onEdit, onDelete, onToggleFavorite, onUpdateStatus, getCategoryIcon }) => {
   if (loading) {
     return (
       <Card>
@@ -796,6 +809,7 @@ const DocumentList: React.FC<{
       onDelete={onDelete}
       onToggleFavorite={onToggleFavorite}
       onUpdateStatus={onUpdateStatus}
+      getCategoryIcon={getCategoryIcon}
     />
   ) : (
     <DocumentGridView
@@ -805,6 +819,7 @@ const DocumentList: React.FC<{
       onDelete={onDelete}
       onToggleFavorite={onToggleFavorite}
       onUpdateStatus={onUpdateStatus}
+      getCategoryIcon={getCategoryIcon}
     />
   );
 };
@@ -816,7 +831,8 @@ const DocumentListView: React.FC<{
   onDelete: (id: string) => void;
   onToggleFavorite: (id: string) => void;
   onUpdateStatus: (id: string, status: 'draft' | 'published' | 'archived') => void;
-}> = ({ documents, onView, onEdit, onDelete, onToggleFavorite, onUpdateStatus }) => (
+  getCategoryIcon: (category: string) => React.ComponentType<any>;
+}> = ({ documents, onView, onEdit, onDelete, onToggleFavorite, onUpdateStatus, getCategoryIcon }) => (
   <Card>
     <CardContent className="p-0">
       <div className="rounded-md border">
@@ -941,7 +957,8 @@ const DocumentGridView: React.FC<{
   onDelete: (id: string) => void;
   onToggleFavorite: (id: string) => void;
   onUpdateStatus: (id: string, status: 'draft' | 'published' | 'archived') => void;
-}> = ({ documents, onView, onEdit, onDelete, onToggleFavorite, onUpdateStatus }) => (
+  getCategoryIcon: (category: string) => React.ComponentType<any>;
+}> = ({ documents, onView, onEdit, onDelete, onToggleFavorite, onUpdateStatus, getCategoryIcon }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
     {documents.map((doc) => {
       const CategoryIcon = getCategoryIcon(doc.metadata?.category || "");
