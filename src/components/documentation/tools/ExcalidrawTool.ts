@@ -19,7 +19,7 @@ export class ExcalidrawTool implements BlockTool {
   }
 
   constructor({ data, api }: BlockToolConstructorOptions) {
-    this.data = data as ExcalidrawData || { elements: [], appState: {} };
+    this.data = (data as ExcalidrawData) || { elements: [], appState: {} };
     this.api = api;
     this.wrapper = document.createElement('div');
   }
@@ -33,7 +33,7 @@ export class ExcalidrawTool implements BlockTool {
     this.wrapper.style.backgroundColor = 'hsl(var(--background))';
 
     // Create placeholder or load Excalidraw
-    if (this.data.elements.length === 0) {
+    if (!this.data.elements || this.data.elements.length === 0) {
       this.wrapper.innerHTML = `
         <div class="flex items-center justify-center h-full text-muted-foreground">
           <div class="text-center">
@@ -139,7 +139,7 @@ export class ExcalidrawTool implements BlockTool {
           </button>
         </div>
         <div class="bg-muted rounded p-4 text-center text-muted-foreground">
-          <p>Excalidraw Drawing (${this.data.elements.length} elements)</p>
+          <p>Excalidraw Drawing (${this.data.elements?.length || 0} elements)</p>
           <p class="text-xs mt-1">Click Edit to modify</p>
         </div>
       </div>
