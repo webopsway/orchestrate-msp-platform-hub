@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganizationsAndTeams } from "@/hooks/useOrganizationsAndTeams";
 import { TipTapEditor } from "@/components/documentation/TipTapEditor";
+import { ClientDocumentationEditor } from "@/components/documentation/ClientDocumentationEditor";
 import { 
   PageHeader, 
   DataGrid, 
@@ -106,6 +107,7 @@ const Documentation = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
+  const [isClientEditorMode, setIsClientEditorMode] = useState(false);
 
 
   // État pour les formulaires
@@ -173,49 +175,10 @@ const Documentation = () => {
       return;
     }
 
-    try {
-      setLoading(true);
-      
-      const docData = {
-        team_id: newDocument.team_id,
-        title: newDocument.title,
-        content: '', // Contenu géré par les blocs
-        version: "1.0",
-        created_by: user?.id || '',
-        metadata: {
-          category: newDocument.category,
-          tags: newDocument.tags,
-          status: newDocument.status
-        }
-      };
-      
-      const { data, error } = await supabase
-        .from('team_documents')
-        .insert([docData])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      toast.success('Document créé avec succès');
-      setIsCreateModalOpen(false);
-      resetNewDocumentForm();
-      
-      // Ouvrir automatiquement l'éditeur pour le nouveau document
-      const newDoc: Document = {
-        ...data,
-        metadata: (data.metadata as any) || { tags: [], category: 'general', status: 'draft', is_favorite: false }
-      };
-      setSelectedDocument(newDoc);
-      setIsEditingDocument(true); // Basculer vers l'édition en page complète
-      
-      fetchDocuments();
-    } catch (error) {
-      console.error('Error creating document:', error);
-      toast.error('Erreur lors de la création');
-    } finally {
-      setLoading(false);
-    }
+    // Mode client - rediriger vers l'éditeur client
+    setIsClientEditorMode(true);
+    setIsCreateModalOpen(false);
+    resetNewDocumentForm();
   };
 
   const updateDocument = async () => {
@@ -466,6 +429,26 @@ const Documentation = () => {
     );
   }
 
+  // Si on est en mode édition client, afficher l'éditeur client
+  if (isClientEditorMode) {
+    return (
+      <div className="h-screen">
+        <ClientDocumentationEditor
+          teamId={userProfile?.default_team_id}
+          onDocumentChange={(document) => {
+            if (document) {
+              // Rafraîchir la liste des documents
+              fetchDocuments();
+            } else {
+              // Retour à la vue liste
+              setIsClientEditorMode(false);
+            }
+          }}
+        />
+      </div>
+    );
+  }
+
   // Si on est en mode édition ou visualisation de document, afficher l'éditeur
   if ((isEditingDocument || isViewingDocument) && selectedDocument) {
     return (
@@ -554,11 +537,14 @@ const Documentation = () => {
   }) {
     const [isSaving, setIsSaving] = useState(false);
     const [content, setContent] = useState(selectedDocument.content);
+    const [saveError, setSaveError] = useState<string | null>(null);
 
     const handleSave = async (newContent: any) => {
       if (isViewingDocument) return;
       
       setIsSaving(true);
+      setSaveError(null);
+      
       try {
         const { error } = await supabase
           .from('team_documents')
@@ -578,12 +564,18 @@ const Documentation = () => {
           updated_at: new Date().toISOString()
         }));
         
-        setContent(newContent);
-      } catch (error) {
+        setContent(JSON.stringify(newContent));
+        toast.success('Document sauvegardé avec succès');
+        
+      } catch (error: any) {
         console.error('Error saving document:', error);
-        toast.error('Erreur lors de la sauvegarde');
+        const errorMessage = error?.message || 'Erreur lors de la sauvegarde';
+        setSaveError(errorMessage);
+        toast.error(errorMessage);
+        throw error; // Re-throw pour que TipTapEditor gère l'erreur
       } finally {
-        setIsSaving(false);
+        // S'assurer que isSaving est remis à false
+        setTimeout(() => setIsSaving(false), 100);
       }
     };
 
@@ -598,19 +590,28 @@ const Documentation = () => {
     }, [selectedDocument.content]);
 
     return (
-      <div className="container mx-auto p-4">
+      <div className="container mx-auto p-4 max-w-none">
         <TipTapEditor
           content={initialContent}
           onSave={handleSave}
           editable={!isViewingDocument}
-          autoSave={false} // Désactivé par défaut, l'utilisateur peut l'activer
-          autoSaveDelay={15000} // 15 secondes au lieu de 1.5 seconde
-          showAutoSaveToggle={true} // Permettre à l'utilisateur de contrôler
+          autoSave={false}
+          autoSaveDelay={15000}
+          showAutoSaveToggle={true}
           placeholder="Commencez à écrire votre document... Utilisez '/' pour insérer des blocs."
+          className="min-h-[600px]"
         />
-        {isSaving && (
-          <div className="fixed bottom-4 right-4 bg-primary text-primary-foreground px-4 py-2 rounded-md shadow-lg">
-            Sauvegarde en cours...
+        
+        {/* Notification toast fixe uniquement si erreur persistante */}
+        {saveError && (
+          <div className="fixed bottom-4 right-4 bg-destructive text-destructive-foreground px-4 py-2 rounded-md shadow-lg flex items-center gap-2">
+            <span>{saveError}</span>
+            <button 
+              onClick={() => setSaveError(null)}
+              className="ml-2 text-destructive-foreground/80 hover:text-destructive-foreground"
+            >
+              ✕
+            </button>
           </div>
         )}
       </div>
@@ -625,28 +626,41 @@ const Documentation = () => {
         action={{
           label: "Nouveau document",
           icon: Plus,
-          onClick: () => setIsCreateModalOpen(true)
+          onClick: () => setIsClientEditorMode(true) // Par défaut, mode client
         }}
       />
 
       {/* Statistiques */}
-      <DataGrid columns={4}>
-        {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className={`p-2 rounded-lg bg-muted ${stat.color}`}>
-                  <stat.icon className="h-6 w-6" />
+      <div className="flex items-center justify-between mb-6">
+        <DataGrid columns={4}>
+          {stats.map((stat) => (
+            <Card key={stat.title}>
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-4">
+                  <div className={`p-2 rounded-lg bg-muted ${stat.color}`}>
+                    <stat.icon className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
+                    <p className="text-2xl font-bold">{stat.value}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                  <p className="text-2xl font-bold">{stat.value}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </DataGrid>
+              </CardContent>
+            </Card>
+          ))}
+        </DataGrid>
+        
+        <div className="flex gap-2 ml-6">
+          <Button
+            variant="outline"
+            onClick={() => setIsCreateModalOpen(true)}
+            className="h-fit"
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Mode Avancé
+          </Button>
+        </div>
+      </div>
 
       {/* Filtres et vue */}
       <Card>
