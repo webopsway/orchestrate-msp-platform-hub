@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganizationsAndTeams } from "@/hooks/useOrganizationsAndTeams";
 import { NotionLikeEditor } from "@/components/documentation/NotionLikeEditor";
-import { useDocumentBlocks } from "@/hooks/useDocumentBlocks";
+import { useNotionEditor } from "@/hooks/useNotionEditor";
 import { 
   PageHeader, 
   DataGrid, 
@@ -553,7 +553,7 @@ const Documentation = () => {
     isViewingDocument: boolean;
     setSelectedDocument: React.Dispatch<React.SetStateAction<any>>;
   }) {
-    const { blocks } = useDocumentBlocks(selectedDocument.id);
+    const { blocks, handleSave, isSaving } = useNotionEditor(selectedDocument.id, selectedDocument.team_id);
 
     return (
       <div className="container mx-auto p-4">
@@ -561,34 +561,14 @@ const Documentation = () => {
           documentId={selectedDocument.id}
           teamId={selectedDocument.team_id}
           blocks={blocks}
-          onSave={async (data) => {
-            try {
-              await supabase
-                .from('team_documents')
-                .update({
-                  content: JSON.stringify(data),
-                  updated_by: userProfile?.id,
-                  updated_at: new Date().toISOString(),
-                  version: (parseFloat(selectedDocument.version) + 0.1).toFixed(1)
-                })
-                .eq('id', selectedDocument.id);
-              
-              // Mettre à jour localement
-              setSelectedDocument((prev: any) => prev ? {
-                ...prev,
-                content: JSON.stringify(data),
-                version: (parseFloat(prev.version) + 0.1).toFixed(1),
-                updated_at: new Date().toISOString()
-              } : null);
-              
-              toast.success('Document sauvegardé automatiquement');
-            } catch (error) {
-              console.error('Error saving document:', error);
-              toast.error('Erreur lors de la sauvegarde');
-            }
-          }}
+          onSave={handleSave}
           readOnly={isViewingDocument}
         />
+        {isSaving && (
+          <div className="fixed bottom-4 right-4 bg-primary text-primary-foreground px-4 py-2 rounded-md shadow-lg">
+            Sauvegarde en cours...
+          </div>
+        )}
       </div>
     );
   }
