@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,10 +26,7 @@ import {
   EyeOff,
   GripVertical,
   Save,
-  RotateCcw,
-  AlertTriangle,
-  CheckCircle,
-  X
+  RotateCcw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { NavigationItem, NavigationGroup, SidebarConfig } from '@/components/layout/sidebar/types';
@@ -51,25 +48,26 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showHiddenItems, setShowHiddenItems] = useState(false);
-  const [editingItem, setEditingItem] = useState<NavigationItem | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  
+  // États pour les modals
   const [isAddSectionDialogOpen, setIsAddSectionDialogOpen] = useState(false);
-  const [newItem, setNewItem] = useState<Partial<NavigationItem>>({
-    title: '',
-    url: '',
-    icon: 'Settings',
-    group: 'main',
-    order: 1
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  
+  // États pour les formulaires
+  const [sectionForm, setSectionForm] = useState({ title: '', order: 1 });
+  const [itemForm, setItemForm] = useState({ 
+    title: '', 
+    url: '', 
+    icon: 'Settings', 
+    group: 'main', 
+    order: 1 
   });
-  const [newSection, setNewSection] = useState<Partial<NavigationGroup>>({
-    title: '',
-    order: 1
-  });
+  const [editingItem, setEditingItem] = useState<NavigationItem | null>(null);
 
-  // Charger la configuration depuis les paramètres
+  // Charger la configuration
   useEffect(() => {
-    const loadSidebarConfig = async () => {
+    const loadConfig = async () => {
       try {
         setLoading(true);
         const teamId = userProfile?.default_team_id || userProfile?.default_organization_id || null;
@@ -86,12 +84,12 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
     };
 
     if (userProfile?.is_msp_admin || userProfile?.default_team_id) {
-      loadSidebarConfig();
+      loadConfig();
     }
   }, [userProfile, getSetting]);
 
   // Sauvegarder la configuration
-  const saveSidebarConfig = async () => {
+  const saveSidebarConfig = useCallback(async () => {
     try {
       setSaving(true);
       const teamId = userProfile?.default_team_id || userProfile?.default_organization_id || null;
@@ -102,19 +100,19 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
     } finally {
       setSaving(false);
     }
-  };
+  }, [sidebarConfig, userProfile, setSetting]);
 
-  // Réinitialiser à la configuration par défaut
-  const resetToDefault = () => {
+  // Réinitialiser
+  const resetToDefault = useCallback(() => {
     setSidebarConfig({
       items: defaultNavigationItems,
       groups: defaultGroups
     });
     toast.success('Configuration réinitialisée aux valeurs par défaut');
-  };
+  }, []);
 
-  // Toggle visibilité d'un élément
-  const toggleItemVisibility = React.useCallback((itemId: string) => {
+  // Toggle visibilité
+  const toggleItemVisibility = useCallback((itemId: string) => {
     setSidebarConfig(prev => ({
       ...prev,
       items: prev.items.map(item => 
@@ -125,8 +123,8 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
     }));
   }, []);
 
-  // Modifier l'ordre d'un élément
-  const moveItem = React.useCallback((itemId: string, direction: 'up' | 'down') => {
+  // Déplacer un élément
+  const moveItem = useCallback((itemId: string, direction: 'up' | 'down') => {
     setSidebarConfig(prev => {
       const items = [...prev.items];
       const currentIndex = items.findIndex(item => item.id === itemId);
@@ -137,10 +135,7 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
       
       if (newIndex < 0 || newIndex >= items.length) return prev;
       
-      // Échanger les éléments
       [items[currentIndex], items[newIndex]] = [items[newIndex], items[currentIndex]];
-      
-      // Mettre à jour l'ordre
       items[currentIndex].order = currentIndex + 1;
       items[newIndex].order = newIndex + 1;
       
@@ -148,119 +143,37 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
     });
   }, []);
 
-  // Modifier un élément
-  const handleEditItem = React.useCallback((item: NavigationItem) => {
-    setEditingItem(item);
-    setIsEditDialogOpen(true);
-  }, []);
-
-  // Sauvegarder les modifications d'un élément
-  const handleSaveEdit = () => {
-    if (!editingItem) return;
-    
-    setSidebarConfig(prev => ({
-      ...prev,
-      items: prev.items.map(item => 
-        item.id === editingItem.id ? editingItem : item
-      )
-    }));
-    
-    setIsEditDialogOpen(false);
-    setEditingItem(null);
-    toast.success('Élément modifié');
-  };
-
-  // Ouvrir le modal d'ajout d'élément
-  const openAddItemModal = () => {
-    setNewItem({
-      title: '',
-      url: '',
-      icon: 'Settings',
-      group: 'main',
-      order: 1
-    });
-    setIsAddDialogOpen(true);
-  };
-
-  // Ajouter un nouvel élément
-  const handleAddItem = () => {
-    if (!newItem.title || !newItem.url || !newItem.group) {
-      toast.error('Veuillez remplir tous les champs requis');
-      return;
-    }
-
-    const newItemComplete: NavigationItem = {
-      id: `custom-${Date.now()}`,
-      title: newItem.title!,
-      url: newItem.url!,
-      icon: newItem.icon || 'Settings',
-      group: newItem.group!,
-      order: sidebarConfig.items.filter(item => item.group === newItem.group).length + 1
-    };
-
-    setSidebarConfig(prev => ({
-      ...prev,
-      items: [...prev.items, newItemComplete]
-    }));
-
-    setNewItem({
-      title: '',
-      url: '',
-      icon: 'Settings',
-      group: 'main',
-      order: 1
-    });
-    setIsAddDialogOpen(false);
-    toast.success('Nouvel élément ajouté');
-  };
-
-  // Supprimer un élément
-  const handleDeleteItem = React.useCallback((itemId: string) => {
-    setSidebarConfig(prev => ({
-      ...prev,
-      items: prev.items.filter(item => item.id !== itemId)
-    }));
-    toast.success('Élément supprimé');
-  }, []);
-
-  // Ouvrir le modal d'ajout de section
-  const openAddSectionModal = () => {
-    setNewSection({
-      title: '',
-      order: sidebarConfig.groups.length + 1
-    });
+  // Ouvrir modal d'ajout de section
+  const openAddSectionModal = useCallback(() => {
+    setSectionForm({ title: '', order: sidebarConfig.groups.length + 1 });
     setIsAddSectionDialogOpen(true);
-  };
+  }, [sidebarConfig.groups.length]);
 
-  // Ajouter une nouvelle section
-  const handleAddSection = () => {
-    if (!newSection.title) {
+  // Ajouter une section
+  const handleAddSection = useCallback(() => {
+    if (!sectionForm.title) {
       toast.error('Veuillez saisir un titre pour la section');
       return;
     }
 
-    const newSectionComplete: NavigationGroup = {
+    const newSection: NavigationGroup = {
       id: `section-${Date.now()}`,
-      title: newSection.title,
-      order: newSection.order || sidebarConfig.groups.length + 1
+      title: sectionForm.title,
+      order: sectionForm.order
     };
 
     setSidebarConfig(prev => ({
       ...prev,
-      groups: [...prev.groups, newSectionComplete]
+      groups: [...prev.groups, newSection]
     }));
 
-    setNewSection({
-      title: '',
-      order: 1
-    });
+    setSectionForm({ title: '', order: 1 });
     setIsAddSectionDialogOpen(false);
     toast.success('Nouvelle section ajoutée');
-  };
+  }, [sectionForm]);
 
   // Supprimer une section
-  const handleDeleteSection = React.useCallback((sectionId: string) => {
-    // Vérifier s'il y a des éléments dans cette section
+  const handleDeleteSection = useCallback((sectionId: string) => {
     const itemsInSection = sidebarConfig.items.filter(item => item.group === sectionId);
     
     if (itemsInSection.length > 0) {
@@ -275,12 +188,80 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
     toast.success('Section supprimée');
   }, [sidebarConfig.items]);
 
-  // Filtrer les éléments selon la visibilité
+  // Ouvrir modal d'ajout d'élément
+  const openAddItemModal = useCallback(() => {
+    setItemForm({ 
+      title: '', 
+      url: '', 
+      icon: 'Settings', 
+      group: 'main', 
+      order: 1 
+    });
+    setIsAddDialogOpen(true);
+  }, []);
+
+  // Ajouter un élément
+  const handleAddItem = useCallback(() => {
+    if (!itemForm.title || !itemForm.url || !itemForm.group) {
+      toast.error('Veuillez remplir tous les champs requis');
+      return;
+    }
+
+    const newItem: NavigationItem = {
+      id: `custom-${Date.now()}`,
+      title: itemForm.title,
+      url: itemForm.url,
+      icon: itemForm.icon,
+      group: itemForm.group,
+      order: sidebarConfig.items.filter(item => item.group === itemForm.group).length + 1
+    };
+
+    setSidebarConfig(prev => ({
+      ...prev,
+      items: [...prev.items, newItem]
+    }));
+
+    setItemForm({ title: '', url: '', icon: 'Settings', group: 'main', order: 1 });
+    setIsAddDialogOpen(false);
+    toast.success('Nouvel élément ajouté');
+  }, [itemForm, sidebarConfig.items]);
+
+  // Éditer un élément
+  const handleEditItem = useCallback((item: NavigationItem) => {
+    setEditingItem(item);
+    setIsEditDialogOpen(true);
+  }, []);
+
+  // Sauvegarder l'édition
+  const handleSaveEdit = useCallback(() => {
+    if (!editingItem) return;
+    
+    setSidebarConfig(prev => ({
+      ...prev,
+      items: prev.items.map(item => 
+        item.id === editingItem.id ? editingItem : item
+      )
+    }));
+    
+    setIsEditDialogOpen(false);
+    setEditingItem(null);
+    toast.success('Élément modifié');
+  }, [editingItem]);
+
+  // Supprimer un élément
+  const handleDeleteItem = useCallback((itemId: string) => {
+    setSidebarConfig(prev => ({
+      ...prev,
+      items: prev.items.filter(item => item.id !== itemId)
+    }));
+    toast.success('Élément supprimé');
+  }, []);
+
+  // Filtrer et grouper les éléments
   const filteredItems = showHiddenItems 
     ? sidebarConfig.items 
     : sidebarConfig.items.filter(item => !item.hidden);
 
-  // Grouper les éléments
   const groupedItems = sidebarConfig.groups
     .sort((a, b) => a.order - b.order)
     .map(group => ({
@@ -303,7 +284,7 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* En-tête avec actions */}
+      {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold flex items-center space-x-2">
@@ -333,8 +314,6 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
         </div>
       </div>
 
-
-
       {/* Gestion des sections */}
       <Card>
         <CardHeader>
@@ -343,54 +322,10 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
               <Settings className="h-5 w-5" />
               <span>Gestion des sections</span>
             </CardTitle>
-            <div className="flex space-x-2">
-              <Button variant="outline" onClick={openAddSectionModal}>
-                <Plus className="h-4 w-4 mr-2" />
-                Nouvelle section
-              </Button>
-              <Dialog open={isAddSectionDialogOpen} onOpenChange={setIsAddSectionDialogOpen}>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Ajouter une nouvelle section</DialogTitle>
-                    <DialogDescription>
-                      Créez une nouvelle section dans la sidebar
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="section-title">Titre de la section *</Label>
-                      <Input
-                        id="section-title"
-                        value={newSection.title}
-                        onChange={(e) => setNewSection({ ...newSection, title: e.target.value })}
-                        placeholder="Nom de la section"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="section-order">Ordre</Label>
-                      <Input
-                        id="section-order"
-                        type="number"
-                        value={newSection.order}
-                        onChange={(e) => setNewSection({ ...newSection, order: parseInt(e.target.value) || 1 })}
-                        placeholder="Ordre d'affichage"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={() => {
-                      setIsAddSectionDialogOpen(false);
-                      setNewSection({ title: '', order: 1 });
-                    }}>
-                      Annuler
-                    </Button>
-                    <Button onClick={handleAddSection}>
-                      Ajouter
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
+            <Button variant="outline" onClick={openAddSectionModal}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nouvelle section
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -436,99 +371,18 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
         </CardContent>
       </Card>
 
-      {/* Ajouter un nouvel élément */}
+      {/* Ajouter un élément */}
       <Card>
         <CardHeader>
-                      <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center space-x-2">
-                <Plus className="h-5 w-5" />
-                <span>Ajouter un élément</span>
-              </CardTitle>
-              <Button onClick={openAddItemModal}>
-                <Plus className="h-4 w-4 mr-2" />
-                Nouvel élément
-              </Button>
-              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Ajouter un élément de navigation</DialogTitle>
-                  <DialogDescription>
-                    Créez un nouvel élément dans la sidebar
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="title">Titre *</Label>
-                    <Input
-                      id="title"
-                      value={newItem.title}
-                      onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
-                      placeholder="Nom de l'élément"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="url">URL *</Label>
-                    <Input
-                      id="url"
-                      value={newItem.url}
-                      onChange={(e) => setNewItem({ ...newItem, url: e.target.value })}
-                      placeholder="/mon-chemin"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="icon">Icône</Label>
-                    <Select value={newItem.icon} onValueChange={(value) => setNewItem({ ...newItem, icon: value })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.keys(iconMap).map(iconName => (
-                          <SelectItem key={iconName} value={iconName}>
-                            <div className="flex items-center space-x-2">
-                              {React.createElement(iconMap[iconName], { className: "h-4 w-4" })}
-                              <span>{iconName}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="group">Section *</Label>
-                    <Select value={newItem.group} onValueChange={(value) => setNewItem({ ...newItem, group: value })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {sidebarConfig.groups
-                          .sort((a, b) => a.order - b.order)
-                          .map(group => (
-                          <SelectItem key={group.id} value={group.id}>
-                            <div className="flex items-center space-x-2">
-                              <span>{group.title}</span>
-                              {group.id.startsWith('section-') && (
-                                <Badge variant="outline" className="text-xs">Personnalisée</Badge>
-                              )}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                                  <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={() => {
-                      setIsAddDialogOpen(false);
-                      setNewItem({ title: '', url: '', icon: 'Settings', group: 'main', order: 1 });
-                    }}>
-                      Annuler
-                    </Button>
-                    <Button onClick={handleAddItem}>
-                      Ajouter
-                    </Button>
-                  </div>
-              </DialogContent>
-            </Dialog>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center space-x-2">
+              <Plus className="h-5 w-5" />
+              <span>Ajouter un élément</span>
+            </CardTitle>
+            <Button onClick={openAddItemModal}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nouvel élément
+            </Button>
           </div>
         </CardHeader>
       </Card>
@@ -538,12 +392,10 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
         <Card key={group.id}>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
+              <Settings className="h-5 w-5" />
               <span>{group.title}</span>
               <Badge variant="outline">{group.items.length} élément{group.items.length > 1 ? 's' : ''}</Badge>
             </CardTitle>
-            <CardDescription>
-              Groupe d'ordre {group.order}
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -624,7 +476,134 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
         </Card>
       ))}
 
-      {/* Dialog d'édition */}
+      {/* Modal d'ajout de section */}
+      <Dialog open={isAddSectionDialogOpen} onOpenChange={setIsAddSectionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ajouter une nouvelle section</DialogTitle>
+            <DialogDescription>
+              Créez une nouvelle section dans la sidebar
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="section-title">Titre de la section *</Label>
+              <Input
+                id="section-title"
+                value={sectionForm.title}
+                onChange={(e) => setSectionForm({ ...sectionForm, title: e.target.value })}
+                placeholder="Nom de la section"
+              />
+            </div>
+            <div>
+              <Label htmlFor="section-order">Ordre</Label>
+              <Input
+                id="section-order"
+                type="number"
+                value={sectionForm.order}
+                onChange={(e) => setSectionForm({ ...sectionForm, order: parseInt(e.target.value) || 1 })}
+                placeholder="Ordre d'affichage"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => {
+              setIsAddSectionDialogOpen(false);
+              setSectionForm({ title: '', order: 1 });
+            }}>
+              Annuler
+            </Button>
+            <Button onClick={handleAddSection}>
+              Ajouter
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal d'ajout d'élément */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ajouter un élément de navigation</DialogTitle>
+            <DialogDescription>
+              Créez un nouvel élément dans la sidebar
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="title">Titre *</Label>
+              <Input
+                id="title"
+                value={itemForm.title}
+                onChange={(e) => setItemForm({ ...itemForm, title: e.target.value })}
+                placeholder="Nom de l'élément"
+              />
+            </div>
+            <div>
+              <Label htmlFor="url">URL *</Label>
+              <Input
+                id="url"
+                value={itemForm.url}
+                onChange={(e) => setItemForm({ ...itemForm, url: e.target.value })}
+                placeholder="/mon-chemin"
+              />
+            </div>
+            <div>
+              <Label htmlFor="icon">Icône</Label>
+              <Select value={itemForm.icon} onValueChange={(value) => setItemForm({ ...itemForm, icon: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(iconMap).map(iconName => (
+                    <SelectItem key={iconName} value={iconName}>
+                      <div className="flex items-center space-x-2">
+                        {React.createElement(iconMap[iconName], { className: "h-4 w-4" })}
+                        <span>{iconName}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="group">Section *</Label>
+              <Select value={itemForm.group} onValueChange={(value) => setItemForm({ ...itemForm, group: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {sidebarConfig.groups
+                    .sort((a, b) => a.order - b.order)
+                    .map(group => (
+                    <SelectItem key={group.id} value={group.id}>
+                      <div className="flex items-center space-x-2">
+                        <span>{group.title}</span>
+                        {group.id.startsWith('section-') && (
+                          <Badge variant="outline" className="text-xs">Personnalisée</Badge>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => {
+              setIsAddDialogOpen(false);
+              setItemForm({ title: '', url: '', icon: 'Settings', group: 'main', order: 1 });
+            }}>
+              Annuler
+            </Button>
+            <Button onClick={handleAddItem}>
+              Ajouter
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal d'édition */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
