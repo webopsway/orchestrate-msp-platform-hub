@@ -141,7 +141,9 @@ const Documentation = () => {
   }, [organizationData]);
 
   const fetchDocuments = async () => {
-    console.log('Fetching documents for user:', userProfile);
+    console.log('=== DÉBUT FETCH DOCUMENTS ===');
+    console.log('userProfile:', userProfile);
+    console.log('user:', user);
     
     // Si l'utilisateur n'est pas admin MSP et n'a pas d'équipe par défaut
     if (!userProfile?.is_msp_admin && !userProfile?.default_team_id) {
@@ -167,11 +169,21 @@ const Documentation = () => {
         console.log('MSP admin - fetching all documents');
       }
 
+      console.log('=== EXÉCUTION REQUÊTE ===');
       const { data: docsData, error: docsError } = await query
         .order('updated_at', { ascending: false });
 
+      console.log('=== RÉPONSE REQUÊTE ===');
+      console.log('data:', docsData);
+      console.log('error:', docsError);
+
       if (docsError) {
-        console.error('Error fetching documents:', docsError);
+        console.error('=== ERREUR DÉTAILLÉE ===');
+        console.error('Error object:', docsError);
+        console.error('Error message:', docsError.message);
+        console.error('Error details:', docsError.details);
+        console.error('Error hint:', docsError.hint);
+        console.error('Error code:', docsError.code);
         throw docsError;
       }
 
@@ -188,11 +200,29 @@ const Documentation = () => {
         const versionsData: any[] = [];
         setVersions(versionsData || []);
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('=== ERREUR FINALE FETCH ===');
       console.error('Error fetching documents:', error);
-      toast.error('Erreur lors du chargement des documents');
+      console.error('Error type:', typeof error);
+      console.error('Error keys:', Object.keys(error || {}));
+      
+      let errorMessage = 'Erreur lors du chargement des documents';
+      
+      if (error?.code === 'PGRST200') {
+        errorMessage = 'Erreur de relation - jointure impossible';
+      } else if (error?.code === '42501') {
+        errorMessage = 'Permission refusée - vérifiez vos droits d\'accès';
+      } else if (error?.code === '42P01') {
+        errorMessage = 'Table team_documents introuvable';
+      } else if (error?.message) {
+        errorMessage = `Erreur: ${error.message}`;
+      }
+      
+      console.error('Message d\'erreur final:', errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
+      console.log('=== FIN FETCH DOCUMENTS ===');
     }
   };
 
@@ -687,7 +717,39 @@ const Documentation = () => {
     }
   };
 
-  // Composant de débogage temporaire
+  // Fonction de test pour vérifier la connexion et la table
+  const testSupabaseConnection = async () => {
+    console.log('=== TEST CONNEXION SUPABASE ===');
+    
+    try {
+      // Test 1: Vérifier la connexion de base
+      const { data: testData, error: testError } = await supabase
+        .from('team_documents')
+        .select('count')
+        .limit(1);
+      
+      console.log('Test connexion:', { testData, testError });
+      
+      // Test 2: Vérifier les permissions
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      console.log('Test auth:', { authData, authError });
+      
+      // Test 3: Vérifier la table avec une requête simple
+      const { data: tableData, error: tableError } = await supabase
+        .from('team_documents')
+        .select('id')
+        .limit(1);
+      
+      console.log('Test table:', { tableData, tableError });
+      
+      toast.success('Tests de connexion terminés - voir console');
+    } catch (error) {
+      console.error('Erreur test connexion:', error);
+      toast.error('Erreur lors du test de connexion');
+    }
+  };
+
+  // Ajouter le bouton de test dans le composant de débogage
   const DebugInfo = () => {
     if (process.env.NODE_ENV !== 'development') return null;
     
@@ -717,6 +779,15 @@ const Documentation = () => {
             <pre className="mt-1 p-2 bg-gray-100 rounded text-xs overflow-auto">
               {JSON.stringify(newDocument, null, 2)}
             </pre>
+          </div>
+          <div className="pt-2">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={testSupabaseConnection}
+            >
+              Test Connexion Supabase
+            </Button>
           </div>
         </CardContent>
       </Card>
