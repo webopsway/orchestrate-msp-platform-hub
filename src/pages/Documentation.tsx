@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganizationsAndTeams } from "@/hooks/useOrganizationsAndTeams";
-import { TipTapEditor } from "@/components/documentation/TipTapEditor";
+import { NotionLikeEditor } from "@/components/documentation/NotionLikeEditor";
 import { 
   PageHeader, 
   DataGrid, 
@@ -531,43 +531,38 @@ const Documentation = () => {
         </div>
         
         <div className="container mx-auto p-4">
-          {safeParseTiptapContent(selectedDocument.content) === 'error' ? (
-            <div className="p-4 bg-destructive/10 border border-destructive rounded text-destructive mb-4">
-              Erreur : le contenu du document est corrompu ou non lisible.<br />
-              Veuillez contacter un administrateur ou restaurer une version précédente.
-            </div>
-          ) : (
-            <TipTapEditor
-              content={safeParseTiptapContent(selectedDocument.content)}
-              onChange={(content) => {
-                // Auto-save logic here
-                console.log('Content changed:', content);
-              }}
-              onSave={async (content) => {
-                try {
-                  const { error } = await supabase
-                    .from('team_documents')
-                    .update({
-                      content: JSON.stringify(content),
-                      updated_at: new Date().toISOString(),
-                      updated_by: userProfile?.id
-                    })
-                    .eq('id', selectedDocument.id);
-                  
-                  if (error) throw error;
-                  toast.success('Document sauvegardé automatiquement');
-                } catch (error) {
-                  console.error('Auto-save error:', error);
-                  toast.error('Erreur lors de la sauvegarde automatique');
-                }
-              }}
-              editable={isEditingDocument}
-              placeholder="Commencez à écrire votre document..."
-              autoSave={isEditingDocument}
-              autoSaveDelay={3000}
-              className="max-w-none"
-            />
-          )}
+          <NotionLikeEditor
+            documentId={selectedDocument.id}
+            teamId={selectedDocument.team_id}
+            blocks={[]} // TODO: Charger les blocs depuis document_content_blocks
+            onSave={async (data) => {
+              try {
+                await supabase
+                  .from('team_documents')
+                  .update({
+                    content: JSON.stringify(data),
+                    updated_by: userProfile?.id,
+                    updated_at: new Date().toISOString(),
+                    version: (parseFloat(selectedDocument.version) + 0.1).toFixed(1)
+                  })
+                  .eq('id', selectedDocument.id);
+                
+                // Mettre à jour localement
+                setSelectedDocument(prev => prev ? {
+                  ...prev,
+                  content: JSON.stringify(data),
+                  version: (parseFloat(prev.version) + 0.1).toFixed(1),
+                  updated_at: new Date().toISOString()
+                } : null);
+                
+                toast.success('Document sauvegardé automatiquement');
+              } catch (error) {
+                console.error('Error saving document:', error);
+                toast.error('Erreur lors de la sauvegarde');
+              }
+            }}
+            readOnly={isViewingDocument}
+          />
         </div>
       </div>
     );
