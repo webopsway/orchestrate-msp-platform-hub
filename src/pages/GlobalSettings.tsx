@@ -18,6 +18,7 @@ import { fr } from 'date-fns/locale';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { ITSMConfigManager } from '@/components/itsm/ITSMConfigManager';
+import { SidebarConfigManager } from '@/components/settings/SidebarConfigManager';
 import { useCloudEnvironments } from '@/hooks/useCloudEnvironments';
 
 export default function GlobalSettings() {
@@ -279,8 +280,9 @@ export default function GlobalSettings() {
       </div>
 
       <Tabs defaultValue="global" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="global">Paramètres Globaux</TabsTrigger>
+          <TabsTrigger value="sidebar">Configuration Sidebar</TabsTrigger>
           <TabsTrigger value="environments">Environnements Cloud</TabsTrigger>
           <TabsTrigger value="itsm-dynamic">Configuration Dynamique</TabsTrigger>
           <TabsTrigger value="namespaces">Namespaces</TabsTrigger>
