@@ -220,7 +220,7 @@ const Documentation = () => {
     try {
       setLoading(true);
       
-      // Structure simplifiée selon le schéma de la table team_documents
+      // Structure selon le schéma exact de la table team_documents
       const docData = {
         team_id: newDocument.team_id,
         title: newDocument.title.trim(),
@@ -228,7 +228,7 @@ const Documentation = () => {
         version: "1.0",
         created_by: user.id,
         updated_by: user.id,
-        // Ne pas envoyer created_at et updated_at - ils ont des valeurs par défaut
+        // metadata contient category, tags, status, etc.
         metadata: {
           category: newDocument.category || 'general',
           tags: newDocument.tags || [],
@@ -297,6 +297,8 @@ const Documentation = () => {
         errorMessage = 'Permission refusée - vérifiez vos droits d\'accès';
       } else if (error?.code === '42P01') {
         errorMessage = 'Table team_documents introuvable';
+      } else if (error?.code === 'PGRST204') {
+        errorMessage = 'Erreur de structure de données - colonne introuvable';
       } else if (error?.message) {
         errorMessage = `Erreur: ${error.message}`;
       } else if (typeof error === 'string') {
@@ -371,6 +373,83 @@ const Documentation = () => {
     } finally {
       setLoading(false);
       console.log('=== FIN CRÉATION DOCUMENT (ALTERNATIVE) ===');
+    }
+  };
+
+  // Version ultra-simplifiée pour test
+  const createDocumentSimple = async () => {
+    console.log('=== DÉBUT CRÉATION DOCUMENT (SIMPLE) ===');
+    
+    if (!newDocument.team_id) {
+      toast.error('Veuillez sélectionner une équipe cliente');
+      return;
+    }
+
+    if (!newDocument.title.trim()) {
+      toast.error('Veuillez saisir un titre pour le document');
+      return;
+    }
+
+    if (!user?.id) {
+      toast.error('Utilisateur non authentifié');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Structure minimale - seulement les champs requis
+      const docData = {
+        team_id: newDocument.team_id,
+        title: newDocument.title.trim(),
+        content: '',
+        version: "1.0",
+        created_by: user.id,
+        metadata: {}
+      };
+      
+      console.log('=== DONNÉES SIMPLES ===');
+      console.log('docData:', JSON.stringify(docData, null, 2));
+      
+      const { data, error } = await supabase
+        .from('team_documents')
+        .insert([docData])
+        .select()
+        .single();
+
+      console.log('=== RÉPONSE SUPABASE ===');
+      console.log('data:', data);
+      console.log('error:', error);
+
+      if (error) {
+        console.error('=== ERREUR SUPABASE ===');
+        console.error('Error:', error);
+        throw error;
+      }
+
+      console.log('=== SUCCÈS SIMPLE ===');
+      console.log('Document créé:', data);
+
+      toast.success('Document créé avec succès (méthode simple)');
+      setIsCreateModalOpen(false);
+      resetNewDocumentForm();
+      
+      // Ouvrir automatiquement l'éditeur pour le nouveau document
+      const newDoc: Document = {
+        ...data,
+        metadata: (data.metadata as any) || { tags: [], category: 'general', status: 'draft', is_favorite: false }
+      };
+      setSelectedDocument(newDoc);
+      setIsEditingDocument(true);
+      
+      await fetchDocuments();
+    } catch (error: any) {
+      console.error('=== ERREUR SIMPLE ===');
+      console.error('Error:', error);
+      toast.error(`Erreur simple: ${error.message || 'Erreur inconnue'}`);
+    } finally {
+      setLoading(false);
+      console.log('=== FIN CRÉATION DOCUMENT (SIMPLE) ===');
     }
   };
 
@@ -1154,17 +1233,24 @@ const Documentation = () => {
                 Annuler
               </Button>
               <Button 
+                onClick={createDocumentSimple} 
+                disabled={!newDocument.title || !newDocument.team_id || teamsLoading}
+                variant="secondary"
+              >
+                Créer (Simple)
+              </Button>
+              <Button 
                 onClick={createDocumentAlternative} 
                 disabled={!newDocument.title || !newDocument.team_id || teamsLoading}
               >
-                Créer (Méthode Hook)
+                Créer (Hook)
               </Button>
               <Button 
                 onClick={createDocument} 
                 disabled={!newDocument.title || !newDocument.team_id || teamsLoading}
                 variant="outline"
               >
-                Créer (Méthode Directe)
+                Créer (Directe)
               </Button>
             </div>
           </div>
