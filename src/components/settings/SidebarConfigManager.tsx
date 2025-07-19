@@ -54,12 +54,17 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
   const [editingItem, setEditingItem] = useState<NavigationItem | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isAddSectionDialogOpen, setIsAddSectionDialogOpen] = useState(false);
   const [newItem, setNewItem] = useState<Partial<NavigationItem>>({
     title: '',
     url: '',
     icon: 'Settings',
     group: 'main',
     order: 1
+  });
+  const [newSection, setNewSection] = useState<Partial<NavigationGroup>>({
+    title: '',
+    order: sidebarConfig.groups.length + 1
   });
 
   // Charger la configuration depuis les paramètres
@@ -206,6 +211,49 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
     toast.success('Élément supprimé');
   };
 
+  // Ajouter une nouvelle section
+  const handleAddSection = () => {
+    if (!newSection.title) {
+      toast.error('Veuillez saisir un titre pour la section');
+      return;
+    }
+
+    const newSectionComplete: NavigationGroup = {
+      id: `section-${Date.now()}`,
+      title: newSection.title,
+      order: newSection.order || sidebarConfig.groups.length + 1
+    };
+
+    setSidebarConfig(prev => ({
+      ...prev,
+      groups: [...prev.groups, newSectionComplete]
+    }));
+
+    setNewSection({
+      title: '',
+      order: sidebarConfig.groups.length + 2
+    });
+    setIsAddSectionDialogOpen(false);
+    toast.success('Nouvelle section ajoutée');
+  };
+
+  // Supprimer une section
+  const handleDeleteSection = (sectionId: string) => {
+    // Vérifier s'il y a des éléments dans cette section
+    const itemsInSection = sidebarConfig.items.filter(item => item.group === sectionId);
+    
+    if (itemsInSection.length > 0) {
+      toast.error('Impossible de supprimer une section contenant des éléments');
+      return;
+    }
+
+    setSidebarConfig(prev => ({
+      ...prev,
+      groups: prev.groups.filter(group => group.id !== sectionId)
+    }));
+    toast.success('Section supprimée');
+  };
+
   // Filtrer les éléments selon la visibilité
   const filteredItems = showHiddenItems 
     ? sidebarConfig.items 
@@ -264,57 +312,107 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
         </div>
       </div>
 
-      {/* Statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Navigation className="h-5 w-5 text-blue-500" />
-              <div>
-                <p className="text-sm font-medium">Total</p>
-                <p className="text-2xl font-bold">{sidebarConfig.items.length}</p>
-              </div>
+
+
+      {/* Gestion des sections */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center space-x-2">
+              <Settings className="h-5 w-5" />
+              <span>Gestion des sections</span>
+            </CardTitle>
+            <div className="flex space-x-2">
+              <Dialog open={isAddSectionDialogOpen} onOpenChange={setIsAddSectionDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nouvelle section
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Ajouter une nouvelle section</DialogTitle>
+                    <DialogDescription>
+                      Créez une nouvelle section dans la sidebar
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="section-title">Titre de la section *</Label>
+                      <Input
+                        id="section-title"
+                        value={newSection.title}
+                        onChange={(e) => setNewSection({ ...newSection, title: e.target.value })}
+                        placeholder="Nom de la section"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="section-order">Ordre</Label>
+                      <Input
+                        id="section-order"
+                        type="number"
+                        value={newSection.order}
+                        onChange={(e) => setNewSection({ ...newSection, order: parseInt(e.target.value) || 1 })}
+                        placeholder="Ordre d'affichage"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setIsAddSectionDialogOpen(false)}>
+                      Annuler
+                    </Button>
+                    <Button onClick={handleAddSection}>
+                      Ajouter
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Eye className="h-5 w-5 text-green-500" />
-              <div>
-                <p className="text-sm font-medium">Visibles</p>
-                <p className="text-2xl font-bold">
-                  {sidebarConfig.items.filter(item => !item.hidden).length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <EyeOff className="h-5 w-5 text-orange-500" />
-              <div>
-                <p className="text-sm font-medium">Cachés</p>
-                <p className="text-2xl font-bold">
-                  {sidebarConfig.items.filter(item => item.hidden).length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Settings className="h-5 w-5 text-purple-500" />
-              <div>
-                <p className="text-sm font-medium">Groupes</p>
-                <p className="text-2xl font-bold">{sidebarConfig.groups.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {sidebarConfig.groups
+              .sort((a, b) => a.order - b.order)
+              .map((group) => {
+                const itemsInGroup = sidebarConfig.items.filter(item => item.group === group.id);
+                return (
+                  <div
+                    key={group.id}
+                    className="flex items-center justify-between p-3 rounded-lg border bg-background"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Settings className="h-4 w-4" />
+                      <div>
+                        <p className="font-medium">{group.title}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Ordre {group.order} • {itemsInGroup.length} élément{itemsInGroup.length > 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant="outline">
+                        {group.id.startsWith('section-') ? 'Personnalisée' : 'Système'}
+                      </Badge>
+                      {group.id.startsWith('section-') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteSection(group.id)}
+                          className="text-red-600 hover:text-red-700"
+                          disabled={itemsInGroup.length > 0}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Ajouter un nouvel élément */}
       <Card>
@@ -376,15 +474,22 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="group">Groupe *</Label>
+                    <Label htmlFor="group">Section *</Label>
                     <Select value={newItem.group} onValueChange={(value) => setNewItem({ ...newItem, group: value })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {sidebarConfig.groups.map(group => (
+                        {sidebarConfig.groups
+                          .sort((a, b) => a.order - b.order)
+                          .map(group => (
                           <SelectItem key={group.id} value={group.id}>
-                            {group.title}
+                            <div className="flex items-center space-x-2">
+                              <span>{group.title}</span>
+                              {group.id.startsWith('section-') && (
+                                <Badge variant="outline" className="text-xs">Personnalisée</Badge>
+                              )}
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -545,7 +650,7 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
                 </Select>
               </div>
               <div>
-                <Label htmlFor="edit-group">Groupe</Label>
+                <Label htmlFor="edit-group">Section</Label>
                 <Select 
                   value={editingItem.group} 
                   onValueChange={(value) => setEditingItem({ ...editingItem, group: value })}
@@ -554,9 +659,16 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {sidebarConfig.groups.map(group => (
+                    {sidebarConfig.groups
+                      .sort((a, b) => a.order - b.order)
+                      .map(group => (
                       <SelectItem key={group.id} value={group.id}>
-                        {group.title}
+                        <div className="flex items-center space-x-2">
+                          <span>{group.title}</span>
+                          {group.id.startsWith('section-') && (
+                            <Badge variant="outline" className="text-xs">Personnalisée</Badge>
+                          )}
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
