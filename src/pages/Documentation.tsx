@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganizationsAndTeams } from "@/hooks/useOrganizationsAndTeams";
+import { useDocumentation } from "@/hooks/useDocumentation";
 import { TipTapEditor } from "@/components/documentation/TipTapEditor";
 import { 
   PageHeader, 
@@ -90,6 +91,7 @@ interface DocumentVersion {
 const Documentation = () => {
   const { userProfile, user } = useAuth();
   const { data: organizationData, isLoading: teamsLoading } = useOrganizationsAndTeams();
+  const { createDocument: createDocumentWithHook } = useDocumentation();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [versions, setVersions] = useState<DocumentVersion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -195,6 +197,11 @@ const Documentation = () => {
   };
 
   const createDocument = async () => {
+    console.log('=== DÉBUT CRÉATION DOCUMENT ===');
+    console.log('newDocument:', newDocument);
+    console.log('user:', user);
+    console.log('userProfile:', userProfile);
+
     if (!newDocument.team_id) {
       toast.error('Veuillez sélectionner une équipe cliente');
       return;
@@ -213,6 +220,7 @@ const Documentation = () => {
     try {
       setLoading(true);
       
+      // Structure simplifiée selon le schéma de la table team_documents
       const docData = {
         team_id: newDocument.team_id,
         title: newDocument.title.trim(),
@@ -220,8 +228,7 @@ const Documentation = () => {
         version: "1.0",
         created_by: user.id,
         updated_by: user.id,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        // Ne pas envoyer created_at et updated_at - ils ont des valeurs par défaut
         metadata: {
           category: newDocument.category || 'general',
           tags: newDocument.tags || [],
@@ -230,7 +237,8 @@ const Documentation = () => {
         }
       };
       
-      console.log('Creating document with data:', docData);
+      console.log('=== DONNÉES À ENVOYER ===');
+      console.log('docData:', JSON.stringify(docData, null, 2));
       
       const { data, error } = await supabase
         .from('team_documents')
@@ -238,14 +246,26 @@ const Documentation = () => {
         .select()
         .single();
 
+      console.log('=== RÉPONSE SUPABASE ===');
+      console.log('data:', data);
+      console.log('error:', error);
+
       if (error) {
-        console.error('Supabase error:', error);
+        console.error('=== ERREUR SUPABASE DÉTAILLÉE ===');
+        console.error('Error object:', error);
+        console.error('Error message:', error.message);
+        console.error('Error details:', error.details);
+        console.error('Error hint:', error.hint);
+        console.error('Error code:', error.code);
         throw error;
       }
 
       if (!data) {
         throw new Error('Aucune donnée retournée après création');
       }
+
+      console.log('=== SUCCÈS ===');
+      console.log('Document créé:', data);
 
       toast.success('Document créé avec succès');
       setIsCreateModalOpen(false);
@@ -261,7 +281,10 @@ const Documentation = () => {
       
       await fetchDocuments();
     } catch (error: any) {
+      console.error('=== ERREUR FINALE ===');
       console.error('Error creating document:', error);
+      console.error('Error type:', typeof error);
+      console.error('Error keys:', Object.keys(error || {}));
       
       // Gestion d'erreur plus détaillée
       let errorMessage = 'Erreur lors de la création du document';
@@ -270,13 +293,84 @@ const Documentation = () => {
         errorMessage = 'Un document avec ce titre existe déjà';
       } else if (error?.code === '23503') {
         errorMessage = 'Équipe invalide ou inexistante';
+      } else if (error?.code === '42501') {
+        errorMessage = 'Permission refusée - vérifiez vos droits d\'accès';
+      } else if (error?.code === '42P01') {
+        errorMessage = 'Table team_documents introuvable';
       } else if (error?.message) {
-        errorMessage = error.message;
+        errorMessage = `Erreur: ${error.message}`;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object') {
+        errorMessage = `Erreur: ${JSON.stringify(error)}`;
       }
       
+      console.error('Message d\'erreur final:', errorMessage);
       toast.error(errorMessage);
     } finally {
       setLoading(false);
+      console.log('=== FIN CRÉATION DOCUMENT ===');
+    }
+  };
+
+  // Fonction alternative utilisant le hook useDocumentation
+  const createDocumentAlternative = async () => {
+    console.log('=== DÉBUT CRÉATION DOCUMENT (ALTERNATIVE) ===');
+    
+    if (!newDocument.team_id) {
+      toast.error('Veuillez sélectionner une équipe cliente');
+      return;
+    }
+
+    if (!newDocument.title.trim()) {
+      toast.error('Veuillez saisir un titre pour le document');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      const documentData = {
+        team_id: newDocument.team_id,
+        title: newDocument.title.trim(),
+        content: '',
+        version: "1.0",
+        metadata: {
+          category: newDocument.category || 'general',
+          tags: newDocument.tags || [],
+          status: newDocument.status || 'draft',
+          is_favorite: false
+        }
+      };
+
+      console.log('=== DONNÉES POUR HOOK ===');
+      console.log('documentData:', JSON.stringify(documentData, null, 2));
+
+      const newDoc = await createDocumentWithHook(documentData);
+      
+      console.log('=== SUCCÈS AVEC HOOK ===');
+      console.log('Document créé:', newDoc);
+
+      toast.success('Document créé avec succès');
+      setIsCreateModalOpen(false);
+      resetNewDocumentForm();
+      
+      // Ouvrir automatiquement l'éditeur pour le nouveau document
+      const document: Document = {
+        ...newDoc,
+        metadata: (newDoc.metadata as any) || { tags: [], category: 'general', status: 'draft', is_favorite: false }
+      };
+      setSelectedDocument(document);
+      setIsEditingDocument(true);
+      
+      await fetchDocuments();
+    } catch (error: any) {
+      console.error('=== ERREUR AVEC HOOK ===');
+      console.error('Error:', error);
+      toast.error(`Erreur lors de la création: ${error.message || 'Erreur inconnue'}`);
+    } finally {
+      setLoading(false);
+      console.log('=== FIN CRÉATION DOCUMENT (ALTERNATIVE) ===');
     }
   };
 
@@ -1060,10 +1154,17 @@ const Documentation = () => {
                 Annuler
               </Button>
               <Button 
-                onClick={createDocument} 
+                onClick={createDocumentAlternative} 
                 disabled={!newDocument.title || !newDocument.team_id || teamsLoading}
               >
-                Créer
+                Créer (Méthode Hook)
+              </Button>
+              <Button 
+                onClick={createDocument} 
+                disabled={!newDocument.title || !newDocument.team_id || teamsLoading}
+                variant="outline"
+              >
+                Créer (Méthode Directe)
               </Button>
             </div>
           </div>
