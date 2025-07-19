@@ -11,7 +11,7 @@ import NewTeams from "./pages/NewTeams";
 import Security from "./pages/Security";
 import SecurityPatchManagement from "./pages/SecurityPatchManagement";
 import Vulnerabilities from "./pages/Vulnerabilities";
-import Documentation from "./pages/Documentation";
+import Documentation from "./pages/DocumentationModern";
 import CloudOrchestration from "./pages/CloudOrchestration";
 import GlobalSettings from "./pages/GlobalSettings";
 import Auth from "./pages/Auth";

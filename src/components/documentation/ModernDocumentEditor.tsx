@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useEditor, EditorContent, BubbleMenu, FloatingMenu } from '@tiptap/react';
+import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
-import Table from '@tiptap/extension-table';
-import TableRow from '@tiptap/extension-table-row';
-import TableCell from '@tiptap/extension-table-cell';
-import TableHeader from '@tiptap/extension-table-header';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
 import CodeBlock from '@tiptap/extension-code-block';
 import Placeholder from '@tiptap/extension-placeholder';
 import TaskList from '@tiptap/extension-task-list';
@@ -496,104 +496,7 @@ const ModernDocumentEditor: React.FC<ModernDocumentEditorProps> = ({
         </div>
       </div>
 
-      {/* Menu flottant pour les liens */}
-      {editor && (
-        <BubbleMenu 
-          editor={editor} 
-          tippyOptions={{ duration: 100 }}
-          className="flex items-center space-x-1 bg-background border rounded-lg shadow-lg p-1"
-        >
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleBold().run()}
-            className={editor.isActive('bold') ? 'bg-muted' : ''}
-          >
-            <Bold className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-            className={editor.isActive('italic') ? 'bg-muted' : ''}
-          >
-            <Italic className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleCode().run()}
-            className={editor.isActive('code') ? 'bg-muted' : ''}
-          >
-            <Code className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowLinkDialog(true)}
-            className={editor.isActive('link') ? 'bg-muted' : ''}
-          >
-            <LinkIcon className="h-4 w-4" />
-          </Button>
-        </BubbleMenu>
-      )}
 
-      {/* Menu flottant pour les commandes */}
-      {editor && (
-        <FloatingMenu 
-          editor={editor} 
-          tippyOptions={{ duration: 100 }}
-          className="bg-background border rounded-lg shadow-lg p-2"
-        >
-          <div className="flex flex-col space-y-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-              className="justify-start"
-            >
-              <Heading1 className="h-4 w-4 mr-2" />
-              Titre 1
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-              className="justify-start"
-            >
-              <Heading2 className="h-4 w-4 mr-2" />
-              Titre 2
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => editor.chain().focus().toggleBulletList().run()}
-              className="justify-start"
-            >
-              <List className="h-4 w-4 mr-2" />
-              Liste à puces
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => editor.chain().focus().toggleOrderedList().run()}
-              className="justify-start"
-            >
-              <ListOrdered className="h-4 w-4 mr-2" />
-              Liste numérotée
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowTableDialog(true)}
-              className="justify-start"
-            >
-              <TableIcon className="h-4 w-4 mr-2" />
-              Tableau
-            </Button>
-          </div>
-        </FloatingMenu>
-      )}
 
       {/* Dialogs */}
       <Dialog open={showLinkDialog} onOpenChange={setShowLinkDialog}>
