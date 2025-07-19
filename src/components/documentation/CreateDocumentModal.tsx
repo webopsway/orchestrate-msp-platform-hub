@@ -91,7 +91,16 @@ const CreateDocumentModal: React.FC<CreateDocumentModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent 
+        className="max-w-2xl"
+        onKeyDown={(e) => {
+          // Empêcher la fermeture du modal avec Escape
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Plus className="h-5 w-5" />
@@ -111,6 +120,7 @@ const CreateDocumentModal: React.FC<CreateDocumentModalProps> = ({
                 id="title"
                 value={newDocument.title}
                 onChange={(e) => setNewDocument({ ...newDocument, title: e.target.value })}
+                onKeyDown={(e) => e.stopPropagation()}
                 placeholder="Titre du document"
                 required
               />
@@ -122,6 +132,7 @@ const CreateDocumentModal: React.FC<CreateDocumentModalProps> = ({
                 id="description"
                 value={newDocument.description}
                 onChange={(e) => setNewDocument({ ...newDocument, description: e.target.value })}
+                onKeyDown={(e) => e.stopPropagation()}
                 placeholder="Description courte du document"
                 rows={3}
               />
@@ -235,7 +246,13 @@ const CreateDocumentModal: React.FC<CreateDocumentModalProps> = ({
                 value={newTag}
                 onChange={(e) => setNewTag(e.target.value)}
                 placeholder="Ajouter un tag"
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addTag();
+                  }
+                }}
               />
               <Button type="button" variant="outline" size="sm" onClick={addTag}>
                 <Plus className="h-4 w-4" />
@@ -251,7 +268,10 @@ const CreateDocumentModal: React.FC<CreateDocumentModalProps> = ({
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex items-center space-x-2">
-                  {getCategoryIcon(newDocument.category)}
+                  {(() => {
+                    const Icon = getCategoryIcon(newDocument.category);
+                    return <Icon className="h-4 w-4" />;
+                  })()}
                   <span className="font-medium">{newDocument.title}</span>
                 </div>
                 {newDocument.description && (
