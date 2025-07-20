@@ -1,5 +1,6 @@
 export { useIncidents } from "./useIncidents";
 export { useChanges } from "./useChanges";
+export { useDashboardStats } from "./useDashboardStats";
 export * from "./useGlobalITSMConfig";
 export * from "./useITSMColors";
 
