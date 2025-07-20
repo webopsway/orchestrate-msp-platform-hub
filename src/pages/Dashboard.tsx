@@ -6,7 +6,10 @@ import {
   Cloud, 
   Shield,
   Activity,
-  Bell
+  Bell,
+  TrendingUp,
+  Server,
+  Database
 } from "lucide-react";
 import { 
   PageHeader, 
@@ -15,33 +18,36 @@ import {
   ActionCard, 
   QuickActionButton 
 } from "@/components/common";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
 
 const Dashboard = () => {
-  const stats = [
+  const { stats, loading } = useDashboardStats();
+
+  const defaultStats = [
     {
       title: "Organisations actives",
-      value: "24",
+      value: loading ? "..." : stats.organizations.toString(),
       description: "Clients, ESN, MSP",
       icon: Building2,
       trend: "+2 ce mois"
     },
     {
       title: "Utilisateurs",
-      value: "156",
+      value: loading ? "..." : stats.users.toString(),
       description: "Tous rôles confondus",
       icon: Users,
       trend: "+12 ce mois"
     },
     {
       title: "Incidents ouverts",
-      value: "8",
+      value: loading ? "..." : stats.incidents.toString(),
       description: "À traiter",
       icon: AlertTriangle,
       trend: "-3 cette semaine"
     },
     {
       title: "Services surveillés",
-      value: "342",
+      value: loading ? "..." : stats.services.toString(),
       description: "Infrastructure cloud",
       icon: Cloud,
       trend: "+15 ce mois"
@@ -72,6 +78,13 @@ const Dashboard = () => {
     }
   ];
 
+  const systemHealth = [
+    { name: "Serveurs", status: "Opérationnel", count: 47, icon: Server },
+    { name: "Bases de données", status: "Opérationnel", count: 12, icon: Database },
+    { name: "Monitoring", status: "Actif", count: 156, icon: Activity },
+    { name: "Alertes", status: "2 Actives", count: 2, icon: Bell }
+  ];
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "Critique": return "destructive";
@@ -93,13 +106,13 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Tableau de bord"
-        description="Vue d'ensemble de votre plateforme MSP"
+        title="Tableau de bord MSP"
+        description="Vue d'ensemble de votre plateforme de services managés"
       />
 
       {/* Statistics Cards */}
       <DataGrid columns={4}>
-        {stats.map((stat) => (
+        {defaultStats.map((stat) => (
           <StatsCard
             key={stat.title}
             title={stat.title}
@@ -111,28 +124,28 @@ const Dashboard = () => {
         ))}
       </DataGrid>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* Recent Incidents */}
-        <div className="col-span-4">
+        <div className="lg:col-span-2">
           <ActionCard
-            title="Incidents récents"
-            description="Les derniers incidents ITSM à traiter"
+            title="Incidents critiques"
+            description="Tickets ITSM nécessitant une attention immédiate"
             icon={AlertTriangle}
             action={{
               label: "Voir tous",
-              onClick: () => console.log("Voir tous les incidents")
+              onClick: () => window.location.href = "/itsm/incidents"
             }}
           >
-            <div className="space-y-4">
+            <div className="space-y-3">
               {recentIncidents.map((incident) => (
-                <div key={incident.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div key={incident.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="space-y-1">
                     <p className="text-sm font-medium">{incident.title}</p>
                     <div className="flex items-center gap-2">
-                      <Badge variant={getPriorityColor(incident.priority)}>
+                      <Badge variant={getPriorityColor(incident.priority)} className="text-xs">
                         {incident.priority}
                       </Badge>
-                      <Badge variant={getStatusColor(incident.status)}>
+                      <Badge variant={getStatusColor(incident.status)} className="text-xs">
                         {incident.status}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
@@ -150,8 +163,32 @@ const Dashboard = () => {
           </ActionCard>
         </div>
 
-        {/* Quick Actions */}
-        <div className="col-span-3">
+        {/* System Health */}
+        <div className="space-y-6">
+          <ActionCard
+            title="État du système"
+            description="Santé de l'infrastructure managée"
+            icon={TrendingUp}
+          >
+            <div className="space-y-3">
+              {systemHealth.map((item) => (
+                <div key={item.name} className="flex items-center justify-between p-2">
+                  <div className="flex items-center gap-3">
+                    <item.icon className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">{item.name}</p>
+                      <p className="text-xs text-muted-foreground">{item.count} éléments</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {item.status}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </ActionCard>
+
+          {/* Quick Actions */}
           <ActionCard
             title="Actions rapides"
             description="Accès direct aux fonctions principales"
@@ -163,28 +200,28 @@ const Dashboard = () => {
                 description="Nouveau ticket ITSM"
                 icon={AlertTriangle}
                 iconColor="text-red-500"
-                onClick={() => console.log("Créer incident")}
+                onClick={() => window.location.href = "/itsm/incidents"}
               />
               <QuickActionButton
                 title="Inventaire cloud"
                 description="Scanner les ressources"
                 icon={Cloud}
                 iconColor="text-blue-500"
-                onClick={() => console.log("Inventaire cloud")}
+                onClick={() => window.location.href = "/cloud/inventory"}
               />
               <QuickActionButton
                 title="Audit sécurité"
                 description="CVE et vulnérabilités"
                 icon={Shield}
                 iconColor="text-green-500"
-                onClick={() => console.log("Audit sécurité")}
+                onClick={() => window.location.href = "/security/vulnerabilities"}
               />
               <QuickActionButton
-                title="Configurer alertes"
-                description="Notifications & webhooks"
-                icon={Bell}
-                iconColor="text-orange-500"
-                onClick={() => console.log("Configurer alertes")}
+                title="Gestion des clients"
+                description="Relations MSP-Client"
+                icon={Building2}
+                iconColor="text-purple-500"
+                onClick={() => window.location.href = "/msp-client-relations"}
               />
             </div>
           </ActionCard>

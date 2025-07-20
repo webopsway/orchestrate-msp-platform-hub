@@ -52,6 +52,161 @@ export type Database = {
           },
         ]
       }
+      application_dependencies: {
+        Row: {
+          application_id: string
+          business_service_id: string
+          created_at: string
+          dependency_type: string
+          description: string | null
+          id: string
+        }
+        Insert: {
+          application_id: string
+          business_service_id: string
+          created_at?: string
+          dependency_type: string
+          description?: string | null
+          id?: string
+        }
+        Update: {
+          application_id?: string
+          business_service_id?: string
+          created_at?: string
+          dependency_type?: string
+          description?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_dependencies_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_dependencies_business_service_id_fkey"
+            columns: ["business_service_id"]
+            isOneToOne: false
+            referencedRelation: "business_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      application_deployments: {
+        Row: {
+          application_id: string
+          cloud_asset_id: string
+          configuration: Json | null
+          created_at: string
+          deployed_by: string
+          deployment_date: string
+          deployment_type: string
+          environment_name: string
+          health_check_url: string | null
+          id: string
+          metadata: Json | null
+          status: string
+          team_id: string
+          updated_at: string
+          version: string | null
+        }
+        Insert: {
+          application_id: string
+          cloud_asset_id: string
+          configuration?: Json | null
+          created_at?: string
+          deployed_by: string
+          deployment_date: string
+          deployment_type: string
+          environment_name: string
+          health_check_url?: string | null
+          id?: string
+          metadata?: Json | null
+          status: string
+          team_id: string
+          updated_at?: string
+          version?: string | null
+        }
+        Update: {
+          application_id?: string
+          cloud_asset_id?: string
+          configuration?: Json | null
+          created_at?: string
+          deployed_by?: string
+          deployment_date?: string
+          deployment_type?: string
+          environment_name?: string
+          health_check_url?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+          team_id?: string
+          updated_at?: string
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_deployments_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applications: {
+        Row: {
+          application_type: string
+          business_services: string[] | null
+          created_at: string
+          created_by: string
+          description: string | null
+          documentation_url: string | null
+          id: string
+          metadata: Json | null
+          name: string
+          repository_url: string | null
+          team_id: string
+          technology_stack: string[] | null
+          updated_at: string
+          version: string | null
+        }
+        Insert: {
+          application_type: string
+          business_services?: string[] | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          documentation_url?: string | null
+          id?: string
+          metadata?: Json | null
+          name: string
+          repository_url?: string | null
+          team_id: string
+          technology_stack?: string[] | null
+          updated_at?: string
+          version?: string | null
+        }
+        Update: {
+          application_type?: string
+          business_services?: string[] | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          documentation_url?: string | null
+          id?: string
+          metadata?: Json | null
+          name?: string
+          repository_url?: string | null
+          team_id?: string
+          technology_stack?: string[] | null
+          updated_at?: string
+          version?: string | null
+        }
+        Relationships: []
+      }
       backup_executions: {
         Row: {
           completed_at: string | null
@@ -155,6 +310,88 @@ export type Database = {
           {
             foreignKeyName: "backup_jobs_team_id_fkey"
             columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_services: {
+        Row: {
+          application_stack: string[] | null
+          business_owner: string | null
+          business_owner_team_id: string | null
+          created_at: string
+          created_by: string
+          criticality: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          name: string
+          organization_id: string | null
+          service_level: string | null
+          team_id: string
+          technical_owner: string | null
+          technical_owner_team_id: string | null
+          technical_stack: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          application_stack?: string[] | null
+          business_owner?: string | null
+          business_owner_team_id?: string | null
+          created_at?: string
+          created_by: string
+          criticality: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          name: string
+          organization_id?: string | null
+          service_level?: string | null
+          team_id: string
+          technical_owner?: string | null
+          technical_owner_team_id?: string | null
+          technical_stack?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          application_stack?: string[] | null
+          business_owner?: string | null
+          business_owner_team_id?: string | null
+          created_at?: string
+          created_by?: string
+          criticality?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          name?: string
+          organization_id?: string | null
+          service_level?: string | null
+          team_id?: string
+          technical_owner?: string | null
+          technical_owner_team_id?: string | null
+          technical_stack?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_business_services_business_owner_team"
+            columns: ["business_owner_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_business_services_organization"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_business_services_technical_owner_team"
+            columns: ["technical_owner_team_id"]
             isOneToOne: false
             referencedRelation: "teams"
             referencedColumns: ["id"]

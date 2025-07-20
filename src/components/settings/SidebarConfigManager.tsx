@@ -45,7 +45,6 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
     groups: defaultGroups
   });
   
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showHiddenItems, setShowHiddenItems] = useState(false);
   
@@ -65,28 +64,7 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
   });
   const [editingItem, setEditingItem] = useState<NavigationItem | null>(null);
 
-  // Charger la configuration
-  useEffect(() => {
-    const loadConfig = async () => {
-      try {
-        setLoading(true);
-        const teamId = userProfile?.default_team_id || userProfile?.default_organization_id || null;
-        const config = await getSetting(teamId, 'ui', 'sidebar_config');
-        
-        if (config) {
-          setSidebarConfig(config);
-        }
-      } catch (error) {
-        console.log('Using default sidebar configuration');
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    if (userProfile?.is_msp_admin || userProfile?.default_team_id) {
-      loadConfig();
-    }
-  }, [userProfile, getSetting]);
 
   // Sauvegarder la configuration
   const saveSidebarConfig = useCallback(async () => {
@@ -145,9 +123,9 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
 
   // Ouvrir modal d'ajout de section
   const openAddSectionModal = useCallback(() => {
-    setSectionForm({ title: '', order: sidebarConfig.groups.length + 1 });
+    setSectionForm({ title: '', order: 1 });
     setIsAddSectionDialogOpen(true);
-  }, [sidebarConfig.groups.length]);
+  }, []);
 
   // Ajouter une section
   const handleAddSection = useCallback(() => {
@@ -159,7 +137,7 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
     const newSection: NavigationGroup = {
       id: `section-${Date.now()}`,
       title: sectionForm.title,
-      order: sectionForm.order
+      order: sectionForm.order || sidebarConfig.groups.length + 1
     };
 
     setSidebarConfig(prev => ({
@@ -170,23 +148,25 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
     setSectionForm({ title: '', order: 1 });
     setIsAddSectionDialogOpen(false);
     toast.success('Nouvelle section ajoutée');
-  }, [sectionForm]);
+  }, [sectionForm, sidebarConfig.groups.length]);
 
   // Supprimer une section
   const handleDeleteSection = useCallback((sectionId: string) => {
-    const itemsInSection = sidebarConfig.items.filter(item => item.group === sectionId);
-    
-    if (itemsInSection.length > 0) {
-      toast.error('Impossible de supprimer une section contenant des éléments');
-      return;
-    }
+    setSidebarConfig(prev => {
+      const itemsInSection = prev.items.filter(item => item.group === sectionId);
+      
+      if (itemsInSection.length > 0) {
+        toast.error('Impossible de supprimer une section contenant des éléments');
+        return prev;
+      }
 
-    setSidebarConfig(prev => ({
-      ...prev,
-      groups: prev.groups.filter(group => group.id !== sectionId)
-    }));
+      return {
+        ...prev,
+        groups: prev.groups.filter(group => group.id !== sectionId)
+      };
+    });
     toast.success('Section supprimée');
-  }, [sidebarConfig.items]);
+  }, []);
 
   // Ouvrir modal d'ajout d'élément
   const openAddItemModal = useCallback(() => {
@@ -213,18 +193,22 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
       url: itemForm.url,
       icon: itemForm.icon,
       group: itemForm.group,
-      order: sidebarConfig.items.filter(item => item.group === itemForm.group).length + 1
+      order: 1
     };
 
-    setSidebarConfig(prev => ({
-      ...prev,
-      items: [...prev.items, newItem]
-    }));
+    setSidebarConfig(prev => {
+      const itemsInGroup = prev.items.filter(item => item.group === itemForm.group);
+      newItem.order = itemsInGroup.length + 1;
+      return {
+        ...prev,
+        items: [...prev.items, newItem]
+      };
+    });
 
     setItemForm({ title: '', url: '', icon: 'Settings', group: 'main', order: 1 });
     setIsAddDialogOpen(false);
     toast.success('Nouvel élément ajouté');
-  }, [itemForm, sidebarConfig.items]);
+  }, [itemForm]);
 
   // Éditer un élément
   const handleEditItem = useCallback((item: NavigationItem) => {
@@ -272,15 +256,7 @@ export const SidebarConfigManager: React.FC<SidebarConfigManagerProps> = ({ clas
     }))
     .filter(group => group.items.length > 0);
 
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </CardContent>
-      </Card>
-    );
-  }
+
 
   return (
     <div className={`space-y-6 ${className}`}>
