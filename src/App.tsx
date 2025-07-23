@@ -38,6 +38,9 @@ import Setup from "./pages/Setup";
 import MspClientRelations from "./pages/MspClientRelations";
 import SLAManagement from "./pages/SLAManagement";
 import TenantManagement from "./pages/TenantManagement";
+import BusinessServices from "./pages/BusinessServices";
+import Applications from "./pages/Applications";
+import Deployments from "./pages/Deployments";
 
 const queryClient = new QueryClient();
 
@@ -127,6 +130,27 @@ function AppRoutes() {
       <Route path="/sla-management" element={
         <ProtectedRoute>
           <SLAManagement />
+        </ProtectedRoute>
+      } />
+      
+      {/* Business Services Routes */}
+      <Route path="/applications/business-services" element={
+        <ProtectedRoute>
+          <BusinessServices />
+        </ProtectedRoute>
+      } />
+      
+      {/* Applications Routes */}
+      <Route path="/applications/applications" element={
+        <ProtectedRoute>
+          <Applications />
+        </ProtectedRoute>
+      } />
+      
+      {/* Deployments Routes */}
+      <Route path="/applications/deployments" element={
+        <ProtectedRoute>
+          <Deployments />
         </ProtectedRoute>
       } />
       <Route path="/profile" element={

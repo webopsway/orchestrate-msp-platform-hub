@@ -3,6 +3,12 @@ export type * from "./incident";
 export type * from "./change";
 export type * from "./sla";
 
+// Types Services Métiers
+export type * from "./businessService";
+
+// Types Applications
+export type * from "./application";
+
 // Types de base
 export interface BaseEntity {
   id: string;
