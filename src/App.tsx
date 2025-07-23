@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { TenantProvider } from "@/contexts/TenantContext";
+import { PortalProvider } from "@/contexts/PortalContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Toaster } from "@/components/ui/sonner";
 import Index from "./pages/Index";
@@ -38,6 +39,7 @@ import Setup from "./pages/Setup";
 import MspClientRelations from "./pages/MspClientRelations";
 import SLAManagement from "./pages/SLAManagement";
 import TenantManagement from "./pages/TenantManagement";
+import ClientPortalManagement from "./pages/ClientPortalManagement";
 import BusinessServices from "./pages/BusinessServices";
 import Applications from "./pages/Applications";
 import Deployments from "./pages/Deployments";
@@ -268,6 +270,13 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
       
+      {/* Client Portal Management Route */}
+      <Route path="/client-portal-management" element={
+        <ProtectedRoute>
+          <ClientPortalManagement />
+        </ProtectedRoute>
+      } />
+      
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
@@ -282,7 +291,9 @@ const App = () => (
         <AuthProvider>
           <TenantProvider>
             <OrganizationProvider>
-              <AppRoutes />
+              <PortalProvider>
+                <AppRoutes />
+              </PortalProvider>
             </OrganizationProvider>
           </TenantProvider>
         </AuthProvider>

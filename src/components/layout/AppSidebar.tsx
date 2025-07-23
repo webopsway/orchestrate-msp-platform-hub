@@ -1,6 +1,7 @@
 import { useLocation } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePortal } from "@/contexts/PortalContext";
 import {
   Sidebar,
   SidebarContent,
@@ -24,13 +25,16 @@ export function AppSidebar() {
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50";
 
-  // Filtrer les éléments selon les permissions
+  // Accès au contexte portail
+  const { canAccessModule, isMSPAdminPortal } = usePortal();
+
+  // Filtrer les éléments selon les permissions et le type de portail
   const filteredItems = sidebarConfig.items.filter(item => {
-    // MSP peut voir tout
-    if (userProfile?.is_msp_admin) return true;
+    // Vérifier l'accès via le contexte portail
+    if (!canAccessModule(item.id)) return false;
     
-    // Masquer les paramètres pour les non-MSP
-    if (item.group === "admin" && !userProfile?.is_msp_admin) return false;
+    // Masquer les paramètres admin pour les portails client
+    if (item.group === "admin" && !isMSPAdminPortal()) return false;
     
     // Filtrer par recherche
     if (searchTerm && !item.title.toLowerCase().includes(searchTerm.toLowerCase())) {

@@ -5,6 +5,7 @@ import { UserMenu } from "./UserMenu";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { useTenantUI } from "@/contexts/TenantContext";
+import { usePortal } from "@/contexts/PortalContext";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -12,6 +13,18 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const tenantUI = useTenantUI();
+  const { portalConfig, isMSPAdminPortal } = usePortal();
+
+  // Utiliser la configuration du portail si disponible, sinon fallback sur tenantUI
+  const displayConfig = portalConfig?.branding || {
+    company_name: tenantUI?.companyName || 'Plateforme MSP',
+    logo: tenantUI?.logo,
+    primary_color: '#3b82f6'
+  };
+
+  const headerSubtitle = isMSPAdminPortal() 
+    ? 'Administration et supervision' 
+    : 'Portail client';
 
   return (
     <SidebarProvider>
@@ -22,18 +35,23 @@ export function AppLayout({ children }: AppLayoutProps) {
             <div className="flex items-center gap-4">
               <SidebarTrigger />
               <div className="flex items-center gap-3">
-                {tenantUI?.logo && (
+                {displayConfig.logo && (
                   <img 
-                    src={tenantUI.logo} 
+                    src={displayConfig.logo} 
                     alt="Logo" 
                     className="h-8 w-8 object-contain"
                   />
                 )}
                 <div>
                   <h1 className="text-xl font-semibold">
-                    {tenantUI?.companyName || 'Plateforme MSP'}
+                    {displayConfig.company_name}
                   </h1>
-                  <p className="text-sm text-muted-foreground">Administration et supervision</p>
+                  <p className="text-sm text-muted-foreground">{headerSubtitle}</p>
+                  {!isMSPAdminPortal() && portalConfig?.tenant_domain && (
+                    <p className="text-xs text-muted-foreground">
+                      {portalConfig.tenant_domain}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

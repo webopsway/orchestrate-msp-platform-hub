@@ -64,7 +64,8 @@ export const defaultNavigationItems: NavigationItem[] = [
   { id: "documentation", title: "Documentation", url: "/documentation", icon: "FileText", order: 3, group: "monitoring" },
   
   { id: "tenant-management", title: "Gestion des domaines", url: "/tenant-management", icon: "Globe", order: 1, group: "admin" },
-  { id: "settings", title: "Paramètres", url: "/global-settings", icon: "Settings", order: 2, group: "admin" },
+  { id: "client-portal-management", title: "Portails Client", url: "/client-portal-management", icon: "Users", order: 2, group: "admin" },
+  { id: "settings", title: "Paramètres", url: "/global-settings", icon: "Settings", order: 3, group: "admin" },
 ];
 
 export const defaultGroups: NavigationGroup[] = [
