@@ -1,16 +1,18 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { useUsers } from "@/hooks/useUsers";
 import { CRUDTable } from "@/components/common/CRUDTable";
-import { UserForm } from "@/components/forms/UserForm";
 import { PageHeader } from "@/components/common/PageHeader";
+import { UserForm } from "@/components/forms/UserForm";
+import { Button } from "@/components/ui/button";
+import { useUsers } from "@/hooks/useUsers";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import type { Tables } from "@/integrations/supabase/types";
+import type { User } from "@/types/user";
+import { Plus } from "lucide-react";
+import { useEffect, useState } from "react";
 
-import type { User } from "@/hooks/useUsers";
-type Role = Tables<"roles">;
+interface Role {
+  id: string;
+  name: string;
+  display_name: string;
+}
 
 const NewUsers = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -36,7 +38,7 @@ const NewUsers = () => {
       const { data, error } = await supabase
         .from('roles')
         .select('*');
-      
+
       if (error) throw error;
       setRoles(data || []);
     } catch (error) {
@@ -49,13 +51,13 @@ const NewUsers = () => {
       email: data.email,
       first_name: data.first_name,
       last_name: data.last_name,
-      metadata: {
-        phone: data.phone,
-        role: data.role,
-        department: data.department,
-        position: data.position,
-        status: data.status || 'active'
-      }
+      phone: data.phone,
+      role: data.role,
+      organization_id: data.organization_id,
+      team_id: data.team_id,
+      department: data.department,
+      position: data.position,
+      status: data.status || 'active'
     };
 
     if (editingUser) {
@@ -85,21 +87,23 @@ const NewUsers = () => {
 
   const getDefaultValues = () => {
     if (editingUser) {
-      const metadata = editingUser.metadata as any || {};
       return {
         email: editingUser.email,
-        first_name: editingUser.first_name || "",
-        last_name: editingUser.last_name || "",
-        phone: metadata.phone || "",
-        role: metadata.role || "",
-        department: metadata.department || "",
-        position: metadata.position || "",
-        status: metadata.status || "active",
+        first_name: editingUser.first_name || '',
+        last_name: editingUser.last_name || '',
+        phone: editingUser.metadata?.phone || '',
+        role: editingUser.metadata?.role || '',
+        organization_id: editingUser.default_organization_id || '',
+        team_id: editingUser.default_team_id || '',
+        department: editingUser.metadata?.department || '',
+        position: editingUser.metadata?.position || '',
+        status: (editingUser.metadata?.status as "active" | "inactive" | "pending" | "suspended") || 'active'
       };
     }
     return {};
   };
 
+  // Configuration des colonnes pour l'affichage
   const columns = [
     {
       key: 'name',
@@ -120,8 +124,9 @@ const NewUsers = () => {
       type: 'text' as const,
       sortable: true,
       render: (value: any, row: User) => {
-        const metadata = row.metadata as any || {};
-        return metadata.role || '-';
+        const roleValue = row.metadata?.role;
+        const role = roles.find(r => r.name === roleValue);
+        return role ? role.display_name : roleValue || "—";
       }
     },
     {
@@ -130,17 +135,57 @@ const NewUsers = () => {
       type: 'text' as const,
       sortable: true,
       render: (value: any, row: User) => {
-        const metadata = row.metadata as any || {};
-        return metadata.department || '-';
+        return row.metadata?.department || "—";
       }
     },
     {
-      key: 'created_at',
-      label: 'Créé le',
-      type: 'date' as const,
+      key: 'status',
+      label: 'Statut',
+      type: 'custom' as const,
       sortable: true,
+      render: (value: any, row: User) => {
+        const status = row.metadata?.status || 'active';
+        const statusColors = {
+          active: 'bg-green-100 text-green-800',
+          inactive: 'bg-gray-100 text-gray-800',
+          pending: 'bg-yellow-100 text-yellow-800',
+          suspended: 'bg-red-100 text-red-800'
+        };
+        const statusLabels = {
+          active: 'Actif',
+          inactive: 'Inactif',
+          pending: 'En attente',
+          suspended: 'Suspendu'
+        };
+        return (
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[status as keyof typeof statusColors]}`}>
+            {statusLabels[status as keyof typeof statusLabels]}
+          </span>
+        );
+      }
+    },
+    {
+      key: 'is_msp_admin',
+      label: 'Admin MSP',
+      type: 'text' as const,
+      sortable: true,
+      render: (value: any, row: User) => row.is_msp_admin ? "Oui" : "Non"
     }
   ];
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Utilisateurs"
+          description="Gérez les utilisateurs de votre organisation"
+        />
+        <div className="text-center text-red-600">
+          Erreur: {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
