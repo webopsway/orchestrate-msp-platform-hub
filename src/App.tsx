@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
+import { TenantProvider } from "@/contexts/TenantContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Toaster } from "@/components/ui/sonner";
 import Index from "./pages/Index";
@@ -36,6 +37,7 @@ import Settings from "./pages/Settings";
 import Setup from "./pages/Setup";
 import MspClientRelations from "./pages/MspClientRelations";
 import SLAManagement from "./pages/SLAManagement";
+import TenantManagement from "./pages/TenantManagement";
 
 const queryClient = new QueryClient();
 
@@ -235,6 +237,13 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
       
+      {/* Tenant Management Route */}
+      <Route path="/tenant-management" element={
+        <ProtectedRoute>
+          <TenantManagement />
+        </ProtectedRoute>
+      } />
+      
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
@@ -247,9 +256,11 @@ const App = () => (
       <Toaster />
       <BrowserRouter>
         <AuthProvider>
-          <OrganizationProvider>
-            <AppRoutes />
-          </OrganizationProvider>
+          <TenantProvider>
+            <OrganizationProvider>
+              <AppRoutes />
+            </OrganizationProvider>
+          </TenantProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
