@@ -1,0 +1,1043 @@
+openapi: 3.0.3
+info:
+  title: MSP Platform API
+  description: |
+    API Backend pour la plateforme MSP (Managed Service Provider) avec architecture séparée.
+
+    ## Authentification
+    L'API utilise des tokens Bearer JWT pour l'authentification. Tous les endpoints `/api/*` nécessitent une authentification sauf `/api/auth/login`.
+
+    Pour le développement, utilisez le token `dev` qui vous donnera des privilèges administrateur MSP.
+
+    ## Architecture
+    - **MSP Admin Interface**: Accès complet aux données (port 3000)
+    - **Client Portal Interface**: Accès filtré par tenant (port 3001)
+    - **API Backend**: Logique métier centralisée (port 3002)
+
+    ## Rate Limiting
+    - 100 requêtes par IP toutes les 15 minutes sur `/api/*`
+    - Headers standards de rate limiting inclus dans les réponses
+
+    ## CORS
+    Configuré pour permettre les origins localhost et les domaines `*.msp.com`
+  version: 1.0.0
+  contact:
+    name: MSP Platform API Support
+    email: support@msp.com
+  license:
+    name: Private License
+
+servers:
+  - url: http://localhost:3002
+    description: Serveur de développement local
+  - url: https://api.msp.com
+    description: Serveur de production
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Vérification de santé du serveur
+      description: Endpoint publique pour vérifier que l'API fonctionne correctement
+      operationId: healthCheck
+      responses:
+        '200':
+          description: API opérationnelle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                success: true
+                message: "API MSP Platform is running"
+                timestamp: "2025-01-24T01:15:30.000Z"
+                version: "1.0.0"
+                environment: "development"
+
+  /api:
+    get:
+      tags:
+        - Documentation
+      summary: Documentation des endpoints disponibles
+      description: Retourne la liste de tous les endpoints disponibles de l'API
+      operationId: getApiDocumentation
+      responses:
+        '200':
+          description: Liste des endpoints
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiDocumentationResponse'
+
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Connexion utilisateur
+      description: Authentifie un utilisateur et retourne un token JWT
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Données de connexion invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Identifiants incorrects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Déconnexion utilisateur
+      description: Invalide le token JWT de l'utilisateur
+      operationId: logout
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Déconnexion réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Token invalide ou manquant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Profil utilisateur actuel
+      description: Retourne les informations du profil de l'utilisateur authentifié
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profil utilisateur
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '401':
+          description: Token invalide ou manquant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users:
+    get:
+      tags:
+        - Users
+      summary: Liste des utilisateurs
+      description: |
+        Récupère la liste des utilisateurs selon les permissions :
+        - **MSP Admin**: Voir tous les utilisateurs
+        - **Utilisateur normal**: Voir seulement les membres de son équipe
+      operationId: getUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: team_id
+          in: query
+          description: Filtrer par ID d'équipe (optionnel)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Liste des utilisateurs
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/User'
+                      count:
+                        type: integer
+                        description: Nombre total d'utilisateurs
+        '401':
+          description: Token invalide ou manquant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Accès non autorisé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Users
+      summary: Créer un utilisateur
+      description: |
+        Crée un nouvel utilisateur. **Réservé aux administrateurs MSP uniquement.**
+
+        L'utilisateur sera automatiquement associé à l'organisation et équipe spécifiées.
+      operationId: createUser
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Utilisateur créé avec succès
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '400':
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token invalide ou manquant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Privilèges administrateur MSP requis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Détails d'un utilisateur
+      description: |
+        Récupère les détails d'un utilisateur selon les permissions :
+        - **MSP Admin**: Voir n'importe quel utilisateur
+        - **Utilisateur normal**: Voir son propre profil ou les membres de son équipe
+      operationId: getUserById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID unique de l'utilisateur
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Détails de l'utilisateur
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '401':
+          description: Token invalide ou manquant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Accès non autorisé à cet utilisateur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Utilisateur non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Users
+      summary: Mettre à jour un utilisateur
+      description: |
+        Met à jour un utilisateur selon les permissions :
+        - **MSP Admin**: Modifier n'importe quel utilisateur
+        - **Utilisateur normal**: Modifier seulement son propre profil (avec restrictions)
+
+        Les utilisateurs normaux ne peuvent pas modifier : `is_msp_admin`, `default_organization_id`, `default_team_id`
+      operationId: updateUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID unique de l'utilisateur
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Utilisateur mis à jour avec succès
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '400':
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token invalide ou manquant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Accès non autorisé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Utilisateur non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Users
+      summary: Supprimer un utilisateur
+      description: |
+        Supprime un utilisateur. **Réservé aux administrateurs MSP uniquement.**
+
+        Un utilisateur ne peut pas supprimer son propre compte.
+      operationId: deleteUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID unique de l'utilisateur
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Utilisateur supprimé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Auto-suppression interdite
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token invalide ou manquant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Privilèges administrateur MSP requis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Utilisateur non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/organizations:
+    get:
+      tags:
+        - Organizations
+      summary: Liste des organisations
+      description: Récupère la liste des organisations selon les permissions utilisateur
+      operationId: getOrganizations
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Liste des organisations
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Organization'
+
+    post:
+      tags:
+        - Organizations
+      summary: Créer une organisation
+      description: Crée une nouvelle organisation (MSP Admin uniquement)
+      operationId: createOrganization
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrganizationRequest'
+      responses:
+        '201':
+          description: Organisation créée avec succès
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Organization'
+
+  /api/organizations/{id}:
+    get:
+      tags:
+        - Organizations
+      summary: Détails d'une organisation
+      description: Récupère les détails d'une organisation
+      operationId: getOrganizationById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Détails de l'organisation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Organization'
+
+    put:
+      tags:
+        - Organizations
+      summary: Mettre à jour une organisation
+      description: Met à jour une organisation
+      operationId: updateOrganization
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrganizationRequest'
+      responses:
+        '200':
+          description: Organisation mise à jour avec succès
+
+    delete:
+      tags:
+        - Organizations
+      summary: Supprimer une organisation
+      description: Supprime une organisation (MSP Admin uniquement)
+      operationId: deleteOrganization
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Organisation supprimée avec succès
+
+  /api/teams:
+    get:
+      tags:
+        - Teams
+      summary: Liste des équipes
+      description: Récupère la liste des équipes selon les permissions utilisateur
+      operationId: getTeams
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: organization_id
+          in: query
+          description: Filtrer par ID d'organisation
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Liste des équipes
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Team'
+
+    post:
+      tags:
+        - Teams
+      summary: Créer une équipe
+      description: Crée une nouvelle équipe
+      operationId: createTeam
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTeamRequest'
+      responses:
+        '201':
+          description: Équipe créée avec succès
+
+  /api/teams/{id}:
+    get:
+      tags:
+        - Teams
+      summary: Détails d'une équipe
+      description: Récupère les détails d'une équipe
+      operationId: getTeamById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Détails de l'équipe
+
+    put:
+      tags:
+        - Teams
+      summary: Mettre à jour une équipe
+      description: Met à jour une équipe
+      operationId: updateTeam
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Équipe mise à jour avec succès
+
+    delete:
+      tags:
+        - Teams
+      summary: Supprimer une équipe
+      description: Supprime une équipe
+      operationId: deleteTeam
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Équipe supprimée avec succès
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Token JWT d'authentification. Format: `Bearer <token>`
+
+        Pour le développement, vous pouvez utiliser le token `dev` qui vous donnera des privilèges administrateur MSP.
+
+  schemas:
+    # Réponses standardisées
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Opération réussie"
+      required:
+        - success
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "Message d'erreur descriptif"
+        code:
+          type: string
+          example: "ERROR_CODE"
+          description: "Code d'erreur pour identification programmatique"
+      required:
+        - success
+        - error
+        - code
+
+    # Health Check
+    HealthResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            message:
+              type: string
+              example: "API MSP Platform is running"
+            timestamp:
+              type: string
+              format: date-time
+              example: "2025-01-24T01:15:30.000Z"
+            version:
+              type: string
+              example: "1.0.0"
+            environment:
+              type: string
+              enum: [development, production, test]
+              example: "development"
+
+    # Documentation API
+    ApiDocumentationResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            message:
+              type: string
+              example: "API MSP Platform - Endpoints disponibles"
+            version:
+              type: string
+              example: "1.0.0"
+            endpoints:
+              type: object
+              description: "Structure des endpoints disponibles"
+            authentication:
+              type: string
+              example: "Bearer Token required for all /api/* endpoints except /api/auth/login"
+            cors:
+              type: object
+              properties:
+                allowed_origins:
+                  type: array
+                  items:
+                    type: string
+                credentials:
+                  type: boolean
+
+    # Authentification
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: "admin@msp.com"
+        password:
+          type: string
+          format: password
+          example: "motdepasse123"
+      required:
+        - email
+        - password
+
+    LoginResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                token:
+                  type: string
+                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                user:
+                  $ref: '#/components/schemas/User'
+                expires_in:
+                  type: string
+                  example: "24h"
+
+    # Utilisateurs
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        email:
+          type: string
+          format: email
+          example: "utilisateur@exemple.com"
+        first_name:
+          type: string
+          example: "Jean"
+        last_name:
+          type: string
+          example: "Dupont"
+        is_msp_admin:
+          type: boolean
+          description: "Indique si l'utilisateur est administrateur MSP"
+          example: false
+        default_organization_id:
+          type: string
+          format: uuid
+          nullable: true
+          example: "456e7890-e89b-12d3-a456-426614174001"
+        default_team_id:
+          type: string
+          format: uuid
+          nullable: true
+          example: "789e0123-e89b-12d3-a456-426614174002"
+        organization:
+          allOf:
+            - $ref: '#/components/schemas/Organization'
+            - nullable: true
+        team:
+          allOf:
+            - $ref: '#/components/schemas/Team'
+            - nullable: true
+        metadata:
+          type: object
+          description: "Métadonnées utilisateur (téléphone, département, etc.)"
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-01-24T01:15:30.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-01-24T01:15:30.000Z"
+      required:
+        - id
+        - email
+
+    CreateUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: "nouvel.utilisateur@exemple.com"
+        first_name:
+          type: string
+          example: "Nouvel"
+        last_name:
+          type: string
+          example: "Utilisateur"
+        organization_id:
+          type: string
+          format: uuid
+          example: "456e7890-e89b-12d3-a456-426614174001"
+        team_id:
+          type: string
+          format: uuid
+          example: "789e0123-e89b-12d3-a456-426614174002"
+        phone:
+          type: string
+          example: "+33 1 23 45 67 89"
+        role:
+          type: string
+          example: "Développeur"
+        department:
+          type: string
+          example: "IT"
+        position:
+          type: string
+          example: "Développeur Senior"
+        status:
+          type: string
+          enum: [active, inactive, pending]
+          example: "active"
+      required:
+        - email
+        - first_name
+        - last_name
+        - organization_id
+        - team_id
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+        organization_id:
+          type: string
+          format: uuid
+          description: "Seuls les administrateurs MSP peuvent modifier"
+        team_id:
+          type: string
+          format: uuid
+          description: "Seuls les administrateurs MSP peuvent modifier"
+        is_msp_admin:
+          type: boolean
+          description: "Seuls les administrateurs MSP peuvent modifier"
+        phone:
+          type: string
+        role:
+          type: string
+        department:
+          type: string
+        position:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, pending]
+
+    # Organisations
+    Organization:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "456e7890-e89b-12d3-a456-426614174001"
+        name:
+          type: string
+          example: "ACME Corporation"
+        description:
+          type: string
+          example: "Entreprise de solutions technologiques"
+        website:
+          type: string
+          format: uri
+          example: "https://www.acme.com"
+        contact_email:
+          type: string
+          format: email
+          example: "contact@acme.com"
+        address:
+          type: string
+          example: "123 Rue de la Tech, 75001 Paris"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+
+    CreateOrganizationRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Nouvelle Organisation"
+        description:
+          type: string
+        website:
+          type: string
+          format: uri
+        contact_email:
+          type: string
+          format: email
+        address:
+          type: string
+      required:
+        - name
+
+    UpdateOrganizationRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        website:
+          type: string
+          format: uri
+        contact_email:
+          type: string
+          format: email
+        address:
+          type: string
+
+    # Équipes
+    Team:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "789e0123-e89b-12d3-a456-426614174002"
+        name:
+          type: string
+          example: "Équipe Développement"
+        description:
+          type: string
+          example: "Équipe responsable du développement logiciel"
+        organization_id:
+          type: string
+          format: uuid
+          example: "456e7890-e89b-12d3-a456-426614174001"
+        organization:
+          allOf:
+            - $ref: '#/components/schemas/Organization'
+            - nullable: true
+        members_count:
+          type: integer
+          example: 5
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - organization_id
+
+    CreateTeamRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Nouvelle Équipe"
+        description:
+          type: string
+        organization_id:
+          type: string
+          format: uuid
+      required:
+        - name
+        - organization_id
+
+# Tags pour organiser la documentation
+tags:
+  - name: Health
+    description: Endpoints de vérification de santé du serveur
+  - name: Documentation
+    description: Documentation auto-générée de l'API
+  - name: Authentication
+    description: Gestion de l'authentification et des sessions
+  - name: Users
+    description: Gestion des utilisateurs MSP et clients
+  - name: Organizations
+    description: Gestion des organisations clientes
+  - name: Teams
+    description: Gestion des équipes au sein des organisations

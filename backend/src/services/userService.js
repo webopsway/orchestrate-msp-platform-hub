@@ -47,9 +47,7 @@ export class UserService {
         .select(`
           *,
           organization:organizations(id, name),
-          team:teams(id, name),
-          organization_memberships(organization_id, role),
-          team_memberships(team_id, role)
+          team:teams(id, name)
         `)
         .order('created_at', { ascending: false });
 

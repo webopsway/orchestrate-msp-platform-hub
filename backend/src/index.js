@@ -12,6 +12,9 @@ import userRoutes from './routes/users.js';
 // Import des middleware
 import { authMiddleware } from './middleware/auth.js';
 
+// Import de la configuration Swagger
+import { addOpenApiHeaders, setupSwagger } from './swagger.js';
+
 // Configuration
 dotenv.config();
 
@@ -24,9 +27,12 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
   'http://localhost:3001'
 ];
 
+// Ajouter localhost:3002 pour la documentation Swagger
+allowedOrigins.push('http://localhost:3002');
+
 const corsOptions = {
   origin: (origin, callback) => {
-    // Permettre les requêtes sans origin (mobile apps, etc.)
+    // Permettre les requêtes sans origin (mobile apps, curl, Postman, etc.)
     if (!origin) return callback(null, true);
 
     // Vérifier si l'origin est autorisée
@@ -49,23 +55,25 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 };
 
-// Middleware de sécurité
+// Middleware de sécurité (configuration allégée pour le développement)
 app.use(helmet({
   crossOriginEmbedderPolicy: false,
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
+      styleSrc: ["'self'", "'unsafe-inline'", "data:"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'", "data:"],
     },
   },
 }));
 
-// Rate limiting
+// Rate limiting (exclure les routes de documentation)
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // Limite par IP
@@ -76,9 +84,15 @@ const limiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Exclure les routes de documentation du rate limiting
+    return req.path.startsWith('/api-docs') ||
+           req.path.startsWith('/docs') ||
+           req.path === '/health';
+  }
 });
 
-// Appliquer le rate limiting
+// Appliquer le rate limiting seulement aux routes API
 app.use('/api/', limiter);
 
 // Middleware général
@@ -87,6 +101,12 @@ app.use(compression());
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Ajouter les headers OpenAPI à toutes les réponses
+app.use(addOpenApiHeaders);
+
+// Configuration de la documentation Swagger AVANT les autres routes
+setupSwagger(app);
 
 // Health check endpoint (sans authentification)
 app.get('/health', (req, res) => {
@@ -99,12 +119,17 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Documentation API simple
+// Documentation API simple (maintenue pour compatibilité)
 app.get('/api', (req, res) => {
   res.json({
     success: true,
     message: 'API MSP Platform - Endpoints disponibles',
     version: '1.0.0',
+    documentation: {
+      swagger_ui: '/api-docs',
+      openapi_json: '/api-docs.json',
+      openapi_yaml: '/api-docs.yaml'
+    },
     endpoints: {
       health: 'GET /health',
       auth: {
@@ -187,7 +212,8 @@ app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
     error: `Route ${req.method} ${req.originalUrl} non trouvée`,
-    code: 'ROUTE_NOT_FOUND'
+    code: 'ROUTE_NOT_FOUND',
+    hint: 'Consultez la documentation API à /api-docs pour les endpoints disponibles'
   });
 });
 
@@ -196,7 +222,8 @@ app.listen(PORT, () => {
   console.log(`🚀 API MSP Platform démarrée sur le port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📋 Health check: http://localhost:${PORT}/health`);
-  console.log(`📚 API docs: http://localhost:${PORT}/api`);
+  console.log(`📚 API docs: http://localhost:${PORT}/api-docs`);
+  console.log(`📄 OpenAPI spec: http://localhost:${PORT}/api-docs.json`);
   console.log(`🔐 CORS autorisé pour: ${allowedOrigins.join(', ')}`);
 });
 

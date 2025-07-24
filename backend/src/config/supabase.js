@@ -12,6 +12,8 @@ const isTestMode = !supabaseUrl || !supabaseServiceKey || !supabaseAnonKey ||
                    supabaseUrl.includes('temp-project') ||
                    supabaseServiceKey.includes('temp-');
 
+let supabaseAdmin, supabaseClient, createUserClient;
+
 if (isTestMode) {
   console.log('⚠️  Mode TEST activé - Variables Supabase manquantes ou temporaires');
   console.log('📝 Pour une utilisation complète, configurez vos vraies variables Supabase dans backend/.env');
@@ -30,13 +32,15 @@ if (isTestMode) {
     }
   };
 
-  export const supabaseAdmin = mockClient;
-  export const supabaseClient = mockClient;
-  export const createUserClient = () => mockClient;
+  supabaseAdmin = mockClient;
+  supabaseClient = mockClient;
+  createUserClient = () => mockClient;
 } else {
+  console.log('✅ Mode PRODUCTION activé - Variables Supabase configurées');
+
   // Configuration normale avec vraies variables Supabase
   // Client avec service key (bypass RLS) pour les opérations admin
-  export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
@@ -44,10 +48,10 @@ if (isTestMode) {
   });
 
   // Client avec anon key (respecte RLS) pour les opérations utilisateurs
-  export const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+  supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 
   // Fonction pour créer un client avec un token utilisateur spécifique
-  export const createUserClient = (accessToken) => {
+  createUserClient = (accessToken) => {
     return createClient(supabaseUrl, supabaseAnonKey, {
       global: {
         headers: {
@@ -58,9 +62,12 @@ if (isTestMode) {
   };
 }
 
+// Export des clients
+export { createUserClient, supabaseAdmin, supabaseClient };
+
 export default {
-  admin: isTestMode ? supabaseAdmin : supabaseAdmin,
-  client: isTestMode ? supabaseClient : supabaseClient,
-  createUserClient: isTestMode ? createUserClient : createUserClient,
+  admin: supabaseAdmin,
+  client: supabaseClient,
+  createUserClient: createUserClient,
   isTestMode
 };
