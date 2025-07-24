@@ -24,11 +24,9 @@ const PORT = process.env.PORT || 3002;
 // Configuration CORS
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
   'http://localhost:3000',
-  'http://localhost:3001'
+  'http://localhost:3001',
+  'http://localhost:3002' // Ajout pour Swagger UI
 ];
-
-// Ajouter localhost:3002 pour la documentation Swagger
-allowedOrigins.push('http://localhost:3002');
 
 const corsOptions = {
   origin: (origin, callback) => {
@@ -108,15 +106,28 @@ app.use(addOpenApiHeaders);
 // Configuration de la documentation Swagger AVANT les autres routes
 setupSwagger(app);
 
-// Health check endpoint (sans authentification)
+// Endpoint de santé avec headers CORS pour Swagger
 app.get('/health', (req, res) => {
-  res.json({
+  // Headers CORS spécifiques pour Swagger UI
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  const healthInfo = {
     success: true,
     message: 'API MSP Platform is running',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
-    environment: process.env.NODE_ENV || 'development'
-  });
+    environment: process.env.NODE_ENV || 'development',
+    uptime: process.uptime(),
+    documentation: {
+      swagger_ui: '/api-docs',
+      openapi_json: '/api-docs.json',
+      health_check: '/health'
+    }
+  };
+
+  res.json(healthInfo);
 });
 
 // Documentation API simple (maintenue pour compatibilité)

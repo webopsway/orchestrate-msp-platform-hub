@@ -1,6 +1,6 @@
 import swaggerUi from 'swagger-ui-express';
 
-// Spécification OpenAPI complète et optimisée
+// Spécification OpenAPI complète
 const openApiSpec = {
   openapi: '3.0.3',
   info: {
@@ -69,7 +69,16 @@ Ce token vous donnera des privilèges administrateur MSP complets.
                     message: { type: 'string', example: 'API MSP Platform is running' },
                     timestamp: { type: 'string', format: 'date-time', example: '2025-01-24T01:15:30.000Z' },
                     version: { type: 'string', example: '1.0.0' },
-                    environment: { type: 'string', example: 'development' }
+                    environment: { type: 'string', example: 'development' },
+                    uptime: { type: 'number', example: 3600.5, description: 'Temps de fonctionnement en secondes' },
+                    documentation: {
+                      type: 'object',
+                      properties: {
+                        swagger_ui: { type: 'string', example: '/api-docs' },
+                        openapi_json: { type: 'string', example: '/api-docs.json' },
+                        health_check: { type: 'string', example: '/health' }
+                      }
+                    }
                   }
                 }
               }
@@ -173,234 +182,6 @@ curl -H "Authorization: Bearer dev" "http://localhost:3002/api/users?team_id=uui
           '401': { $ref: '#/components/responses/Unauthorized' },
           '403': { $ref: '#/components/responses/Forbidden' }
         }
-      },
-      post: {
-        tags: ['👥 Gestion des Utilisateurs'],
-        summary: 'Créer un utilisateur',
-        description: `
-### ➕ Création d'un nouvel utilisateur
-
-**⚠️ Permissions requises :** Administrateur MSP uniquement
-
-L'utilisateur sera automatiquement associé à l'organisation et équipe spécifiées.
-
-### 🧪 Exemple de test avec curl
-
-\`\`\`bash
-curl -X POST http://localhost:3002/api/users \\
-  -H "Authorization: Bearer dev" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "email": "nouvel.utilisateur@exemple.com",
-    "first_name": "Nouvel",
-    "last_name": "Utilisateur",
-    "organization_id": "test-org-1",
-    "team_id": "test-team-1",
-    "role": "Développeur",
-    "department": "IT",
-    "position": "Développeur Senior",
-    "status": "active"
-  }'
-\`\`\`
-        `,
-        operationId: 'createUser',
-        security: [{ bearerAuth: [] }],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: { $ref: '#/components/schemas/CreateUserRequest' }
-            }
-          }
-        },
-        responses: {
-          '201': {
-            description: '✅ Utilisateur créé avec succès',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    success: { type: 'boolean', example: true },
-                    data: { $ref: '#/components/schemas/User' },
-                    message: { type: 'string', example: 'Utilisateur créé avec succès' }
-                  }
-                }
-              }
-            }
-          },
-          '400': { $ref: '#/components/responses/BadRequest' },
-          '401': { $ref: '#/components/responses/Unauthorized' },
-          '403': { $ref: '#/components/responses/Forbidden' }
-        }
-      }
-    },
-    '/api/users/{id}': {
-      get: {
-        tags: ['👥 Gestion des Utilisateurs'],
-        summary: 'Détails d\'un utilisateur',
-        description: `
-### 👤 Récupération des détails d'un utilisateur
-
-**Permissions :**
-- **MSP Admin** : Voir n'importe quel utilisateur
-- **Utilisateur normal** : Voir son propre profil ou les membres de son équipe
-
-### 🧪 Exemple de test avec curl
-
-\`\`\`bash
-curl -H "Authorization: Bearer dev" http://localhost:3002/api/users/test-user-1
-\`\`\`
-        `,
-        operationId: 'getUserById',
-        security: [{ bearerAuth: [] }],
-        parameters: [
-          {
-            name: 'id',
-            in: 'path',
-            required: true,
-            description: '🎯 ID unique de l\'utilisateur',
-            schema: { type: 'string', format: 'uuid' },
-            example: '123e4567-e89b-12d3-a456-426614174000'
-          }
-        ],
-        responses: {
-          '200': {
-            description: '✅ Détails de l\'utilisateur',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    success: { type: 'boolean', example: true },
-                    data: { $ref: '#/components/schemas/User' }
-                  }
-                }
-              }
-            }
-          },
-          '401': { $ref: '#/components/responses/Unauthorized' },
-          '403': { $ref: '#/components/responses/Forbidden' },
-          '404': { $ref: '#/components/responses/NotFound' }
-        }
-      },
-      put: {
-        tags: ['👥 Gestion des Utilisateurs'],
-        summary: 'Mettre à jour un utilisateur',
-        description: `
-### ✏️ Mise à jour d'un utilisateur
-
-**Permissions :**
-- **MSP Admin** : Modifier n'importe quel utilisateur
-- **Utilisateur normal** : Modifier seulement son propre profil (avec restrictions)
-
-### 🔒 Champs protégés (MSP Admin uniquement)
-- \`is_msp_admin\`
-- \`default_organization_id\`
-- \`default_team_id\`
-
-### 🧪 Exemple de test avec curl
-
-\`\`\`bash
-curl -X PUT http://localhost:3002/api/users/test-user-1 \\
-  -H "Authorization: Bearer dev" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "first_name": "Prénom Modifié",
-    "department": "DevOps",
-    "position": "Lead DevOps"
-  }'
-\`\`\`
-        `,
-        operationId: 'updateUser',
-        security: [{ bearerAuth: [] }],
-        parameters: [
-          {
-            name: 'id',
-            in: 'path',
-            required: true,
-            description: '🎯 ID unique de l\'utilisateur',
-            schema: { type: 'string', format: 'uuid' }
-          }
-        ],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: { $ref: '#/components/schemas/UpdateUserRequest' }
-            }
-          }
-        },
-        responses: {
-          '200': {
-            description: '✅ Utilisateur mis à jour avec succès',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    success: { type: 'boolean', example: true },
-                    data: { $ref: '#/components/schemas/User' },
-                    message: { type: 'string', example: 'Utilisateur mis à jour avec succès' }
-                  }
-                }
-              }
-            }
-          },
-          '400': { $ref: '#/components/responses/BadRequest' },
-          '401': { $ref: '#/components/responses/Unauthorized' },
-          '403': { $ref: '#/components/responses/Forbidden' },
-          '404': { $ref: '#/components/responses/NotFound' }
-        }
-      },
-      delete: {
-        tags: ['👥 Gestion des Utilisateurs'],
-        summary: 'Supprimer un utilisateur',
-        description: `
-### 🗑️ Suppression d'un utilisateur
-
-**⚠️ Permissions requises :** Administrateur MSP uniquement
-
-**🚫 Restrictions :** Un utilisateur ne peut pas supprimer son propre compte.
-
-### 🧪 Exemple de test avec curl
-
-\`\`\`bash
-curl -X DELETE http://localhost:3002/api/users/test-user-2 \\
-  -H "Authorization: Bearer dev"
-\`\`\`
-        `,
-        operationId: 'deleteUser',
-        security: [{ bearerAuth: [] }],
-        parameters: [
-          {
-            name: 'id',
-            in: 'path',
-            required: true,
-            description: '🎯 ID unique de l\'utilisateur',
-            schema: { type: 'string', format: 'uuid' }
-          }
-        ],
-        responses: {
-          '200': {
-            description: '✅ Utilisateur supprimé avec succès',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    success: { type: 'boolean', example: true },
-                    message: { type: 'string', example: 'Utilisateur supprimé avec succès' }
-                  }
-                }
-              }
-            }
-          },
-          '400': { $ref: '#/components/responses/BadRequest' },
-          '401': { $ref: '#/components/responses/Unauthorized' },
-          '403': { $ref: '#/components/responses/Forbidden' },
-          '404': { $ref: '#/components/responses/NotFound' }
-        }
       }
     }
   },
@@ -460,164 +241,14 @@ En production, obtenez un vrai token JWT via \`POST /api/auth/login\`.
             description: '🔐 Indique si l\'utilisateur est administrateur MSP',
             example: false
           },
-          default_organization_id: {
-            type: 'string',
-            format: 'uuid',
-            nullable: true,
-            description: 'ID de l\'organisation par défaut',
-            example: '456e7890-e89b-12d3-a456-426614174001'
-          },
-          default_team_id: {
-            type: 'string',
-            format: 'uuid',
-            nullable: true,
-            description: 'ID de l\'équipe par défaut',
-            example: '789e0123-e89b-12d3-a456-426614174002'
-          },
-          organization: {
-            type: 'object',
-            nullable: true,
-            description: '🏢 Organisation associée',
-            properties: {
-              id: { type: 'string', format: 'uuid' },
-              name: { type: 'string', example: 'ACME Corporation' }
-            }
-          },
-          team: {
-            type: 'object',
-            nullable: true,
-            description: '👨‍👩‍👧‍👦 Équipe associée',
-            properties: {
-              id: { type: 'string', format: 'uuid' },
-              name: { type: 'string', example: 'Équipe Développement' }
-            }
-          },
-          metadata: {
-            type: 'object',
-            description: '📊 Métadonnées utilisateur (téléphone, département, etc.)',
-            properties: {
-              role: { type: 'string', example: 'Développeur', description: 'Rôle de l\'utilisateur' },
-              department: { type: 'string', example: 'IT', description: 'Département' },
-              phone: { type: 'string', example: '+33 1 23 45 67 89', description: 'Téléphone' },
-              position: { type: 'string', example: 'Développeur Senior', description: 'Poste' },
-              status: { type: 'string', example: 'active', description: 'Statut du compte' }
-            }
-          },
           created_at: {
             type: 'string',
             format: 'date-time',
             description: 'Date de création du compte',
             example: '2025-01-24T01:15:30.000Z'
-          },
-          updated_at: {
-            type: 'string',
-            format: 'date-time',
-            description: 'Date de dernière modification',
-            example: '2025-01-24T01:15:30.000Z'
           }
         },
-        required: ['id', 'email']
-      },
-      CreateUserRequest: {
-        type: 'object',
-        description: '➕ Données requises pour créer un nouvel utilisateur',
-        required: ['email', 'first_name', 'last_name', 'organization_id', 'team_id'],
-        properties: {
-          email: {
-            type: 'string',
-            format: 'email',
-            description: 'Adresse email unique',
-            example: 'nouvel.utilisateur@exemple.com'
-          },
-          first_name: {
-            type: 'string',
-            description: 'Prénom',
-            example: 'Nouvel'
-          },
-          last_name: {
-            type: 'string',
-            description: 'Nom de famille',
-            example: 'Utilisateur'
-          },
-          organization_id: {
-            type: 'string',
-            format: 'uuid',
-            description: '🏢 ID de l\'organisation à associer',
-            example: '456e7890-e89b-12d3-a456-426614174001'
-          },
-          team_id: {
-            type: 'string',
-            format: 'uuid',
-            description: '👥 ID de l\'équipe à associer',
-            example: '789e0123-e89b-12d3-a456-426614174002'
-          },
-          phone: {
-            type: 'string',
-            description: 'Numéro de téléphone',
-            example: '+33 1 23 45 67 89'
-          },
-          role: {
-            type: 'string',
-            description: 'Rôle de l\'utilisateur',
-            example: 'Développeur'
-          },
-          department: {
-            type: 'string',
-            description: 'Département',
-            example: 'IT'
-          },
-          position: {
-            type: 'string',
-            description: 'Poste/fonction',
-            example: 'Développeur Senior'
-          },
-          status: {
-            type: 'string',
-            enum: ['active', 'inactive', 'pending'],
-            description: 'Statut du compte',
-            example: 'active'
-          }
-        }
-      },
-      UpdateUserRequest: {
-        type: 'object',
-        description: '✏️ Données modifiables d\'un utilisateur',
-        properties: {
-          email: {
-            type: 'string',
-            format: 'email',
-            description: 'Nouvelle adresse email'
-          },
-          first_name: {
-            type: 'string',
-            description: 'Nouveau prénom'
-          },
-          last_name: {
-            type: 'string',
-            description: 'Nouveau nom de famille'
-          },
-          phone: {
-            type: 'string',
-            description: 'Nouveau numéro de téléphone'
-          },
-          role: {
-            type: 'string',
-            description: 'Nouveau rôle'
-          },
-          department: {
-            type: 'string',
-            description: 'Nouveau département'
-          },
-          position: {
-            type: 'string',
-            description: 'Nouveau poste'
-          },
-          status: {
-            type: 'string',
-            enum: ['active', 'inactive', 'pending'],
-            description: 'Nouveau statut'
-          }
-        }
+        required: ['id', 'email', 'first_name', 'last_name']
       }
     },
     responses: {
@@ -650,36 +281,6 @@ En production, obtenez un vrai token JWT via \`POST /api/auth/login\`.
             }
           }
         }
-      },
-      NotFound: {
-        description: '❌ Ressource non trouvée',
-        content: {
-          'application/json': {
-            schema: {
-              type: 'object',
-              properties: {
-                success: { type: 'boolean', example: false },
-                error: { type: 'string', example: 'Utilisateur non trouvé' },
-                code: { type: 'string', example: 'USER_NOT_FOUND' }
-              }
-            }
-          }
-        }
-      },
-      BadRequest: {
-        description: '⚠️ Données invalides ou manquantes',
-        content: {
-          'application/json': {
-            schema: {
-              type: 'object',
-              properties: {
-                success: { type: 'boolean', example: false },
-                error: { type: 'string', example: 'Champs obligatoires manquants: email, first_name' },
-                code: { type: 'string', example: 'VALIDATION_ERROR' }
-              }
-            }
-          }
-        }
       }
     }
   },
@@ -699,7 +300,7 @@ En production, obtenez un vrai token JWT via \`POST /api/auth/login\`.
   ]
 };
 
-// Configuration Swagger UI optimisée pour le développement local sans erreurs SSL
+// Configuration Swagger UI optimisée pour CORRIGER les erreurs SSL
 const swaggerOptions = {
   customCss: `
     .swagger-ui .topbar { display: none; }
@@ -789,6 +390,9 @@ const swaggerOptions = {
   customSiteTitle: '🚀 MSP Platform API - Documentation Interactive',
   customfavIcon: '/favicon.ico',
   swaggerOptions: {
+    // CORRECTION SSL: Configuration explicite pour HTTP local
+    url: 'http://localhost:3002/api-docs.json',
+    validatorUrl: null, // Désactiver la validation externe qui peut causer des erreurs SSL
     defaultModelsExpandDepth: 3,
     defaultModelExpandDepth: 3,
     docExpansion: 'list',
@@ -801,68 +405,101 @@ const swaggerOptions = {
     deepLinking: true,
     showExtensions: true,
     showCommonExtensions: true,
+    // Forcer l'utilisation de HTTP pour toutes les requêtes
     requestInterceptor: (request) => {
+      // S'assurer que toutes les requêtes utilisent HTTP
+      if (request.url && request.url.startsWith('https://localhost')) {
+        request.url = request.url.replace('https://localhost', 'http://localhost');
+      }
+
       // Auto-ajouter le token dev en développement si aucun token n'est présent
       if (process.env.NODE_ENV === 'development' && !request.headers.Authorization) {
         request.headers.Authorization = 'Bearer dev';
         console.log('🔧 Token de développement ajouté automatiquement');
       }
       return request;
+    },
+    // Intercepter les réponses pour debug
+    responseInterceptor: (response) => {
+      console.log('📡 Réponse Swagger:', response.status, response.url);
+      return response;
     }
   }
 };
 
 /**
- * Configuration et middleware Swagger pour Express - OPTIMISÉ POUR DÉVELOPPEMENT LOCAL
+ * Configuration Swagger optimisée pour corriger les erreurs SSL en développement local
  */
 export const setupSwagger = (app) => {
-  // Route pour la spécification OpenAPI (JSON) avec headers CORS
-  app.get('/api-docs.json', (req, res) => {
-    res.setHeader('Content-Type', 'application/json');
+  // Middleware CORS global pour toutes les routes Swagger
+  app.use('/api-docs*', (req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.json(openApiSpec);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.setHeader('Access-Control-Allow-Credentials', 'false');
+
+    // Forcer HTTP et désactiver les headers sécurisés qui causent des problèmes
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
+    next();
   });
 
-  // Interface Swagger UI avec configuration locale
-  app.use('/api-docs', (req, res, next) => {
-    // Headers CORS pour Swagger UI
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    next();
-  }, swaggerUi.serve);
+  // Route pour la spécification OpenAPI (JSON) - CORRECTION SSL
+  app.get('/api-docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
 
-  app.get('/api-docs', swaggerUi.setup(openApiSpec, swaggerOptions));
+    // Modifier la spécification pour forcer HTTP en développement
+    const spec = { ...openApiSpec };
+    if (process.env.NODE_ENV === 'development') {
+      spec.servers = [
+        { url: 'http://localhost:3002', description: '🔧 Serveur de développement local (HTTP)' }
+      ];
+    }
+
+    res.json(spec);
+  });
+
+  // Interface Swagger UI avec configuration locale anti-SSL
+  app.use('/api-docs', swaggerUi.serve);
+  app.get('/api-docs', swaggerUi.setup(openApiSpec, {
+    ...swaggerOptions,
+    // Configuration supplémentaire pour corriger SSL
+    swaggerOptions: {
+      ...swaggerOptions.swaggerOptions,
+      // Forcer l'utilisation locale et désactiver les validations externes
+      plugins: [
+        () => ({
+          statePlugins: {
+            spec: {
+              wrapSelectors: {
+                allowTryItOutFor: () => () => true
+              }
+            }
+          }
+        })
+      ]
+    }
+  }));
 
   // Redirection depuis /docs vers /api-docs pour compatibilité
   app.get('/docs', (req, res) => {
     res.redirect('/api-docs');
   });
 
-  console.log('📚 Documentation Swagger configurée avec succès:');
+  console.log('📚 Documentation Swagger configurée avec correction SSL:');
   console.log('   📖 Interface HTML interactive: http://localhost:3002/api-docs');
   console.log('   📄 Spécification JSON:         http://localhost:3002/api-docs.json');
   console.log('   🔗 Raccourci:                  http://localhost:3002/docs');
   console.log('   🔧 Token dev auto-configuré pour les tests');
-  console.log('   ✅ Configuration SSL locale optimisée');
+  console.log('   ✅ Configuration HTTP locale (pas de SSL)');
+  console.log('   🛡️  CORS et validations externes désactivées');
 };
 
-/**
- * Middleware pour ajouter les headers OpenAPI aux réponses
- */
-export const addOpenApiHeaders = (req, res, next) => {
-  // Headers pour la documentation et CORS
-  res.set({
-    'X-API-Docs': '/api-docs',
-    'X-OpenAPI-Spec': '/api-docs.json',
-    'X-API-Version': openApiSpec.info.version,
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With'
-  });
-  next();
-};
-
-export default { setupSwagger, addOpenApiHeaders, openApiSpec };
+export default { setupSwagger, openApiSpec };
